@@ -1,0 +1,169 @@
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  copyFileSync,
+} from "fs";
+import { join } from "path";
+import {
+  Volunteer,
+  VolunteerIndex,
+  VolunteerIndexEntry,
+  SaveResult,
+} from "@shared/types";
+
+export class VolunteerFileService {
+  constructor(
+    private volunteersPath: string,
+    private indexPath: string,
+    private backupsPath: string,
+  ) {
+    mkdirSync(this.volunteersPath, { recursive: true });
+    mkdirSync(this.backupsPath, { recursive: true });
+  }
+
+  // ────────────────────────────────────────────
+  // Index
+  // ────────────────────────────────────────────
+
+  readIndex(): VolunteerIndex {
+    if (!existsSync(this.indexPath)) {
+      return {
+        _version: 0,
+        _updatedAt: new Date().toISOString(),
+        volunteers: [],
+      };
+    }
+    try {
+      const raw = readFileSync(this.indexPath, "utf-8");
+      return JSON.parse(raw) as VolunteerIndex;
+    } catch {
+      return {
+        _version: 0,
+        _updatedAt: new Date().toISOString(),
+        volunteers: [],
+      };
+    }
+  }
+
+  private writeIndex(index: VolunteerIndex): void {
+    index._updatedAt = new Date().toISOString();
+    writeFileSync(this.indexPath, JSON.stringify(index, null, 2), "utf-8");
+  }
+
+  private updateIndexEntry(volunteer: Volunteer): void {
+    const index = this.readIndex();
+    const entry: VolunteerIndexEntry = {
+      id: volunteer.id,
+      firstName: volunteer.firstName,
+      lastName: volunteer.lastName,
+      dateOfBirth: volunteer.dateOfBirth,
+      status: volunteer.status,
+      roles: volunteer.roles,
+      _updatedAt: volunteer._updatedAt,
+    };
+    const existingIdx = index.volunteers.findIndex(
+      (v) => v.id === volunteer.id,
+    );
+    if (existingIdx >= 0) {
+      index.volunteers[existingIdx] = entry;
+    } else {
+      index.volunteers.push(entry);
+    }
+    index._version++;
+    this.writeIndex(index);
+  }
+
+  private removeFromIndex(id: string): void {
+    const index = this.readIndex();
+    index.volunteers = index.volunteers.filter((v) => v.id !== id);
+    index._version++;
+    this.writeIndex(index);
+  }
+
+  // ────────────────────────────────────────────
+  // Individual volunteer files
+  // ────────────────────────────────────────────
+
+  private volunteerFilePath(id: string): string {
+    return join(this.volunteersPath, `${id}.json`);
+  }
+
+  readVolunteer(id: string): Volunteer | null {
+    const filePath = this.volunteerFilePath(id);
+    if (!existsSync(filePath)) return null;
+    try {
+      const raw = readFileSync(filePath, "utf-8");
+      return JSON.parse(raw) as Volunteer;
+    } catch {
+      return null;
+    }
+  }
+
+  saveVolunteer(incoming: Volunteer): SaveResult {
+    const filePath = this.volunteerFilePath(incoming.id);
+
+    // Optimistic locking — if file exists, check version
+    if (existsSync(filePath)) {
+      const existing = this.readVolunteer(incoming.id);
+      if (existing && existing._version !== incoming._version) {
+        return {
+          success: false,
+          reason: "version-conflict",
+          message: `Version conflict: file has version ${existing._version}, you have ${incoming._version}. Please reload and retry.`,
+        };
+      }
+      // Backup before overwrite
+      this.createBackup(incoming.id);
+    }
+
+    try {
+      const toWrite: Volunteer = {
+        ...incoming,
+        _version: incoming._version + 1,
+        _updatedAt: new Date().toISOString(),
+      };
+      writeFileSync(filePath, JSON.stringify(toWrite, null, 2), "utf-8");
+      this.updateIndexEntry(toWrite);
+      return { success: true, volunteer: toWrite };
+    } catch (err) {
+      return {
+        success: false,
+        reason: "io-error",
+        message: String(err),
+      };
+    }
+  }
+
+  deleteVolunteer(id: string): void {
+    const filePath = this.volunteerFilePath(id);
+    if (existsSync(filePath)) {
+      this.createBackup(id);
+      // Soft-delete: rename to .deleted rather than hard remove
+      const deletedPath = filePath.replace(
+        ".json",
+        `.deleted.${Date.now()}.json`,
+      );
+      const { renameSync } = require("fs") as typeof import("fs");
+      renameSync(filePath, deletedPath);
+    }
+    this.removeFromIndex(id);
+  }
+
+  // ────────────────────────────────────────────
+  // Backups
+  // ────────────────────────────────────────────
+
+  private createBackup(id: string): void {
+    const source = this.volunteerFilePath(id);
+    if (!existsSync(source)) return;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const dest = join(this.backupsPath, `${id}_${timestamp}.json`);
+    try {
+      copyFileSync(source, dest);
+    } catch {
+      // non-fatal
+    }
+  }
+}

@@ -1,0 +1,240 @@
+.volunteer-detail {
+  max-width: 960px;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.detail-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.age-chip {
+  background: #ede9fe;
+  color: var(--color-reminder);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.success-msg {
+  color: var(--color-success);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.error-msg {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  font-weight: 600;
+  max-width: 300px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.mt {
+  margin-top: 4px;
+}
+
+/* Reminders */
+.reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  transition: opacity 0.2s;
+}
+
+.reminder-item--dismissed {
+  opacity: 0.5;
+}
+
+.reminder-item-icon {
+  color: var(--color-reminder);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.reminder-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reminder-item-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.reminder-item-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.reminder-item-msg {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.reminder-item-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.danger-ghost:hover {
+  color: var(--color-danger) !important;
+}
+
+/* Reminder form */
+.reminder-form {
+  background: #faf9ff;
+  border: 1px solid #c4b5fd;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.reminder-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.round-years {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.round-years-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.year-btn {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+}
+
+.reminder-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Activity log */
+.activity-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.hours-input {
+  max-width: 70px;
+}
+
+.activity-log {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 12px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.activity-date {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  min-width: 80px;
+}
+
+.activity-desc {
+  flex: 1;
+}
+
+.activity-hours {
+  font-size: 0.75rem;
+  color: var(--color-secondary);
+  font-weight: 600;
+}
+
+.loading {
+  padding: 40px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
