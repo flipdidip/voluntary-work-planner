@@ -6,6 +6,7 @@ import {
   Notification,
   nativeImage,
 } from "electron";
+import { existsSync } from "fs";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { registerVolunteerHandlers } from "./ipcHandlers";
@@ -16,6 +17,25 @@ import type { DueReminder } from "./reminderScheduler";
 let mainWindow: BrowserWindow | null = null;
 let reminderScheduler: ReminderScheduler | null = null;
 
+function getAppIconPath(): string | undefined {
+  const iconPath = is.dev
+    ? join(app.getAppPath(), "build", "icons", "app.ico")
+    : join(process.resourcesPath, "assets", "app.ico");
+
+  return existsSync(iconPath) ? iconPath : undefined;
+}
+
+function getNotificationIcon(): Electron.NativeImage | undefined {
+  const iconPath = is.dev
+    ? join(app.getAppPath(), "build", "icons", "notification.png")
+    : join(process.resourcesPath, "assets", "notification-icon.png");
+
+  if (!existsSync(iconPath)) return undefined;
+
+  const icon = nativeImage.createFromPath(iconPath);
+  return icon.isEmpty() ? undefined : icon;
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -25,6 +45,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     title: "Voluntary Work Planner",
+    icon: getAppIconPath(),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -73,7 +94,7 @@ app.whenReady().then(() => {
           const notification = new Notification({
             title: r.reminder.title,
             body: r.reminder.message,
-            icon: nativeImage.createEmpty(),
+            icon: getNotificationIcon(),
             urgency: "normal",
           });
           notification.show();

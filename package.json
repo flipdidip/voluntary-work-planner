@@ -43,6 +43,10 @@
     "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "eslint": "^9.14.0",
+    "ico": "^0.3.3",
+    "icojs": "^0.19.5",
+    "sharp": "^0.34.5",
+    "to-ico": "^1.1.5",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"
   },
@@ -53,7 +57,18 @@
     "directories": {
       "output": "release"
     },
+    "extraResources": [
+      {
+        "from": "build/icons/notification.png",
+        "to": "assets/notification-icon.png"
+      },
+      {
+        "from": "build/icons/app.ico",
+        "to": "assets/app.ico"
+      }
+    ],
     "win": {
+      "icon": "build/icons/app.ico",
       "target": [
         {
           "target": "nsis",
@@ -73,7 +88,10 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "installerIcon": "build/icons/app.ico",
+      "uninstallerIcon": "build/icons/app.ico",
+      "installerHeaderIcon": "build/icons/app.ico"
     },
     "publish": {
       "provider": "github",
