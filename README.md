@@ -6,6 +6,10 @@ Built for German _gemeinnützige Vereine_, particularly hospice and end-of-life 
 
 ---
 
+<p align="center">
+	<img src="build/icons/big_app.ico" alt="Voluntary Work Planner app icon" width="200" />
+</p>
+
 ## ✨ Features
 
 - 👥 **Volunteer registry** — manage all volunteer data in one place
