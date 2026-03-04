@@ -44,7 +44,7 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    title: "Voluntary Work Planner",
+    title: "Kleiner Stern",
     icon: getAppIconPath(),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),

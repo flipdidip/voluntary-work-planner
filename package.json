@@ -52,7 +52,7 @@
   },
   "build": {
     "appId": "de.ehrenamt.voluntaryworkplanner",
-    "productName": "Voluntary Work Planner",
+    "productName": "Kleiner Stern",
     "forceCodeSigning": false,
     "directories": {
       "output": "release"
