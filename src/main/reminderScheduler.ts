@@ -1,10 +1,9 @@
 import {
   differenceInYears,
+  differenceInCalendarDays,
   isToday,
   parseISO,
-  addDays,
-  isAfter,
-  isBefore,
+  startOfDay,
 } from "date-fns";
 import { Reminder, Volunteer, VolunteerIndex } from "@shared/types";
 import { VolunteerFileService } from "./volunteerFileService";
@@ -126,7 +125,10 @@ export class ReminderScheduler {
         if (!reminder.triggerDate) return false;
         const triggerDate = parseISO(reminder.triggerDate);
         // Due if trigger date is today or in the past (but not dismissed)
-        return !isAfter(triggerDate, addDays(now, 0)) || isToday(triggerDate);
+        return (
+          differenceInCalendarDays(triggerDate, now) <= 0 ||
+          isToday(triggerDate)
+        );
       }
 
       default:
@@ -143,11 +145,12 @@ export function getUpcomingReminders(
   volunteers: Volunteer[],
   daysAhead = 30,
 ): DueReminder[] {
-  const now = new Date();
-  const cutoff = addDays(now, daysAhead);
+  const today = startOfDay(new Date());
   const results: DueReminder[] = [];
 
   for (const v of volunteers) {
+    if (v.status === "archived") continue;
+
     for (const reminder of v.reminders) {
       if (reminder.dismissed) continue;
 
@@ -157,14 +160,15 @@ export function getUpcomingReminders(
         const dob = parseISO(v.dateOfBirth);
         // Next birthday this year
         const nextBirthday = new Date(
-          now.getFullYear(),
+          today.getFullYear(),
           dob.getMonth(),
           dob.getDate(),
         );
-        if (isBefore(nextBirthday, now)) {
-          nextBirthday.setFullYear(now.getFullYear() + 1);
+        if (differenceInCalendarDays(nextBirthday, today) < 0) {
+          nextBirthday.setFullYear(today.getFullYear() + 1);
         }
-        triggersSoon = isBefore(nextBirthday, cutoff);
+        const daysUntil = differenceInCalendarDays(nextBirthday, today);
+        triggersSoon = daysUntil >= 0 && daysUntil <= daysAhead;
       } else if (reminder.type === "birthday-round" && v.dateOfBirth) {
         const dob = parseISO(v.dateOfBirth);
         const roundYears = reminder.roundBirthdayYears ?? [
@@ -176,14 +180,16 @@ export function getUpcomingReminders(
             dob.getMonth(),
             dob.getDate(),
           );
-          if (!isBefore(roundDate, now) && isBefore(roundDate, cutoff)) {
+          const daysUntil = differenceInCalendarDays(roundDate, today);
+          if (daysUntil >= 0 && daysUntil <= daysAhead) {
             triggersSoon = true;
             break;
           }
         }
       } else if (reminder.type === "custom" && reminder.triggerDate) {
         const d = parseISO(reminder.triggerDate);
-        triggersSoon = !isBefore(d, now) && isBefore(d, cutoff);
+        const daysUntil = differenceInCalendarDays(d, today);
+        triggersSoon = daysUntil >= 0 && daysUntil <= daysAhead;
       }
 
       if (triggersSoon) {

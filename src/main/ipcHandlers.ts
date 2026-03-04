@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IPC, Volunteer, SaveResult } from "@shared/types";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
+import { getUpcomingReminders } from "./reminderScheduler";
 import { mkdirSync } from "fs";
 
 function getFileService(
@@ -92,8 +93,20 @@ export function registerVolunteerHandlers(
 
   // ── Reminders ─────────────────────────────────────────
   ipcMain.handle(IPC.GET_DUE_REMINDERS, () => {
-    // Scheduler pushes these proactively, but renderer can also pull
-    return [];
+    const svc = getFileService(settings);
+    if (!svc) return [];
+
+    const index = svc.readIndex();
+    const volunteers: Volunteer[] = [];
+
+    for (const entry of index.volunteers) {
+      if (entry.status === "archived") continue;
+      const volunteer = svc.readVolunteer(entry.id);
+      if (!volunteer) continue;
+      volunteers.push(volunteer);
+    }
+
+    return getUpcomingReminders(volunteers, 30);
   });
 
   ipcMain.handle(

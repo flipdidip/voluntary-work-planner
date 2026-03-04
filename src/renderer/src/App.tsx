@@ -6,6 +6,7 @@ import VolunteerList from "./pages/VolunteerList";
 import VolunteerDetail from "./pages/VolunteerDetail";
 import VolunteerNew from "./pages/VolunteerNew";
 import Settings from "./pages/Settings";
+import UpcomingEvents from "./pages/UpcomingEvents";
 import ReminderToast from "./components/ReminderToast";
 import { DueReminder } from "./hooks/useReminders";
 
@@ -35,6 +36,7 @@ export default function App(): JSX.Element {
           <Route path="/volunteers" element={<VolunteerList />} />
           <Route path="/volunteers/new" element={<VolunteerNew />} />
           <Route path="/volunteers/:id" element={<VolunteerDetail />} />
+          <Route path="/events" element={<UpcomingEvents />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>

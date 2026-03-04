@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Bell, Calendar, AlertTriangle, FolderOpen } from "lucide-react";
+import { Users, Bell, Calendar, FolderOpen } from "lucide-react";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
-import { format, parseISO, differenceInDays } from "date-fns";
+import {
+  format,
+  parseISO,
+  differenceInCalendarDays,
+  addYears,
+  startOfDay,
+} from "date-fns";
 import { de } from "date-fns/locale";
+import { DueReminder } from "../hooks/useReminders";
 import "./Dashboard.css";
 
 interface UpcomingEvent {
@@ -13,6 +20,19 @@ interface UpcomingEvent {
   label: string;
   daysUntil: number;
   date: string;
+}
+
+function getNextBirthdayDate(dateOfBirth: string, today: Date): Date {
+  const dob = parseISO(dateOfBirth);
+  const nextBirthday = new Date(
+    today.getFullYear(),
+    dob.getMonth(),
+    dob.getDate(),
+  );
+  if (differenceInCalendarDays(nextBirthday, today) < 0) {
+    return addYears(nextBirthday, 1);
+  }
+  return nextBirthday;
 }
 
 export default function Dashboard(): JSX.Element {
@@ -27,38 +47,82 @@ export default function Dashboard(): JSX.Element {
 
   useEffect(() => {
     if (!index) return;
-    const now = new Date();
-    const events: UpcomingEvent[] = [];
 
-    for (const v of index.volunteers) {
-      if (v.status === "archived") continue;
+    let cancelled = false;
 
-      if (v.dateOfBirth) {
-        const dob = parseISO(v.dateOfBirth);
-        const thisYearBirthday = new Date(
-          now.getFullYear(),
-          dob.getMonth(),
-          dob.getDate(),
-        );
-        if (thisYearBirthday < now)
-          thisYearBirthday.setFullYear(now.getFullYear() + 1);
-        const days = differenceInDays(thisYearBirthday, now);
-        if (days <= 30) {
-          const age = thisYearBirthday.getFullYear() - dob.getFullYear();
+    const loadUpcoming = async (): Promise<void> => {
+      const today = startOfDay(new Date());
+      const events: UpcomingEvent[] = [];
+
+      for (const v of index.volunteers) {
+        if (v.status === "archived" || !v.dateOfBirth) continue;
+
+        const nextBirthday = getNextBirthdayDate(v.dateOfBirth, today);
+        const daysUntil = differenceInCalendarDays(nextBirthday, today);
+
+        if (daysUntil >= 0 && daysUntil <= 30) {
+          const age =
+            nextBirthday.getFullYear() - parseISO(v.dateOfBirth).getFullYear();
           events.push({
             volunteerId: v.id,
             volunteerName: `${v.firstName} ${v.lastName}`,
             eventType: "birthday",
             label: `${age}. Geburtstag`,
-            daysUntil: days,
-            date: thisYearBirthday.toISOString(),
+            daysUntil,
+            date: format(nextBirthday, "yyyy-MM-dd"),
           });
         }
       }
-    }
 
-    events.sort((a, b) => a.daysUntil - b.daysUntil);
-    setUpcoming(events);
+      const dateOfBirthById = new Map(
+        index.volunteers.map((v) => [v.id, v.dateOfBirth]),
+      );
+
+      try {
+        const reminders = (await window.api.getDueReminders()) as DueReminder[];
+
+        for (const due of reminders) {
+          const reminder = due.reminder;
+          let reminderDate: Date | null = null;
+
+          if (reminder.type === "custom" && reminder.triggerDate) {
+            reminderDate = parseISO(reminder.triggerDate);
+          } else {
+            const dateOfBirth = dateOfBirthById.get(due.volunteerId);
+            if (dateOfBirth) {
+              reminderDate = getNextBirthdayDate(dateOfBirth, today);
+            }
+          }
+
+          if (!reminderDate) continue;
+
+          const daysUntil = differenceInCalendarDays(reminderDate, today);
+          if (daysUntil < 0 || daysUntil > 30) continue;
+
+          events.push({
+            volunteerId: due.volunteerId,
+            volunteerName: due.volunteerName,
+            eventType: "reminder",
+            label: reminder.title,
+            daysUntil,
+            date: format(reminderDate, "yyyy-MM-dd"),
+          });
+        }
+      } catch {
+        // Keep birthdays visible even if reminders fail
+      }
+
+      events.sort((a, b) => a.daysUntil - b.daysUntil);
+      if (!cancelled) {
+        setUpcoming(events);
+      }
+    };
+
+    loadUpcoming();
+
+    return () => {
+      cancelled = true;
+    };
   }, [index]);
 
   const activeCount =
@@ -124,7 +188,7 @@ export default function Dashboard(): JSX.Element {
           <div className="stat-value">{inactiveCount}</div>
           <div className="stat-label">Inaktiv</div>
         </div>
-        <div className="stat-card card">
+        <div className="stat-card card" onClick={() => navigate("/events")}>
           <div className="stat-icon stat-icon--purple">
             <Bell size={20} />
           </div>
