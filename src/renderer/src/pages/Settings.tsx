@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { FolderOpen, Save, Info } from "lucide-react";
+import { FolderOpen, Save, Info, Shield } from "lucide-react";
 import { AppSettings } from "@shared/types";
+import PrivacyPolicy from "../components/PrivacyPolicy";
 import "./Settings.css";
 
 export default function Settings(): JSX.Element {
@@ -11,6 +12,8 @@ export default function Settings(): JSX.Element {
   const [enableYearlyBirthday, setEnableYearlyBirthday] = useState(true);
   const [enableRoundBirthday, setEnableRoundBirthday] = useState(true);
   const [roundYears, setRoundYears] = useState<number[]>([50, 60, 70, 80, 90]);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [consentDate, setConsentDate] = useState<string | undefined>();
 
   useEffect(() => {
     window.api.getDataPath().then(setDataPath);
@@ -18,6 +21,7 @@ export default function Settings(): JSX.Element {
     window.api.getSettings().then((settings) => {
       setInterval(settings.reminderCheckIntervalMinutes);
       setEnableYearlyBirthday(settings.enableYearlyBirthdayReminders);
+      setConsentDate(settings.privacyConsentDate);
       setEnableRoundBirthday(settings.enableRoundBirthdayReminders);
       setRoundYears(settings.roundBirthdayYears || [50, 60, 70, 80, 90]);
     });
@@ -167,6 +171,74 @@ export default function Settings(): JSX.Element {
           keine zertifizierte medizinische Software dar. Der jeweilige Betreiber
           ist selbst verantwortlich für die Einhaltung der DSGVO und aller
           sonstigen gesetzlichen Vorschriften.
+        </div>
+      </div>
+
+      <div className="settings-card card">
+        <h2>
+          <Shield
+            size={20}
+            style={{ verticalAlign: "middle", marginRight: "8px" }}
+          />
+          Datenschutz (DSGVO)
+        </h2>
+        <p className="hint">
+          Informationen zum Datenschutz und zur Verarbeitung personenbezogener
+          Daten
+        </p>
+
+        {consentDate && (
+          <div className="consent-info">
+            <p>
+              ✅ Einwilligung erteilt am:{" "}
+              <strong>
+                {new Date(consentDate).toLocaleDateString("de-DE")}
+              </strong>
+            </p>
+          </div>
+        )}
+
+        <button
+          className="btn btn-secondary"
+          onClick={() => setShowPrivacyPolicy(!showPrivacyPolicy)}
+          style={{ marginTop: "1rem" }}
+        >
+          {showPrivacyPolicy
+            ? "Datenschutzerklärung ausblenden"
+            : "Datenschutzerklärung anzeigen"}
+        </button>
+
+        {showPrivacyPolicy && (
+          <div className="privacy-policy-container">
+            <PrivacyPolicy />
+          </div>
+        )}
+
+        <div className="dsgvo-recommendations">
+          <h3>⚠️ Zusätzliche Empfehlungen für DSGVO-Konformität:</h3>
+          <ul>
+            <li>
+              Führen Sie ein{" "}
+              <strong>Verzeichnis von Verarbeitungstätigkeiten</strong> (Art. 30
+              DSGVO)
+            </li>
+            <li>
+              Dokumentieren Sie Ihre{" "}
+              <strong>technisch-organisatorischen Maßnahmen</strong> (TOM)
+            </li>
+            <li>
+              Bei Cloud-Speicherung: Schließen Sie einen{" "}
+              <strong>Auftragsverarbeitungsvertrag (AVV)</strong> mit dem
+              Anbieter
+            </li>
+            <li>
+              Nutzen Sie <strong>Festplattenverschlüsselung</strong> (z.B.
+              BitLocker)
+            </li>
+            <li>
+              Beschränken Sie Dateisystem-Zugriffe auf autorisierte Personen
+            </li>
+          </ul>
         </div>
       </div>
 

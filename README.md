@@ -93,6 +93,41 @@ Reminders appear as:
 
 ---
 
+## 🔒 DSGVO / GDPR Compliance
+
+This application includes privacy compliance features required for use in Germany:
+
+### Built-in Features
+
+- **Mandatory consent screen** on first launch (Art. 13-14 DSGVO)
+- **Privacy policy** (Datenschutzerklärung) in German, version-tracked
+- **Consent tracking** with timestamp and version
+- **Transparent data handling** - all data stored locally in readable JSON format
+- **No external data transmission** - no telemetry, analytics, or third-party connections
+
+### What You Still Need
+
+As the operator of this software, you are responsible for:
+
+1. **Data Processing Records** (Verzeichnis von Verarbeitungstätigkeiten, Art. 30 DSGVO)
+2. **Technical-Organizational Measures** (TOM) documentation
+3. **Data Processing Agreement** (AVV) if using cloud sync (OneDrive/SharePoint)
+4. **Disk encryption** (e.g., BitLocker) for the data folder
+5. **Access controls** at the file system level
+6. **Responding to data subject rights** requests (Art. 15-20 DSGVO)
+
+### Security Limitations
+
+⚠️ **Important:** This software currently does NOT provide:
+
+- Encryption of stored JSON files
+- User authentication or access control
+- Audit logs for access tracking
+
+**Recommendation:** Use full-disk encryption and restrict file system permissions to authorized users only.
+
+---
+
 ## 🇩🇪 Rechtlicher Hinweis
 
 Diese Software wird als Open-Source-Projekt ohne Gewährleistung bereitgestellt.  

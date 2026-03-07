@@ -151,3 +151,53 @@
   text-align: center;
   font-weight: 600;
 }
+
+/* Privacy/DSGVO Section */
+.consent-info {
+  background: var(--color-surface-2);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--color-success);
+  margin: 10px 0;
+}
+
+.consent-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.privacy-policy-container {
+  margin-top: 1.5rem;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 1rem;
+}
+
+.dsgvo-recommendations {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  border-radius: var(--radius-sm);
+}
+
+.dsgvo-recommendations h3 {
+  margin: 0 0 0.8rem 0;
+  font-size: 1rem;
+  color: #856404;
+}
+
+.dsgvo-recommendations ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #333;
+}
+
+.dsgvo-recommendations li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}

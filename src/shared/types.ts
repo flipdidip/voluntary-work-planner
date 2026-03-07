@@ -141,6 +141,10 @@ export interface AppSettings {
   enableYearlyBirthdayReminders: boolean;
   enableRoundBirthdayReminders: boolean;
   roundBirthdayYears: number[];
+  // DSGVO/GDPR compliance
+  privacyConsentGiven: boolean;
+  privacyConsentDate?: string; // ISO timestamp
+  privacyConsentVersion: string; // e.g. "1.0"
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -150,6 +154,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enableYearlyBirthdayReminders: true,
   enableRoundBirthdayReminders: true,
   roundBirthdayYears: [50, 60, 70, 80, 90],
+  privacyConsentGiven: false,
+  privacyConsentDate: undefined,
+  privacyConsentVersion: "1.0",
 };
 
 // ─────────────────────────────────────────────────
