@@ -1,10 +1,17 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { IPC, Volunteer, Reminder } from "@shared/types";
+import { IPC, Volunteer, Reminder, AppSettings } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
 const api = {
   // Settings
   getDataPath: (): Promise<string> => ipcRenderer.invoke(IPC.GET_DATA_PATH),
+
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.GET_SETTINGS),
+
+  saveSettings: (
+    partial: Partial<AppSettings>,
+  ): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke(IPC.SAVE_SETTINGS, partial),
 
   setDataPath: (folderPath: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke(IPC.SET_DATA_PATH, folderPath),

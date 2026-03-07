@@ -28,6 +28,16 @@ export function registerVolunteerHandlers(
   // ── Settings ──────────────────────────────────────────
   ipcMain.handle(IPC.GET_DATA_PATH, () => settings.getDataFolderPath());
 
+  ipcMain.handle(IPC.GET_SETTINGS, () => settings.get());
+
+  ipcMain.handle(
+    IPC.SAVE_SETTINGS,
+    (_event, partial: Partial<import("@shared/types").AppSettings>) => {
+      settings.set(partial);
+      return { success: true };
+    },
+  );
+
   ipcMain.handle(IPC.SET_DATA_PATH, (_event, folderPath: string) => {
     settings.set({ dataFolderPath: folderPath });
     mkdirSync(settings.getVolunteersPath(), { recursive: true });
@@ -107,7 +117,7 @@ export function registerVolunteerHandlers(
       volunteers.push(volunteer);
     }
 
-    return getUpcomingReminders(volunteers, 30);
+    return getUpcomingReminders(volunteers, settings.get(), 30);
   });
 
   ipcMain.handle(

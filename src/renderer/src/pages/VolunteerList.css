@@ -75,7 +75,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
+}
+
+.vol-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .vol-name {
@@ -83,9 +89,33 @@
   font-size: 0.9rem;
 }
 
+.vol-age {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
 .vol-roles {
   font-size: 0.78rem;
   color: var(--color-text-muted);
+}
+
+.vol-contact {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vol-meta {

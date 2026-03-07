@@ -8,10 +8,19 @@ export default function Settings(): JSX.Element {
   const [interval, setInterval] = useState(60);
   const [saved, setSaved] = useState(false);
   const [appVersion, setAppVersion] = useState("");
+  const [enableYearlyBirthday, setEnableYearlyBirthday] = useState(true);
+  const [enableRoundBirthday, setEnableRoundBirthday] = useState(true);
+  const [roundYears, setRoundYears] = useState<number[]>([50, 60, 70, 80, 90]);
 
   useEffect(() => {
     window.api.getDataPath().then(setDataPath);
     window.api.getAppVersion().then(setAppVersion);
+    window.api.getSettings().then((settings) => {
+      setInterval(settings.reminderCheckIntervalMinutes);
+      setEnableYearlyBirthday(settings.enableYearlyBirthdayReminders);
+      setEnableRoundBirthday(settings.enableRoundBirthdayReminders);
+      setRoundYears(settings.roundBirthdayYears || [50, 60, 70, 80, 90]);
+    });
   }, []);
 
   const handleSelectFolder = async (): Promise<void> => {
@@ -23,6 +32,12 @@ export default function Settings(): JSX.Element {
     if (dataPath) {
       await window.api.setDataPath(dataPath);
     }
+    await window.api.saveSettings({
+      reminderCheckIntervalMinutes: interval,
+      enableYearlyBirthdayReminders: enableYearlyBirthday,
+      enableRoundBirthdayReminders: enableRoundBirthday,
+      roundBirthdayYears: roundYears,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -78,6 +93,58 @@ export default function Settings(): JSX.Element {
           Wie oft soll die App prüfen, ob Erinnerungen fällig sind? (Standard:
           60 Minuten). Die App prüft auch beim Start.
         </p>
+
+        <h3 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>
+          Geburtstagserinnerungen
+        </h3>
+        <p className="hint" style={{ marginBottom: "1rem" }}>
+          Diese Einstellungen gelten für alle Freiwilligen mit hinterlegtem
+          Geburtsdatum.
+        </p>
+
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={enableYearlyBirthday}
+            onChange={(e) => setEnableYearlyBirthday(e.target.checked)}
+          />
+          <span>Jährliche Geburtstagserinnerungen aktivieren</span>
+        </label>
+
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={enableRoundBirthday}
+            onChange={(e) => setEnableRoundBirthday(e.target.checked)}
+          />
+          <span>Erinnerungen für runde Geburtstage aktivieren</span>
+        </label>
+
+        {enableRoundBirthday && (
+          <div style={{ marginTop: "1rem" }}>
+            <label style={{ marginBottom: "0.5rem", display: "block" }}>
+              Runde Geburtstage
+            </label>
+            <div className="round-years-grid">
+              {[30, 40, 50, 60, 70, 80, 90, 100].map((year) => (
+                <button
+                  key={year}
+                  type="button"
+                  className={`btn ${roundYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
+                  onClick={() => {
+                    setRoundYears((prev) =>
+                      prev.includes(year)
+                        ? prev.filter((y) => y !== year)
+                        : [...prev, year].sort((a, b) => a - b),
+                    );
+                  }}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="settings-card card">

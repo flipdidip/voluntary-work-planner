@@ -2,6 +2,32 @@
   max-width: 600px;
 }
 
+.volunteer-new .form-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.volunteer-new .form-header-row h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.volunteer-new .status-select-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.volunteer-new .status-select-label .select {
+  width: 120px;
+}
+
 .page-header {
   display: flex;
   align-items: center;
@@ -13,6 +39,15 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.new-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .form-row {

@@ -74,39 +74,36 @@ export default function Dashboard(): JSX.Element {
         }
       }
 
-      const dateOfBirthById = new Map(
-        index.volunteers.map((v) => [v.id, v.dateOfBirth]),
-      );
-
       try {
         const reminders = (await window.api.getDueReminders()) as DueReminder[];
 
         for (const due of reminders) {
           const reminder = due.reminder;
-          let reminderDate: Date | null = null;
 
-          if (reminder.type === "custom" && reminder.triggerDate) {
-            reminderDate = parseISO(reminder.triggerDate);
-          } else {
-            const dateOfBirth = dateOfBirthById.get(due.volunteerId);
-            if (dateOfBirth) {
-              reminderDate = getNextBirthdayDate(dateOfBirth, today);
-            }
+          // Skip birthday-based reminders to avoid duplicates (birthdays are already added above)
+          if (
+            reminder.type === "birthday-every-year" ||
+            reminder.type === "birthday-round"
+          ) {
+            continue;
           }
 
-          if (!reminderDate) continue;
+          // Only process custom reminders
+          if (reminder.type === "custom" && reminder.triggerDate) {
+            const reminderDate = parseISO(reminder.triggerDate);
+            const daysUntil = differenceInCalendarDays(reminderDate, today);
 
-          const daysUntil = differenceInCalendarDays(reminderDate, today);
-          if (daysUntil < 0 || daysUntil > 30) continue;
-
-          events.push({
-            volunteerId: due.volunteerId,
-            volunteerName: due.volunteerName,
-            eventType: "reminder",
-            label: reminder.title,
-            daysUntil,
-            date: format(reminderDate, "yyyy-MM-dd"),
-          });
+            if (daysUntil >= 0 && daysUntil <= 30) {
+              events.push({
+                volunteerId: due.volunteerId,
+                volunteerName: due.volunteerName,
+                eventType: "reminder",
+                label: reminder.title,
+                daysUntil,
+                date: format(reminderDate, "yyyy-MM-dd"),
+              });
+            }
+          }
         }
       } catch {
         // Keep birthdays visible even if reminders fail

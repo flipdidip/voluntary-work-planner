@@ -13,6 +13,7 @@ import {
   Calendar,
 } from "lucide-react";
 import BirthdayInput from "../components/BirthdayInput";
+import RolesInput from "../components/RolesInput";
 import { useVolunteer } from "../hooks/useVolunteers";
 import {
   Volunteer,
@@ -31,8 +32,6 @@ const STATUS_OPTIONS: { value: VolunteerStatus; label: string }[] = [
   { value: "inactive", label: "Inaktiv" },
   { value: "archived", label: "Archiviert" },
 ];
-
-const ROUND_YEARS = [50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
 
 export default function VolunteerDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -156,7 +155,25 @@ export default function VolunteerDetail(): JSX.Element {
       <div className="detail-grid">
         {/* ── Personal Data ─────────────────────────── */}
         <section className="card section-card">
-          <h2>Persönliche Daten</h2>
+          <div className="section-header-row">
+            <h2>Persönliche Daten</h2>
+            <label className="status-select-inline">
+              Status
+              <select
+                className="select"
+                value={form.status}
+                onChange={(e) =>
+                  update({ status: e.target.value as VolunteerStatus })
+                }
+              >
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className="form-row">
             <label>
               Vorname
@@ -175,31 +192,13 @@ export default function VolunteerDetail(): JSX.Element {
               />
             </label>
           </div>
-          <div className="form-row">
-            <label>
-              Geburtsdatum
-              <BirthdayInput
-                value={form.dateOfBirth}
-                onChange={(value) => update({ dateOfBirth: value })}
-              />
-            </label>
-            <label>
-              Status
-              <select
-                className="select"
-                value={form.status}
-                onChange={(e) =>
-                  update({ status: e.target.value as VolunteerStatus })
-                }
-              >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label>
+            Geburtsdatum
+            <BirthdayInput
+              value={form.dateOfBirth}
+              onChange={(value) => update({ dateOfBirth: value })}
+            />
+          </label>
           <div className="form-row">
             <label>
               Telefon
@@ -283,18 +282,10 @@ export default function VolunteerDetail(): JSX.Element {
             />
           </label>
           <label className="mt">
-            Aufgaben (kommagetrennt)
-            <input
-              className="input"
-              value={form.roles.join(", ")}
-              onChange={(e) =>
-                update({
-                  roles: e.target.value
-                    .split(",")
-                    .map((r) => r.trim())
-                    .filter(Boolean),
-                })
-              }
+            Aufgaben
+            <RolesInput
+              value={form.roles}
+              onChange={(newRoles) => update({ roles: newRoles })}
             />
           </label>
           <label className="mt">
@@ -321,6 +312,11 @@ export default function VolunteerDetail(): JSX.Element {
             </button>
           </div>
 
+          <p className="hint" style={{ marginBottom: "1rem" }}>
+            Geburtstagserinnerungen werden global in den Einstellungen
+            konfiguriert und gelten für alle Freiwilligen mit Geburtsdatum.
+          </p>
+
           {showReminderForm && (
             <ReminderForm
               volunteer={form}
@@ -330,19 +326,24 @@ export default function VolunteerDetail(): JSX.Element {
           )}
 
           <div className="reminder-list">
-            {form.reminders.length === 0 && (
-              <p className="empty-hint">Noch keine Erinnerungen.</p>
+            {form.reminders.filter((r) => r.type === "custom").length === 0 && (
+              <p className="empty-hint">
+                Keine individuellen Erinnerungen. Geburtstagserinnerungen werden
+                automatisch in den Einstellungen verwaltet.
+              </p>
             )}
-            {form.reminders.map((r) => (
-              <ReminderItem
-                key={r.id}
-                volunteerId={form.id}
-                volunteerName={`${form.firstName} ${form.lastName}`}
-                reminder={r}
-                onRemove={() => removeReminder(r.id)}
-                onToggleDismiss={() => toggleDismissReminder(r.id)}
-              />
-            ))}
+            {form.reminders
+              .filter((r) => r.type === "custom")
+              .map((r) => (
+                <ReminderItem
+                  key={r.id}
+                  volunteerId={form.id}
+                  volunteerName={`${form.firstName} ${form.lastName}`}
+                  reminder={r}
+                  onRemove={() => removeReminder(r.id)}
+                  onToggleDismiss={() => toggleDismissReminder(r.id)}
+                />
+              ))}
           </div>
         </section>
 
@@ -409,17 +410,10 @@ function ReminderForm({
   onAdd,
   onClose,
 }: ReminderFormProps): JSX.Element {
-  const [type, setType] = useState<ReminderType>("birthday-round");
+  const [type, setType] = useState<ReminderType>("custom");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [triggerDate, setTriggerDate] = useState("");
-  const [roundYears, setRoundYears] = useState<number[]>([50, 60, 70, 80]);
-
-  const toggleRoundYear = (year: number): void => {
-    setRoundYears((prev) =>
-      prev.includes(year) ? prev.filter((y) => y !== year) : [...prev, year],
-    );
-  };
 
   const handleAdd = (): void => {
     if (!title.trim()) return;
@@ -430,7 +424,6 @@ function ReminderForm({
       message: message.trim(),
       dismissed: false,
       triggerDate: type === "custom" ? triggerDate : undefined,
-      roundBirthdayYears: type === "birthday-round" ? roundYears : undefined,
     };
     onAdd(reminder);
     onClose();
@@ -444,53 +437,22 @@ function ReminderForm({
           <X size={16} />
         </button>
       </div>
+
       <label>
-        Typ
-        <select
-          className="select"
-          value={type}
-          onChange={(e) => setType(e.target.value as ReminderType)}
-        >
-          <option value="birthday-round">Runder Geburtstag</option>
-          <option value="birthday-every-year">Jährlicher Geburtstag</option>
-          <option value="custom">Individuelles Datum</option>
-        </select>
+        Datum
+        <input
+          className="input"
+          type="date"
+          value={triggerDate}
+          onChange={(e) => setTriggerDate(e.target.value)}
+        />
       </label>
-
-      {type === "birthday-round" && (
-        <div className="round-years">
-          <label>Runde Geburtstage</label>
-          <div className="round-years-grid">
-            {ROUND_YEARS.map((y) => (
-              <button
-                key={y}
-                className={`btn ${roundYears.includes(y) ? "btn-primary" : "btn-secondary"} year-btn`}
-                onClick={() => toggleRoundYear(y)}
-              >
-                {y}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {type === "custom" && (
-        <label>
-          Datum
-          <input
-            className="input"
-            type="date"
-            value={triggerDate}
-            onChange={(e) => setTriggerDate(e.target.value)}
-          />
-        </label>
-      )}
 
       <label>
         Titel
         <input
           className="input"
-          placeholder="z.B. Geburtstag feiern!"
+          placeholder="z.B. Abschlussgespräch vereinbaren"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />

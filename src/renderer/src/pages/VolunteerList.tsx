@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { UserPlus, Search } from "lucide-react";
+import { UserPlus, Search, Mail, Phone } from "lucide-react";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
 import { VolunteerStatus } from "@shared/types";
+import { differenceInYears, parseISO } from "date-fns";
 import "./VolunteerList.css";
 
 const STATUS_LABELS: Record<VolunteerStatus, string> = {
@@ -71,29 +72,57 @@ export default function VolunteerList(): JSX.Element {
         {filtered.length === 0 && !loading && (
           <p className="empty-hint">Keine Einträge gefunden.</p>
         )}
-        {filtered.map((v) => (
-          <div
-            key={v.id}
-            className="volunteer-row"
-            onClick={() => navigate(`/volunteers/${v.id}`)}
-          >
-            <div className="vol-avatar">
-              {v.firstName[0]}
-              {v.lastName[0]}
+        {filtered.map((v) => {
+          const age = v.dateOfBirth
+            ? differenceInYears(new Date(), parseISO(v.dateOfBirth))
+            : null;
+          return (
+            <div
+              key={v.id}
+              className="volunteer-row"
+              onClick={() => navigate(`/volunteers/${v.id}`)}
+            >
+              <div className="vol-avatar">
+                {v.firstName[0]}
+                {v.lastName[0]}
+              </div>
+              <div className="vol-info">
+                <div className="vol-header">
+                  <span className="vol-name">
+                    {v.firstName} {v.lastName}
+                  </span>
+                  {age !== null && <span className="vol-age">{age} Jahre</span>}
+                </div>
+                <span className="vol-roles">{v.roles.join(", ") || "—"}</span>
+                <div className="vol-contact">
+                  {v.phone && (
+                    <span className="contact-item">
+                      <Phone size={12} />
+                      {v.phone}
+                    </span>
+                  )}
+                  {v.mobile && (
+                    <span className="contact-item">
+                      <Phone size={12} />
+                      {v.mobile}
+                    </span>
+                  )}
+                  {v.email && (
+                    <span className="contact-item">
+                      <Mail size={12} />
+                      {v.email}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="vol-meta">
+                <span className={`badge ${STATUS_BADGE[v.status]}`}>
+                  {STATUS_LABELS[v.status]}
+                </span>
+              </div>
             </div>
-            <div className="vol-info">
-              <span className="vol-name">
-                {v.firstName} {v.lastName}
-              </span>
-              <span className="vol-roles">{v.roles.join(", ") || "—"}</span>
-            </div>
-            <div className="vol-meta">
-              <span className={`badge ${STATUS_BADGE[v.status]}`}>
-                {STATUS_LABELS[v.status]}
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

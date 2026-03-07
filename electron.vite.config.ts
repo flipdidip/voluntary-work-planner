@@ -1,6 +1,7 @@
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
+import pkg from "./package.json";
 
 export default defineConfig({
   main: {
@@ -35,7 +36,7 @@ export default defineConfig({
       outDir: "dist-electron/renderer",
     },
     define: {
-      APP_VERSION: JSON.stringify(process.env.npm_package_version ?? "0.1.0"),
+      APP_VERSION: JSON.stringify(pkg.version),
     },
     resolve: {
       alias: {

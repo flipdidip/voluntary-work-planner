@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Volunteer } from "@shared/types";
 import { v4 as uuidv4 } from "uuid";
 import BirthdayInput from "../components/BirthdayInput";
+import RolesInput from "../components/RolesInput";
 import "./VolunteerNew.css";
 
 const EMPTY_VOLUNTEER: Omit<
@@ -30,6 +31,7 @@ const EMPTY_VOLUNTEER: Omit<
 export default function VolunteerNew(): JSX.Element {
   const navigate = useNavigate();
   const [dateOfBirth, setDateOfBirth] = useState<string | undefined>(undefined);
+  const [roles, setRoles] = useState<string[]>([]);
 
   const handleCreate = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -50,10 +52,7 @@ export default function VolunteerNew(): JSX.Element {
       email: (fd.get("email") as string) || undefined,
       status: (fd.get("status") as Volunteer["status"]) ?? "active",
       joinedDate: (fd.get("joinedDate") as string) || undefined,
-      roles: (fd.get("roles") as string)
-        .split(",")
-        .map((r) => r.trim())
-        .filter(Boolean),
+      roles: roles,
     };
 
     const result = await window.api.saveVolunteer(volunteer);
@@ -77,6 +76,16 @@ export default function VolunteerNew(): JSX.Element {
       </div>
 
       <form className="new-form card" onSubmit={handleCreate}>
+        <div className="form-header-row">
+          <h3>Basisdaten</h3>
+          <label className="status-select-label">
+            Status
+            <select className="select" name="status" defaultValue="active">
+              <option value="active">Aktiv</option>
+              <option value="inactive">Inaktiv</option>
+            </select>
+          </label>
+        </div>
         <div className="form-row">
           <label>
             Vorname *
@@ -87,23 +96,14 @@ export default function VolunteerNew(): JSX.Element {
             <input className="input" name="lastName" required />
           </label>
         </div>
-        <div className="form-row">
-          <label>
-            Geburtsdatum
-            <BirthdayInput
-              value={dateOfBirth}
-              onChange={setDateOfBirth}
-              name="dateOfBirth"
-            />
-          </label>
-          <label>
-            Status
-            <select className="select" name="status">
-              <option value="active">Aktiv</option>
-              <option value="inactive">Inaktiv</option>
-            </select>
-          </label>
-        </div>
+        <label>
+          Geburtsdatum
+          <BirthdayInput
+            value={dateOfBirth}
+            onChange={setDateOfBirth}
+            name="dateOfBirth"
+          />
+        </label>
         <div className="form-row">
           <label>
             Telefon
@@ -115,12 +115,8 @@ export default function VolunteerNew(): JSX.Element {
           </label>
         </div>
         <label>
-          Aufgaben (kommagetrennt)
-          <input
-            className="input"
-            name="roles"
-            placeholder="z.B. Sterbebegleitung, Fahrdienst"
-          />
+          Aufgaben
+          <RolesInput value={roles} onChange={setRoles} />
         </label>
         <label>
           Beitritt

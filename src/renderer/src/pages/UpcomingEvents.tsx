@@ -96,24 +96,58 @@ export default function UpcomingEvents(): JSX.Element {
       const today = startOfDay(new Date());
       const result: EventItem[] = [];
 
+      // Get global settings to check birthday reminder preferences
+      const settings = await window.api.getSettings();
+
       const activeVolunteers = index.volunteers.filter(
         (v) => v.status !== "archived",
       );
 
-      for (const v of activeVolunteers) {
-        if (!v.dateOfBirth) continue;
-        const nextBirthday = getNextBirthdayDate(v.dateOfBirth, today);
-        const daysUntil = differenceInCalendarDays(nextBirthday, today);
-        const age =
-          nextBirthday.getFullYear() - parseISO(v.dateOfBirth).getFullYear();
-        result.push({
-          volunteerId: v.id,
-          volunteerName: `${v.firstName} ${v.lastName}`,
-          eventType: "birthday",
-          label: `${age}. Geburtstag`,
-          date: format(nextBirthday, "yyyy-MM-dd"),
-          daysUntil,
-        });
+      // Show birthdays based on global settings
+      if (settings.enableYearlyBirthdayReminders) {
+        for (const v of activeVolunteers) {
+          if (!v.dateOfBirth) continue;
+          const nextBirthday = getNextBirthdayDate(v.dateOfBirth, today);
+          const daysUntil = differenceInCalendarDays(nextBirthday, today);
+          const age =
+            nextBirthday.getFullYear() - parseISO(v.dateOfBirth).getFullYear();
+
+          // If round birthdays are also enabled, check if this is a round birthday
+          const isRound =
+            settings.enableRoundBirthdayReminders &&
+            settings.roundBirthdayYears?.includes(age);
+
+          result.push({
+            volunteerId: v.id,
+            volunteerName: `${v.firstName} ${v.lastName}`,
+            eventType: "birthday",
+            label: isRound
+              ? `${age}. Geburtstag (Runder Geburtstag!)`
+              : `${age}. Geburtstag`,
+            date: format(nextBirthday, "yyyy-MM-dd"),
+            daysUntil,
+          });
+        }
+      } else if (settings.enableRoundBirthdayReminders) {
+        // Only show round birthdays
+        for (const v of activeVolunteers) {
+          if (!v.dateOfBirth) continue;
+          const nextBirthday = getNextBirthdayDate(v.dateOfBirth, today);
+          const age =
+            nextBirthday.getFullYear() - parseISO(v.dateOfBirth).getFullYear();
+
+          if (settings.roundBirthdayYears?.includes(age)) {
+            const daysUntil = differenceInCalendarDays(nextBirthday, today);
+            result.push({
+              volunteerId: v.id,
+              volunteerName: `${v.firstName} ${v.lastName}`,
+              eventType: "birthday",
+              label: `${age}. Geburtstag (Runder Geburtstag!)`,
+              date: format(nextBirthday, "yyyy-MM-dd"),
+              daysUntil,
+            });
+          }
+        }
       }
 
       const fullVolunteers = (
@@ -122,8 +156,10 @@ export default function UpcomingEvents(): JSX.Element {
         )
       ).filter((v): v is Volunteer => Boolean(v));
 
+      // Only show custom reminders now
       for (const volunteer of fullVolunteers) {
         for (const reminder of volunteer.reminders) {
+          if (reminder.type !== "custom") continue; // Skip birthday reminders
           const nextDate = getReminderNextDate(reminder, volunteer, today);
           if (!nextDate) continue;
           result.push({

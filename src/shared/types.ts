@@ -109,6 +109,8 @@ export const IPC = {
   GET_DATA_PATH: "get-data-path",
   SET_DATA_PATH: "set-data-path",
   SELECT_DATA_FOLDER: "select-data-folder",
+  GET_SETTINGS: "get-settings",
+  SAVE_SETTINGS: "save-settings",
 
   // Volunteers
   GET_VOLUNTEER_INDEX: "get-volunteer-index",
@@ -134,12 +136,19 @@ export interface AppSettings {
   dataFolderPath: string;
   reminderCheckIntervalMinutes: number;
   language: "de" | "en";
+  // Global birthday reminder settings
+  enableYearlyBirthdayReminders: boolean;
+  enableRoundBirthdayReminders: boolean;
+  roundBirthdayYears: number[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   dataFolderPath: "",
   reminderCheckIntervalMinutes: 60,
   language: "de",
+  enableYearlyBirthdayReminders: true,
+  enableRoundBirthdayReminders: true,
+  roundBirthdayYears: [50, 60, 70, 80, 90],
 };
 
 // ─────────────────────────────────────────────────
