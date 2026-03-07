@@ -1,0 +1,30 @@
+.birthday-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.birthday-day {
+  width: 4rem;
+  text-align: center;
+}
+
+.birthday-month {
+  flex: 1;
+  min-width: 120px;
+}
+
+.birthday-year {
+  width: 6rem;
+}
+
+/* Remove spinner arrows from number input */
+.birthday-day::-webkit-outer-spin-button,
+.birthday-day::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.birthday-day[type="number"] {
+  -moz-appearance: textfield;
+}

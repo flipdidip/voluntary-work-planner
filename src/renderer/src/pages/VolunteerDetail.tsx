@@ -11,6 +11,7 @@ import {
   X,
   Calendar,
 } from "lucide-react";
+import BirthdayInput from "../components/BirthdayInput";
 import { useVolunteer } from "../hooks/useVolunteers";
 import {
   Volunteer,
@@ -176,11 +177,9 @@ export default function VolunteerDetail(): JSX.Element {
           <div className="form-row">
             <label>
               Geburtsdatum
-              <input
-                className="input"
-                type="date"
-                value={form.dateOfBirth ?? ""}
-                onChange={(e) => update({ dateOfBirth: e.target.value })}
+              <BirthdayInput
+                value={form.dateOfBirth}
+                onChange={(value) => update({ dateOfBirth: value })}
               />
             </label>
             <label>

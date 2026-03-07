@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Volunteer } from "@shared/types";
 import { v4 as uuidv4 } from "uuid";
+import BirthdayInput from "../components/BirthdayInput";
 import "./VolunteerNew.css";
 
 const EMPTY_VOLUNTEER: Omit<
@@ -27,6 +29,7 @@ const EMPTY_VOLUNTEER: Omit<
 
 export default function VolunteerNew(): JSX.Element {
   const navigate = useNavigate();
+  const [dateOfBirth, setDateOfBirth] = useState<string | undefined>(undefined);
 
   const handleCreate = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -42,7 +45,7 @@ export default function VolunteerNew(): JSX.Element {
       _updatedAt: new Date().toISOString(),
       firstName: fd.get("firstName") as string,
       lastName: fd.get("lastName") as string,
-      dateOfBirth: (fd.get("dateOfBirth") as string) || undefined,
+      dateOfBirth: dateOfBirth,
       phone: (fd.get("phone") as string) || undefined,
       email: (fd.get("email") as string) || undefined,
       status: (fd.get("status") as Volunteer["status"]) ?? "active",
@@ -87,7 +90,11 @@ export default function VolunteerNew(): JSX.Element {
         <div className="form-row">
           <label>
             Geburtsdatum
-            <input className="input" name="dateOfBirth" type="date" />
+            <BirthdayInput
+              value={dateOfBirth}
+              onChange={setDateOfBirth}
+              name="dateOfBirth"
+            />
           </label>
           <label>
             Status
