@@ -1,7 +1,3 @@
-.upcoming-events-page {
-  max-width: 980px;
-}
-
 .events-list {
   display: flex;
   flex-direction: column;

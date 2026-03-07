@@ -88,3 +88,8 @@
   padding: 28px 32px;
   background: var(--color-bg);
 }
+
+.main-content > * {
+  width: 100%;
+  max-width: var(--page-content-max-width);
+}
