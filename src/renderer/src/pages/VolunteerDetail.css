@@ -117,6 +117,12 @@ label {
   margin-top: 4px;
 }
 
+.joined-meta {
+  margin: -2px 0 2px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
 /* Reminders */
 .reminder-list {
   display: flex;

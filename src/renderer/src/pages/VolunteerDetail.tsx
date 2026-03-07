@@ -22,7 +22,12 @@ import {
   ActivityEntry,
   VolunteerStatus,
 } from "@shared/types";
-import { format, parseISO, differenceInYears } from "date-fns";
+import {
+  format,
+  parseISO,
+  differenceInMonths,
+  differenceInYears,
+} from "date-fns";
 import { de } from "date-fns/locale";
 import { v4 as uuidv4 } from "uuid";
 import "./VolunteerDetail.css";
@@ -56,6 +61,9 @@ export default function VolunteerDetail(): JSX.Element {
 
   const age = form.dateOfBirth
     ? differenceInYears(new Date(), parseISO(form.dateOfBirth))
+    : null;
+  const volunteerTenure = form.joinedDate
+    ? getVolunteerTenure(form.joinedDate)
     : null;
 
   const update = (partial: Partial<Volunteer>): void =>
@@ -281,6 +289,11 @@ export default function VolunteerDetail(): JSX.Element {
               onChange={(e) => update({ joinedDate: e.target.value })}
             />
           </label>
+          {volunteerTenure && (
+            <p className="joined-meta">
+              Seit {volunteerTenure.formattedDate} · {volunteerTenure.duration}
+            </p>
+          )}
           <label className="mt">
             Aufgaben
             <RolesInput
@@ -393,6 +406,33 @@ export default function VolunteerDetail(): JSX.Element {
       </div>
     </div>
   );
+}
+
+function getVolunteerTenure(
+  joinedDateIso: string,
+): { formattedDate: string; duration: string } | null {
+  const joinedDate = parseISO(joinedDateIso);
+  if (Number.isNaN(joinedDate.getTime())) return null;
+
+  const now = new Date();
+  const from = joinedDate <= now ? joinedDate : now;
+  const to = joinedDate <= now ? now : joinedDate;
+
+  const totalMonths = differenceInMonths(to, from);
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+
+  const durationParts: string[] = [];
+  if (years > 0)
+    durationParts.push(`${years} ${years === 1 ? "Jahr" : "Jahre"}`);
+  if (months > 0)
+    durationParts.push(`${months} ${months === 1 ? "Monat" : "Monate"}`);
+  if (durationParts.length === 0) durationParts.push("weniger als 1 Monat");
+
+  return {
+    formattedDate: format(joinedDate, "dd.MM.yyyy", { locale: de }),
+    duration: durationParts.join(" "),
+  };
 }
 
 // ──────────────────────────────────────────────────────────

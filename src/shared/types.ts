@@ -89,6 +89,7 @@ export interface VolunteerIndexEntry {
   firstName: string;
   lastName: string;
   dateOfBirth?: string;
+  joinedDate?: string;
   status: VolunteerStatus;
   roles: string[];
   _updatedAt: string;

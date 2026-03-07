@@ -37,7 +37,26 @@ export class VolunteerFileService {
     }
     try {
       const raw = readFileSync(this.indexPath, "utf-8");
-      return JSON.parse(raw) as VolunteerIndex;
+      const index = JSON.parse(raw) as VolunteerIndex;
+
+      let changed = false;
+      const normalizedVolunteers = index.volunteers.map((entry) => {
+        if (entry.joinedDate !== undefined) return entry;
+        const volunteer = this.readVolunteer(entry.id);
+        if (volunteer?.joinedDate) {
+          changed = true;
+          return { ...entry, joinedDate: volunteer.joinedDate };
+        }
+        return entry;
+      });
+
+      if (changed) {
+        index.volunteers = normalizedVolunteers;
+        index._version += 1;
+        this.writeIndex(index);
+      }
+
+      return index;
     } catch {
       return {
         _version: 0,
@@ -59,6 +78,7 @@ export class VolunteerFileService {
       firstName: volunteer.firstName,
       lastName: volunteer.lastName,
       dateOfBirth: volunteer.dateOfBirth,
+      joinedDate: volunteer.joinedDate,
       status: volunteer.status,
       roles: volunteer.roles,
       _updatedAt: volunteer._updatedAt,
