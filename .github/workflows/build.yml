@@ -44,11 +44,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload artifacts
+      - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
-          path: release/*.exe
+          name: windows-installer-exe
+          path: release/*Setup*.exe
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable-exe
+          path: |
+            release/*.exe
+            !release/*Setup*.exe
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
