@@ -1,9 +1,9 @@
 import { IpcMain, dialog } from "electron";
 import { v4 as uuidv4 } from "uuid";
-import { IPC, Volunteer, SaveResult } from "@shared/types";
+import { IPC, Volunteer, SaveResult, Reminder } from "@shared/types";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
-import { getUpcomingReminders } from "./reminderScheduler";
+import { DueReminder, getUpcomingReminders } from "./reminderScheduler";
 import { mkdirSync } from "fs";
 
 function getFileService(
@@ -23,6 +23,7 @@ function getFileService(
 export function registerVolunteerHandlers(
   ipcMain: IpcMain,
   settings: SettingsService,
+  onRemindersTriggered?: (reminders: DueReminder[]) => void,
 ): void {
   // ── Settings ──────────────────────────────────────────
   ipcMain.handle(IPC.GET_DATA_PATH, () => settings.getDataFolderPath());
@@ -123,6 +124,15 @@ export function registerVolunteerHandlers(
       svc.saveVolunteer(volunteer);
     },
   );
+
+  ipcMain.handle(IPC.SIMULATE_REMINDER, (event, payload: DueReminder) => {
+    if (onRemindersTriggered) {
+      onRemindersTriggered([payload]);
+    } else {
+      event.sender.send(IPC.REMINDER_TRIGGERED, [payload]);
+    }
+    return { success: true };
+  });
 
   // ── App Info ──────────────────────────────────────────
   ipcMain.handle(IPC.GET_APP_VERSION, () => {

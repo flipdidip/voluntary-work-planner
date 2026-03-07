@@ -119,6 +119,7 @@ export const IPC = {
   // Reminders
   GET_DUE_REMINDERS: "get-due-reminders",
   DISMISS_REMINDER: "dismiss-reminder",
+  SIMULATE_REMINDER: "simulate-reminder",
   REMINDER_TRIGGERED: "reminder-triggered", // main → renderer push event
 
   // App info

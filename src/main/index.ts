@@ -66,7 +66,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId("de.ehrenamt.voluntaryworkplanner");
+  const appDisplayName = "Ehrenamt Verwaltung - Kleiner Stern";
+  app.setName(appDisplayName);
+  electronApp.setAppUserModelId(appDisplayName);
 
   app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window);
@@ -76,32 +78,33 @@ app.whenReady().then(() => {
 
   const settings = SettingsService.getInstance();
 
+  const emitReminders = (reminders: DueReminder[]): void => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("reminder-triggered", reminders);
+    }
+
+    reminders.forEach((r) => {
+      if (Notification.isSupported()) {
+        const body = r.reminder.message
+          ? `${r.volunteerName}: ${r.reminder.message}`
+          : r.volunteerName;
+
+        const notification = new Notification({
+          title: r.reminder.title,
+          body,
+          icon: getNotificationIcon(),
+          urgency: "normal",
+        });
+        notification.show();
+      }
+    });
+  };
+
   // Register all IPC handlers
-  registerVolunteerHandlers(ipcMain, settings);
+  registerVolunteerHandlers(ipcMain, settings, emitReminders);
 
   // Start reminder scheduler — checks every N minutes
-  reminderScheduler = new ReminderScheduler(
-    settings,
-    (reminders: DueReminder[]) => {
-      // Push to renderer
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("reminder-triggered", reminders);
-      }
-
-      // Also show OS notification (taskbar)
-      reminders.forEach((r) => {
-        if (Notification.isSupported()) {
-          const notification = new Notification({
-            title: r.reminder.title,
-            body: r.reminder.message,
-            icon: getNotificationIcon(),
-            urgency: "normal",
-          });
-          notification.show();
-        }
-      });
-    },
-  );
+  reminderScheduler = new ReminderScheduler(settings, emitReminders);
   reminderScheduler.start();
 
   app.on("activate", () => {

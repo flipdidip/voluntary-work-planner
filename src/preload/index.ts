@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { IPC, Volunteer } from "@shared/types";
+import { IPC, Volunteer, Reminder } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
 const api = {
@@ -27,6 +27,12 @@ const api = {
 
   dismissReminder: (volunteerId: string, reminderId: string) =>
     ipcRenderer.invoke(IPC.DISMISS_REMINDER, volunteerId, reminderId),
+
+  simulateReminder: (payload: {
+    volunteerId: string;
+    volunteerName: string;
+    reminder: Reminder;
+  }) => ipcRenderer.invoke(IPC.SIMULATE_REMINDER, payload),
 
   onReminderTriggered: (callback: (reminders: unknown[]) => void) => {
     ipcRenderer.on(IPC.REMINDER_TRIGGERED, (_event, reminders) =>

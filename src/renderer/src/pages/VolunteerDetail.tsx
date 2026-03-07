@@ -5,6 +5,7 @@ import {
   Save,
   Trash2,
   Bell,
+  BellRing,
   BellPlus,
   BellOff,
   Plus,
@@ -335,6 +336,8 @@ export default function VolunteerDetail(): JSX.Element {
             {form.reminders.map((r) => (
               <ReminderItem
                 key={r.id}
+                volunteerId={form.id}
+                volunteerName={`${form.firstName} ${form.lastName}`}
                 reminder={r}
                 onRemove={() => removeReminder(r.id)}
                 onToggleDismiss={() => toggleDismissReminder(r.id)}
@@ -518,12 +521,16 @@ function ReminderForm({
 // ──────────────────────────────────────────────────────────
 
 interface ReminderItemProps {
+  volunteerId: string;
+  volunteerName: string;
   reminder: Reminder;
   onRemove: () => void;
   onToggleDismiss: () => void;
 }
 
 function ReminderItem({
+  volunteerId,
+  volunteerName,
   reminder,
   onRemove,
   onToggleDismiss,
@@ -532,6 +539,14 @@ function ReminderItem({
     "birthday-round": "Runder Geburtstag",
     "birthday-every-year": "Jährlicher Geburtstag",
     custom: "Individuell",
+  };
+
+  const handleSimulate = async (): Promise<void> => {
+    await window.api.simulateReminder({
+      volunteerId,
+      volunteerName,
+      reminder,
+    });
   };
 
   return (
@@ -564,6 +579,13 @@ function ReminderItem({
         )}
       </div>
       <div className="reminder-item-actions">
+        <button
+          className="btn btn-ghost"
+          title="Alarm simulieren"
+          onClick={handleSimulate}
+        >
+          <BellRing size={15} /> Simulieren
+        </button>
         <button
           className="btn btn-ghost"
           title="Stummschalten / Aktivieren"
