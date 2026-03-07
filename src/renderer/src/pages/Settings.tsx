@@ -94,37 +94,35 @@ export default function Settings(): JSX.Element {
           60 Minuten). Die App prüft auch beim Start.
         </p>
 
-        <h3 style={{ marginTop: "1.5rem", marginBottom: "1rem" }}>
-          Geburtstagserinnerungen
-        </h3>
-        <p className="hint" style={{ marginBottom: "1rem" }}>
-          Diese Einstellungen gelten für alle Freiwilligen mit hinterlegtem
-          Geburtsdatum.
-        </p>
+        <div className="birthday-reminders">
+          <h3 className="birthday-reminders-title">Geburtstagserinnerungen</h3>
+          <p className="hint birthday-reminders-hint">
+            Diese Einstellungen gelten für alle Freiwilligen mit hinterlegtem
+            Geburtsdatum.
+          </p>
 
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={enableYearlyBirthday}
-            onChange={(e) => setEnableYearlyBirthday(e.target.checked)}
-          />
-          <span>Jährliche Geburtstagserinnerungen aktivieren</span>
-        </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={enableYearlyBirthday}
+              onChange={(e) => setEnableYearlyBirthday(e.target.checked)}
+            />
+            <span>Jährliche Geburtstagserinnerungen aktivieren</span>
+          </label>
 
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={enableRoundBirthday}
-            onChange={(e) => setEnableRoundBirthday(e.target.checked)}
-          />
-          <span>Erinnerungen für runde Geburtstage aktivieren</span>
-        </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={enableRoundBirthday}
+              onChange={(e) => setEnableRoundBirthday(e.target.checked)}
+            />
+            <span>Erinnerungen für runde Geburtstage aktivieren</span>
+          </label>
+        </div>
 
         {enableRoundBirthday && (
-          <div style={{ marginTop: "1rem" }}>
-            <label style={{ marginBottom: "0.5rem", display: "block" }}>
-              Runde Geburtstage
-            </label>
+          <div className="round-years-section">
+            <label className="round-years-label">Runde Geburtstage</label>
             <div className="round-years-grid">
               {[30, 40, 50, 60, 70, 80, 90, 100].map((year) => (
                 <button

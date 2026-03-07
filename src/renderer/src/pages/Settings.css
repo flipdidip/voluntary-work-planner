@@ -85,16 +85,60 @@
   font-weight: 600;
 }
 
-.checkbox-label {
+.birthday-reminders {
+  margin-top: 10px;
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.birthday-reminders-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.birthday-reminders-hint {
+  margin-bottom: 2px;
+}
+
+.checkbox-label {
+  display: grid;
+  grid-template-columns: 18px 1fr;
   align-items: center;
   gap: 10px;
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.3;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  transition: border-color 0.15s;
+}
+
+.checkbox-label:hover {
+  border-color: var(--color-primary);
 }
 
 .checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
   cursor: pointer;
+}
+
+.round-years-section {
+  margin-top: 2px;
+}
+
+.round-years-label {
+  margin-bottom: 8px;
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .round-years-grid {
