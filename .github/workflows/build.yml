@@ -26,11 +26,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Sync app version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $tag = '${{ github.ref_name }}'
+          if ($tag -match '^v(.+)$') {
+            $version = $Matches[1]
+            npm version $version --no-git-tag-version --allow-same-version
+          }
+
       - name: Build app
         run: npm run build
 
       - name: Package Windows installer
-        run: npm run build && npx electron-builder --win --publish never
+        run: npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
