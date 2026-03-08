@@ -28,6 +28,7 @@ import "./VolunteerList.css";
 
 type FilterMode = "off" | "include" | "exclude";
 type JoinedFilter = "last12m" | "atLeast12m";
+type RequirementStatus = "complete" | "expired" | "missing";
 
 const STATUS_LABELS: Record<VolunteerStatus, string> = {
   active: "Aktiv",
@@ -39,6 +40,12 @@ const STATUS_BADGE: Record<VolunteerStatus, string> = {
   active: "badge-green",
   inactive: "badge-yellow",
   archived: "badge-gray",
+};
+
+const REQUIREMENT_STATUS_LABELS: Record<RequirementStatus, string> = {
+  complete: "Vollständig",
+  expired: "Abgelaufen",
+  missing: "Fehlend",
 };
 
 export default function VolunteerList(): JSX.Element {
@@ -59,6 +66,13 @@ export default function VolunteerList(): JSX.Element {
     useState<FilterMode>("off");
   const [joinedFilter, setJoinedFilter] = useState<JoinedFilter | null>(null);
   const [joinedFilterMode, setJoinedFilterMode] = useState<FilterMode>("off");
+  const [requirementStatusFilters, setRequirementStatusFilters] = useState<
+    Partial<Record<RequirementStatus, FilterMode>>
+  >({
+    complete: "off",
+    expired: "off",
+    missing: "off",
+  });
 
   const statusFromQuery = searchParams.get("status");
 
@@ -183,6 +197,65 @@ export default function VolunteerList(): JSX.Element {
           joinedFilterMode === "include" ? inJoinedFilter : !inJoinedFilter;
       }
 
+      // Requirement status filters
+      let matchesRequirements = true;
+      const requirementStatusModesToCheck = {
+        complete: requirementStatusFilters.complete,
+        expired: requirementStatusFilters.expired,
+        missing: requirementStatusFilters.missing,
+      };
+
+      const activeRequirementFilters = Object.entries(
+        requirementStatusModesToCheck,
+      )
+        .filter(([_, mode]) => mode !== "off")
+        .map(([status]) => status as RequirementStatus);
+
+      if (activeRequirementFilters.length > 0 && v.requirementsStatus) {
+        const requirementValues = Object.values(v.requirementsStatus);
+
+        // "complete" filter: ALL requirements must be complete
+        if (
+          requirementStatusModesToCheck.complete !== "off" &&
+          requirementValues.length > 0
+        ) {
+          const allComplete = requirementValues.every(
+            (status) => status === "complete",
+          );
+          if (requirementStatusModesToCheck.complete === "include") {
+            matchesRequirements = matchesRequirements && allComplete;
+          } else {
+            // exclude
+            matchesRequirements = matchesRequirements && !allComplete;
+          }
+        }
+
+        // "expired" filter: ANY requirement is expired
+        if (requirementStatusModesToCheck.expired !== "off") {
+          const hasExpired = requirementValues.includes("expired");
+          if (requirementStatusModesToCheck.expired === "include") {
+            matchesRequirements = matchesRequirements && hasExpired;
+          } else {
+            // exclude
+            matchesRequirements = matchesRequirements && !hasExpired;
+          }
+        }
+
+        // "missing" filter: ANY requirement is missing
+        if (requirementStatusModesToCheck.missing !== "off") {
+          const hasMissing = requirementValues.includes("missing");
+          if (requirementStatusModesToCheck.missing === "include") {
+            matchesRequirements = matchesRequirements && hasMissing;
+          } else {
+            // exclude
+            matchesRequirements = matchesRequirements && !hasMissing;
+          }
+        }
+      } else if (activeRequirementFilters.length > 0 && !v.requirementsStatus) {
+        // Volunteer has no requirements status data
+        matchesRequirements = false;
+      }
+
       return (
         matchesStatus &&
         matchesQuery &&
@@ -190,7 +263,8 @@ export default function VolunteerList(): JSX.Element {
         matchesEmail &&
         matchesPhone &&
         matchesBirthday &&
-        matchesJoined
+        matchesJoined &&
+        matchesRequirements
       );
     });
   }, [
@@ -205,6 +279,7 @@ export default function VolunteerList(): JSX.Element {
     birthdayFilterMode,
     joinedFilter,
     joinedFilterMode,
+    requirementStatusFilters,
   ]);
 
   const cycleRole = (role: string) => {
@@ -261,6 +336,23 @@ export default function VolunteerList(): JSX.Element {
     });
   };
 
+  const cycleRequirementStatusFilter = (
+    requirementStatus: RequirementStatus,
+  ) => {
+    setRequirementStatusFilters((prev) => {
+      const currentMode = prev[requirementStatus] || "off";
+      let nextMode: FilterMode = "off";
+      if (currentMode === "off") nextMode = "include";
+      else if (currentMode === "include") nextMode = "exclude";
+      else nextMode = "off";
+
+      return {
+        ...prev,
+        [requirementStatus]: nextMode,
+      };
+    });
+  };
+
   const chipModeClass = (mode: FilterMode): string => {
     if (mode === "include") return "active";
     if (mode === "exclude") return "exclude";
@@ -277,6 +369,11 @@ export default function VolunteerList(): JSX.Element {
     setBirthdayFilterMode("off");
     setJoinedFilter(null);
     setJoinedFilterMode("off");
+    setRequirementStatusFilters({
+      complete: "off",
+      expired: "off",
+      missing: "off",
+    });
   };
 
   const hasActiveFilters =
@@ -286,7 +383,8 @@ export default function VolunteerList(): JSX.Element {
     emailFilterMode !== "off" ||
     phoneFilterMode !== "off" ||
     birthdayFilterMode !== "off" ||
-    (joinedFilter !== null && joinedFilterMode !== "off");
+    (joinedFilter !== null && joinedFilterMode !== "off") ||
+    Object.values(requirementStatusFilters).some((mode) => mode !== "off");
 
   return (
     <div className="volunteer-list-page">
@@ -371,6 +469,23 @@ export default function VolunteerList(): JSX.Element {
             >
               Seit mind. 1 Jahr
             </button>
+          </div>
+        </div>
+
+        <div className="filter-group">
+          <span className="filter-group-label">Qualifikationen:</span>
+          <div className="filter-chips">
+            {(["complete", "expired", "missing"] as RequirementStatus[]).map(
+              (status) => (
+                <button
+                  key={status}
+                  className={`filter-chip ${chipModeClass(requirementStatusFilters[status] || "off")}`}
+                  onClick={() => cycleRequirementStatusFilter(status)}
+                >
+                  {REQUIREMENT_STATUS_LABELS[status]}
+                </button>
+              ),
+            )}
           </div>
         </div>
 
