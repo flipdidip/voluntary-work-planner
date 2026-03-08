@@ -77,6 +77,13 @@
   justify-content: flex-end;
   align-items: center;
   gap: 12px;
+  position: sticky;
+  bottom: calc(-1 * var(--main-content-pad-y, 28px) - 2px);
+  z-index: 5;
+  background: var(--color-bg);
+  margin-inline: calc(-1 * var(--main-content-pad-x, 32px));
+  padding: 10px var(--main-content-pad-x, 32px);
+  border-top: 1px solid var(--color-border);
 }
 
 .success-msg {
@@ -99,7 +106,19 @@
 }
 
 .birthday-reminders-hint {
-  margin-bottom: 2px;
+  margin: 0;
+}
+
+.anniversary-reminders {
+  margin-top: 12px;
+}
+
+.anniversary-option {
+  margin-bottom: 8px;
+}
+
+.anniversary-option-spaced {
+  margin-top: 10px;
 }
 
 .checkbox-label {

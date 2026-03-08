@@ -179,11 +179,11 @@ export default function Settings(): JSX.Element {
           </div>
         )}
 
-        <div className="birthday-reminders" style={{ marginTop: "2rem" }}>
+        <div className="birthday-reminders anniversary-reminders">
           <h3 className="birthday-reminders-title">Jubiläumserinnerungen</h3>
 
           {/* Joined Date Anniversaries */}
-          <div style={{ marginBottom: "1.5rem" }}>
+          <div className="anniversary-option">
             <label className="checkbox-label">
               <input
                 type="checkbox"
@@ -226,7 +226,7 @@ export default function Settings(): JSX.Element {
           )}
 
           {/* Activity Time Anniversaries */}
-          <div style={{ marginTop: "1.5rem", marginBottom: "1.5rem" }}>
+          <div className="anniversary-option anniversary-option-spaced">
             <label className="checkbox-label">
               <input
                 type="checkbox"
