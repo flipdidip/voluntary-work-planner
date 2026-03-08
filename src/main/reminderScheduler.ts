@@ -112,6 +112,37 @@ export class ReminderScheduler {
           }
         }
 
+        // Check anniversary reminder (years of service)
+        if (volunteer.joinedDate && appSettings.enableAnniversaryReminders) {
+          const joinedDate = parseISO(volunteer.joinedDate);
+          const isAnniversaryToday =
+            joinedDate.getDate() === now.getDate() &&
+            joinedDate.getMonth() === now.getMonth();
+
+          if (isAnniversaryToday) {
+            const yearsOfService = differenceInYears(now, joinedDate);
+            const anniversaryYears = appSettings.anniversaryYears || [
+              5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+            ];
+            if (
+              yearsOfService > 0 &&
+              anniversaryYears.includes(yearsOfService)
+            ) {
+              dueReminders.push({
+                volunteerId: volunteer.id,
+                volunteerName: `${volunteer.firstName} ${volunteer.lastName}`,
+                reminder: {
+                  id: `anniversary-${volunteer.id}`,
+                  type: "custom",
+                  title: `Jubiläum: ${volunteer.firstName} ${volunteer.lastName}`,
+                  message: `${volunteer.firstName} ${volunteer.lastName} ist heute seit ${yearsOfService} Jahren aktiv!`,
+                  dismissed: false,
+                },
+              });
+            }
+          }
+        }
+
         // Check custom reminders for this volunteer
         for (const reminder of volunteer.reminders) {
           if (reminder.dismissed) continue;

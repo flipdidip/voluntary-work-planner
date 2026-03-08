@@ -14,7 +14,7 @@ Built for German _gemeinnützige Vereine_, particularly hospice and end-of-life 
 
 - 👥 **Volunteer registry** — manage all volunteer data in one place
 - 📁 **File-based database** — works with OneDrive / SharePoint sync folders
-- 🔔 **Smart reminders** — round birthdays (50, 60, 70...), annual birthdays, custom dates
+- 🔔 **Smart reminders** — round birthdays (50, 60, 70, 75...), annual birthdays, service anniversaries (5, 10, 15...) and custom dates
 - 🪟 **Windows taskbar notifications** — OS-level alerts when reminders are due
 - **Optimistic locking** — safe multi-user access via OneDrive sync
 - 🔄 **Auto-updates** — via GitHub Releases
@@ -73,11 +73,12 @@ Each record has a `_version` field. Before saving, the app checks if the file wa
 
 Reminders can be attached to each volunteer:
 
-| Type                | Description                                           |
-| ------------------- | ----------------------------------------------------- |
-| **Round birthday**  | Alerts on 50th, 60th, 70th... birthday (configurable) |
-| **Annual birthday** | Alert every year on the volunteer's birthday          |
-| **Custom date**     | One-time alert on any chosen date                     |
+| Type                | Description                                                             |
+| ------------------- | ----------------------------------------------------------------------- |
+| **Round birthday**  | Alerts on 50th, 60th, 70th, 75th, 80th... birthday (configurable)       |
+| **Annual birthday** | Alert every year on the volunteer's birthday                            |
+| **Anniversary**     | Alerts on service milestones: 5, 10, 15, 20, 25... years (configurable) |
+| **Custom date**     | One-time alert on any chosen date                                       |
 
 Reminders appear as:
 

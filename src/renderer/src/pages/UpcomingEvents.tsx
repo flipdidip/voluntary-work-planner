@@ -104,7 +104,10 @@ export default function UpcomingEvents(): JSX.Element {
       );
 
       // Show birthdays based on global settings
-      if (settings.enableYearlyBirthdayReminders) {
+      if (
+        settings.enableYearlyBirthdayReminders ||
+        settings.enableRoundBirthdayReminders
+      ) {
         for (const v of activeVolunteers) {
           if (!v.dateOfBirth) continue;
           const nextBirthday = getNextBirthdayDate(v.dateOfBirth, today);
@@ -112,38 +115,57 @@ export default function UpcomingEvents(): JSX.Element {
           const age =
             nextBirthday.getFullYear() - parseISO(v.dateOfBirth).getFullYear();
 
-          // If round birthdays are also enabled, check if this is a round birthday
+          // Check if this is a round birthday
           const isRound =
             settings.enableRoundBirthdayReminders &&
             settings.roundBirthdayYears?.includes(age);
 
-          result.push({
-            volunteerId: v.id,
-            volunteerName: `${v.firstName} ${v.lastName}`,
-            eventType: "birthday",
-            label: isRound
-              ? `${age}. Geburtstag (Runder Geburtstag!)`
-              : `${age}. Geburtstag`,
-            date: format(nextBirthday, "yyyy-MM-dd"),
-            daysUntil,
-          });
-        }
-      } else if (settings.enableRoundBirthdayReminders) {
-        // Only show round birthdays
-        for (const v of activeVolunteers) {
-          if (!v.dateOfBirth) continue;
-          const nextBirthday = getNextBirthdayDate(v.dateOfBirth, today);
-          const age =
-            nextBirthday.getFullYear() - parseISO(v.dateOfBirth).getFullYear();
-
-          if (settings.roundBirthdayYears?.includes(age)) {
-            const daysUntil = differenceInCalendarDays(nextBirthday, today);
+          // Show birthday if yearly reminders are enabled, or if it's a round birthday and round reminders are enabled
+          if (
+            settings.enableYearlyBirthdayReminders ||
+            (isRound && settings.enableRoundBirthdayReminders)
+          ) {
             result.push({
               volunteerId: v.id,
               volunteerName: `${v.firstName} ${v.lastName}`,
               eventType: "birthday",
-              label: `${age}. Geburtstag (Runder Geburtstag!)`,
+              label: isRound
+                ? `${age}. Geburtstag (Runder Geburtstag!)`
+                : `${age}. Geburtstag`,
               date: format(nextBirthday, "yyyy-MM-dd"),
+              daysUntil,
+            });
+          }
+        }
+      }
+
+      // Show anniversaries based on global settings
+      if (settings.enableAnniversaryReminders) {
+        for (const v of activeVolunteers) {
+          if (!v.joinedDate) continue;
+          const joinedDate = parseISO(v.joinedDate);
+          const nextAnniversary = new Date(
+            today.getFullYear(),
+            joinedDate.getMonth(),
+            joinedDate.getDate(),
+          );
+          if (differenceInCalendarDays(nextAnniversary, today) < 0) {
+            nextAnniversary.setFullYear(nextAnniversary.getFullYear() + 1);
+          }
+          const yearsOfService =
+            nextAnniversary.getFullYear() - joinedDate.getFullYear();
+          const anniversaryYears = settings.anniversaryYears || [
+            5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+          ];
+
+          if (yearsOfService > 0 && anniversaryYears.includes(yearsOfService)) {
+            const daysUntil = differenceInCalendarDays(nextAnniversary, today);
+            result.push({
+              volunteerId: v.id,
+              volunteerName: `${v.firstName} ${v.lastName}`,
+              eventType: "reminder",
+              label: `${yearsOfService}-jähriges Jubiläum`,
+              date: format(nextAnniversary, "yyyy-MM-dd"),
               daysUntil,
             });
           }
