@@ -47,6 +47,79 @@ export interface FileRecord {
   uploadedAt: string; // ISO timestamp
 }
 
+// ─────────────────────────────────────────────────
+// Requirements / Compliance tracking
+// ─────────────────────────────────────────────────
+
+export type RequirementType =
+  | "grundkurs" // Basic course - one-time, no document
+  | "verhaltenskodex" // Code of conduct - one-time, PDF required
+  | "verschwiegenheitsklausel" // Confidentiality agreement - one-time, PDF required
+  | "fuehrungszeugnis" // Background check - renewal every 5 years, no upload
+  | "hygieneschulung"; // Hygiene training - renewal every year, PDF required
+
+export interface RequirementMetadata {
+  id: RequirementType;
+  label: string;
+  requiresDocument: boolean;
+  renewalMonths: number | null; // null = one-time, number = renewal period in months
+}
+
+export const REQUIREMENT_DEFINITIONS: Record<
+  RequirementType,
+  RequirementMetadata
+> = {
+  grundkurs: {
+    id: "grundkurs",
+    label: "Grundkurs teilgenommen",
+    requiresDocument: false,
+    renewalMonths: null, // one-time only
+  },
+  verhaltenskodex: {
+    id: "verhaltenskodex",
+    label: "Verhaltenskodex unterschrieben",
+    requiresDocument: true,
+    renewalMonths: null, // one-time only
+  },
+  verschwiegenheitsklausel: {
+    id: "verschwiegenheitsklausel",
+    label: "Verschwiegenheitsklausel unterschrieben",
+    requiresDocument: true,
+    renewalMonths: null, // one-time only
+  },
+  fuehrungszeugnis: {
+    id: "fuehrungszeugnis",
+    label: "Führungszeugnis vorgezeigt",
+    requiresDocument: false,
+    renewalMonths: 60, // every 5 years
+  },
+  hygieneschulung: {
+    id: "hygieneschulung",
+    label: "Hygiene Schulung teilgenommen",
+    requiresDocument: true,
+    renewalMonths: 12, // every year
+  },
+};
+
+export interface RequirementRecord {
+  requirementType: RequirementType;
+  completedDate?: string; // ISO date (YYYY-MM-DD)
+  // Document upload (only for requirements that require it)
+  fileName?: string;
+  filePath?: string;
+  fileSize?: number;
+  uploadedAt?: string; // ISO timestamp
+  // Notes
+  notes?: string;
+}
+
+// Compact status for index
+export type RequirementStatus = "complete" | "expired" | "missing";
+
+export interface RequirementStatusSummary {
+  [key: string]: RequirementStatus; // key is RequirementType
+}
+
 export interface StatusLogEntry {
   timestamp: string; // ISO timestamp
   from: VolunteerStatus | null; // null for initial status
@@ -90,6 +163,9 @@ export interface Volunteer {
 
   // File records (Akte) attached to this volunteer
   fileRecords: FileRecord[];
+
+  // Requirements / compliance tracking
+  requirements: RequirementRecord[];
 }
 
 // ─────────────────────────────────────────────────
@@ -105,6 +181,7 @@ export interface VolunteerIndexEntry {
   status: VolunteerStatus;
   roles: string[];
   _updatedAt: string;
+  requirementsStatus?: RequirementStatusSummary;
 }
 
 export interface VolunteerIndex {
@@ -270,4 +347,51 @@ export function getActivityPeriods(volunteer: Volunteer): ActivityPeriod[] {
   }
 
   return periods;
+}
+
+// ─────────────────────────────────────────────────
+// Requirements status calculation
+// ─────────────────────────────────────────────────
+
+/**
+ * Calculate the status of each requirement for a volunteer
+ * Returns a summary of complete/expired/missing for each requirement type
+ */
+export function calculateRequirementsStatus(
+  volunteer: Volunteer,
+): RequirementStatusSummary {
+  const summary: RequirementStatusSummary = {};
+  const requirements = volunteer.requirements || [];
+  const now = new Date();
+
+  // Check each requirement type
+  for (const type of Object.keys(
+    REQUIREMENT_DEFINITIONS,
+  ) as RequirementType[]) {
+    const def = REQUIREMENT_DEFINITIONS[type];
+    const record = requirements.find((r) => r.requirementType === type);
+
+    if (!record || !record.completedDate) {
+      summary[type] = "missing";
+      continue;
+    }
+
+    // Check if expired (for renewable requirements)
+    if (def.renewalMonths !== null) {
+      const completedDate = new Date(record.completedDate);
+      const expiryDate = new Date(completedDate);
+      expiryDate.setMonth(expiryDate.getMonth() + def.renewalMonths);
+
+      if (expiryDate < now) {
+        summary[type] = "expired";
+      } else {
+        summary[type] = "complete";
+      }
+    } else {
+      // One-time requirement
+      summary[type] = "complete";
+    }
+  }
+
+  return summary;
 }

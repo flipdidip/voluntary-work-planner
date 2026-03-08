@@ -258,6 +258,144 @@ label {
   gap: 4px;
 }
 
+/* Requirementslist */
+.requirements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.requirement-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  transition: background 0.2s;
+}
+
+.requirement-item:hover {
+  background: var(--color-surface-3, #f5f5f5);
+}
+
+.requirement-item--expired {
+  border-left: 3px solid var(--color-danger);
+  background: #fef2f2;
+}
+
+.requirement-item--missing {
+  border-left: 3px solid #d1d5db;
+  background: #f9fafb;
+  opacity: 0.8;
+}
+
+.requirement-item-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.icon-success {
+  color: var(--color-success, #22c55e);
+}
+
+.icon-warning {
+  color: var(--color-danger, #ef4444);
+}
+
+.icon-missing {
+  color: #9ca3af;
+}
+
+.requirement-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.requirement-item-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.requirement-item-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.requirement-item-file {
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  margin-top: 4px;
+}
+
+.requirement-item-notes {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.requirement-item-actions {
+  display: flex;
+  gap: 2px;
+}
+
+/* Requirement Form */
+.requirement-form {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.requirement-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.requirement-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.requirement-info {
+  display: flex;
+  gap: 8px;
+  margin-top: -4px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-warning {
+  background: #fed7aa;
+  color: #92400e;
+}
+
+.badge-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
 .file-record-item-title {
   font-weight: 600;
   font-size: 0.875rem;

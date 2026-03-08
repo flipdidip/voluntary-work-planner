@@ -13,6 +13,9 @@ import {
   Upload,
   Download,
   Eye,
+  CheckCircle,
+  AlertCircle,
+  Plus,
 } from "lucide-react";
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
@@ -23,10 +26,13 @@ import {
   ReminderType,
   VolunteerStatus,
   FileRecord,
+  RequirementRecord,
+  RequirementType,
+  REQUIREMENT_DEFINITIONS,
   calculateActivityTime,
   formatActivityTime,
 } from "@shared/types";
-import { format, parseISO, differenceInYears } from "date-fns";
+import { format, parseISO, differenceInYears, addMonths, isBefore } from "date-fns";
 import { de } from "date-fns/locale";
 import { v4 as uuidv4 } from "uuid";
 import "./VolunteerDetail.css";
@@ -47,6 +53,7 @@ export default function VolunteerDetail(): JSX.Element {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [showFileRecordForm, setShowFileRecordForm] = useState(false);
+  const [showRequirementForm, setShowRequirementForm] = useState(false);
 
   // Init form from loaded data
   if (initial && !form) {
@@ -148,6 +155,48 @@ export default function VolunteerDetail(): JSX.Element {
   };
 
   const openFileRecord = async (filePath: string): Promise<void> => {
+    const result = await window.api.openFile(filePath);
+    if (!result.success) {
+      setError(`Fehler beim Öffnen der Datei: ${result.error}`);
+    }
+  };
+
+  // ── Requirements ───────────────────────────────────────
+  const addOrUpdateRequirement = (requirement: RequirementRecord): void => {
+    const requirements = form.requirements || [];
+    const existingIdx = requirements.findIndex(
+      (r) => r.requirementType === requirement.requirementType
+    );
+    
+    if (existingIdx >= 0) {
+      // Update existing
+      const updated = [...requirements];
+      updated[existingIdx] = requirement;
+      update({ requirements: updated });
+    } else {
+      // Add new
+      update({ requirements: [...requirements, requirement] });
+    }
+  };
+
+  const removeRequirement = async (requirementType: RequirementType): Promise<void> => {
+    const requirements = form.requirements || [];
+    const requirement = requirements.find((r) => r.requirementType === requirementType);
+
+    if (requirement?.filePath) {
+      const result = await window.api.deleteFile(requirement.filePath);
+      if (!result.success) {
+        setError(`Fehler beim Löschen der Datei: ${result.error}`);
+        return;
+      }
+    }
+
+    update({
+      requirements: requirements.filter((r) => r.requirementType !== requirementType),
+    });
+  };
+
+  const openRequirementFile = async (filePath: string): Promise<void> => {
     const result = await window.api.openFile(filePath);
     if (!result.success) {
       setError(`Fehler beim Öffnen der Datei: ${result.error}`);
@@ -525,6 +574,59 @@ export default function VolunteerDetail(): JSX.Element {
             ))}
           </div>
         </section>
+
+        {/* ── Requirements / Compliance ──────────────────────── */}
+        <section className="card section-card requirements-section">
+          <h2>
+            <CheckCircle size={17} /> Qualifikationen & Nachweise
+          </h2>
+
+          <p className="hint" style={{ marginBottom: "1rem" }}>
+            Verwalten Sie Schulungen, Bescheinigungen und gesetzlich erforderliche Nachweise.
+            Einige Qualifikationen müssen regelmäßig erneuert werden.
+          </p>
+
+          {showRequirementForm && (
+            <RequirementForm
+              volunteerId={form.id}
+              existingRequirements={form.requirements || []}
+              onAdd={addOrUpdateRequirement}
+              onClose={() => setShowRequirementForm(false)}
+            />
+          )}
+
+          <div className="requirements-list">
+            {(Object.keys(REQUIREMENT_DEFINITIONS) as RequirementType[]).map(
+              (reqType) => {
+                const requirement = (form.requirements || []).find(
+                  (r) => r.requirementType === reqType,
+                );
+
+                if (requirement) {
+                  return (
+                    <RequirementItem
+                      key={reqType}
+                      requirement={requirement}
+                      onRemove={() => removeRequirement(requirement.requirementType)}
+                      onOpen={() =>
+                        requirement.filePath &&
+                        openRequirementFile(requirement.filePath)
+                      }
+                    />
+                  );
+                } else {
+                  return (
+                    <MissingRequirementItem
+                      key={reqType}
+                      requirementType={reqType}
+                      onAdd={() => setShowRequirementForm(true)}
+                    />
+                  );
+                }
+              },
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -887,6 +989,329 @@ function FileRecordItem({
           onClick={onRemove}
         >
           <X size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// RequirementForm — inline sub-component
+// ──────────────────────────────────────────────────────────
+
+interface RequirementFormProps {
+  volunteerId: string;
+  existingRequirements: RequirementRecord[];
+  onAdd: (r: RequirementRecord) => void;
+  onClose: () => void;
+}
+
+function RequirementForm({
+  volunteerId,
+  existingRequirements,
+  onAdd,
+  onClose,
+}: RequirementFormProps): JSX.Element {
+  const [requirementType, setRequirementType] = useState<RequirementType | "">("");
+  const [completedDate, setCompletedDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const selectedDef = requirementType
+    ? REQUIREMENT_DEFINITIONS[requirementType]
+    : null;
+
+  // Get available requirements (not yet completed or renewable)
+  const availableRequirements = (
+    Object.keys(REQUIREMENT_DEFINITIONS) as RequirementType[]
+  ).filter((type) => {
+    const existing = existingRequirements.find((r) => r.requirementType === type);
+    if (!existing) return true; // Not yet added
+    
+    const def = REQUIREMENT_DEFINITIONS[type];
+    if (def.renewalMonths === null) return false; // One-time only, already exists
+    
+    return true; // Can be renewed
+  });
+
+  const handleSelectFile = async (): Promise<void> => {
+    const filePath = await window.api.selectFile();
+    if (filePath) {
+      setSelectedFilePath(filePath);
+    }
+  };
+
+  const handleAdd = async (): Promise<void> => {
+    if (!requirementType || !completedDate) return;
+
+    setUploading(true);
+    let uploadResult = null;
+
+    if (selectedFilePath && selectedDef?.requiresDocument) {
+      uploadResult = await window.api.uploadFile(volunteerId, selectedFilePath);
+      if (!uploadResult.success) {
+        alert(`Fehler beim Hochladen: ${uploadResult.error}`);
+        setUploading(false);
+        return;
+      }
+    }
+
+    const requirement: RequirementRecord = {
+      requirementType: requirementType as RequirementType,
+      completedDate,
+      fileName: uploadResult?.fileName,
+      filePath: uploadResult?.filePath,
+      fileSize: uploadResult?.fileSize || 0,
+      uploadedAt: uploadResult ? new Date().toISOString() : undefined,
+      notes: notes.trim() || undefined,
+    };
+
+    onAdd(requirement);
+    setUploading(false);
+    onClose();
+  };
+
+  return (
+    <div className="requirement-form card">
+      <div className="requirement-form-header">
+        <h3>Qualifikation hinzufügen</h3>
+        <button className="btn btn-ghost" onClick={onClose}>
+          <X size={16} />
+        </button>
+      </div>
+
+      <label>
+        Typ *
+        <select
+          className="select"
+          value={requirementType}
+          onChange={(e) => setRequirementType(e.target.value as RequirementType)}
+        >
+          <option value="">-- Bitte auswählen --</option>
+          {availableRequirements.map((type) => (
+            <option key={type} value={type}>
+              {REQUIREMENT_DEFINITIONS[type].label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {selectedDef && (
+        <>
+          <div className="requirement-info">
+            {selectedDef.renewalMonths === null ? (
+              <span className="badge badge-success">Einmalig</span>
+            ) : (
+              <span className="badge badge-warning">
+                Erneuerung alle {selectedDef.renewalMonths} Monate
+              </span>
+            )}
+            {selectedDef.requiresDocument && (
+              <span className="badge badge-info">Dokument erforderlich</span>
+            )}
+          </div>
+
+          <label>
+            Abschlussdatum *
+            <input
+              className="input"
+              type="date"
+              value={completedDate}
+              onChange={(e) => setCompletedDate(e.target.value)}
+            />
+          </label>
+
+          {selectedDef.requiresDocument && (
+            <label>
+              Dokument (PDF) {selectedDef.requiresDocument ? "*" : "(optional)"}
+              <div
+                style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
+              >
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleSelectFile}
+                  type="button"
+                >
+                  <Upload size={15} /> Datei auswählen
+                </button>
+                {selectedFilePath && (
+                  <span
+                    style={{
+                      fontSize: "0.9em",
+                      color: "var(--color-text-secondary)",
+                    }}
+                  >
+                    {selectedFilePath.split(/[\\/]/).pop()}
+                  </span>
+                )}
+              </div>
+            </label>
+          )}
+
+          <label>
+            Notizen
+            <textarea
+              className="textarea"
+              placeholder="Optionale Notizen..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </label>
+
+          <div className="requirement-form-actions">
+            <button className="btn btn-secondary" onClick={onClose}>
+              Abbrechen
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleAdd}
+              disabled={
+                uploading ||
+                !requirementType ||
+                !completedDate ||
+                (selectedDef.requiresDocument && !selectedFilePath)
+              }
+            >
+              <Plus size={15} /> {uploading ? "Hochladen..." : "Hinzufügen"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// RequirementItem — display one requirement
+// ──────────────────────────────────────────────────────────
+
+interface RequirementItemProps {
+  requirement: RequirementRecord;
+  onRemove: () => void;
+  onOpen: () => void;
+}
+
+function RequirementItem({
+  requirement,
+  onRemove,
+  onOpen,
+}: RequirementItemProps): JSX.Element {
+  const def = REQUIREMENT_DEFINITIONS[requirement.requirementType];
+  
+  // Check if renewal is due
+  let isExpired = false;
+  let expiryDate: Date | null = null;
+  
+  if (def.renewalMonths !== null && requirement.completedDate) {
+    expiryDate = addMonths(parseISO(requirement.completedDate), def.renewalMonths);
+    isExpired = isBefore(expiryDate, new Date());
+  }
+
+  return (
+    <div className={`requirement-item ${isExpired ? "requirement-item--expired" : ""}`}>
+      <div className="requirement-item-icon">
+        {isExpired ? (
+          <AlertCircle size={20} className="icon-warning" />
+        ) : (
+          <CheckCircle size={20} className="icon-success" />
+        )}
+      </div>
+      <div className="requirement-item-body">
+        <div className="requirement-item-title">{def.label}</div>
+        
+        <div className="requirement-item-meta">
+          {requirement.completedDate && (
+            <span>
+              Abgeschlossen:{" "}
+              {format(parseISO(requirement.completedDate), "dd.MM.yyyy", {
+                locale: de,
+              })}
+            </span>
+          )}
+          {def.renewalMonths !== null && expiryDate && (
+            <span>
+              {" · "}
+              {isExpired ? "Abgelaufen" : "Gültig bis"}:{" "}
+              {format(expiryDate, "dd.MM.yyyy", { locale: de })}
+            </span>
+          )}
+        </div>
+
+        {requirement.fileName && (
+          <div className="requirement-item-file">
+            📎 {requirement.fileName}
+          </div>
+        )}
+
+        {requirement.notes && (
+          <div className="requirement-item-notes">{requirement.notes}</div>
+        )}
+      </div>
+      <div className="requirement-item-actions">
+        {requirement.fileName && requirement.filePath && (
+          <button
+            className="btn btn-ghost"
+            title="Dokument öffnen"
+            onClick={onOpen}
+          >
+            <Eye size={15} /> Öffnen
+          </button>
+        )}
+        <button
+          className="btn btn-ghost danger-ghost"
+          title="Löschen"
+          onClick={onRemove}
+        >
+          <X size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// MissingRequirementItem — display missing/incomplete requirement
+// ──────────────────────────────────────────────────────────
+
+interface MissingRequirementItemProps {
+  requirementType: RequirementType;
+  onAdd: () => void;
+}
+
+function MissingRequirementItem({
+  requirementType,
+  onAdd,
+}: MissingRequirementItemProps): JSX.Element {
+  const def = REQUIREMENT_DEFINITIONS[requirementType];
+
+  return (
+    <div className="requirement-item requirement-item--missing">
+      <div className="requirement-item-icon">
+        <AlertCircle size={20} className="icon-missing" />
+      </div>
+      <div className="requirement-item-body">
+        <div className="requirement-item-title">{def.label}</div>
+        <div className="requirement-item-meta">
+          <span style={{ color: "var(--color-text-muted)" }}>
+            Noch nicht erfasst
+          </span>
+          {def.renewalMonths !== null && (
+            <span>
+              {" · "}
+              Erneuerung alle {def.renewalMonths} Monate
+            </span>
+          )}
+          {def.renewalMonths === null && <span> · Einmalig</span>}
+        </div>
+      </div>
+      <div className="requirement-item-actions">
+        <button
+          className="btn btn-secondary"
+          title="Hinzufügen"
+          onClick={onAdd}
+        >
+          <Plus size={15} /> Hinzufügen
         </button>
       </div>
     </div>

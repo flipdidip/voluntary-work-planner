@@ -13,6 +13,7 @@ import {
   VolunteerIndex,
   VolunteerIndexEntry,
   SaveResult,
+  calculateRequirementsStatus,
 } from "@shared/types";
 
 export class VolunteerFileService {
@@ -45,11 +46,30 @@ export class VolunteerFileService {
 
       let changed = false;
       const normalizedVolunteers = index.volunteers.map((entry) => {
-        if (entry.joinedDate !== undefined) return entry;
-        const volunteer = this.readVolunteer(entry.id);
-        if (volunteer?.joinedDate) {
+        let updated = { ...entry };
+        let entryChanged = false;
+
+        // Migrate joinedDate if missing
+        if (updated.joinedDate === undefined) {
+          const volunteer = this.readVolunteer(entry.id);
+          if (volunteer?.joinedDate) {
+            updated.joinedDate = volunteer.joinedDate;
+            entryChanged = true;
+          }
+        }
+
+        // Migrate requirementsStatus if missing
+        if (!updated.requirementsStatus) {
+          const volunteer = this.readVolunteer(entry.id);
+          if (volunteer) {
+            updated.requirementsStatus = calculateRequirementsStatus(volunteer);
+            entryChanged = true;
+          }
+        }
+
+        if (entryChanged) {
           changed = true;
-          return { ...entry, joinedDate: volunteer.joinedDate };
+          return updated;
         }
         return entry;
       });
@@ -86,6 +106,7 @@ export class VolunteerFileService {
       status: volunteer.status,
       roles: volunteer.roles,
       _updatedAt: volunteer._updatedAt,
+      requirementsStatus: calculateRequirementsStatus(volunteer),
     };
     const existingIdx = index.volunteers.findIndex(
       (v) => v.id === volunteer.id,
@@ -135,6 +156,11 @@ export class VolunteerFileService {
       // Migrate old volunteers without fileRecords
       if (!volunteer.fileRecords) {
         volunteer.fileRecords = [];
+      }
+
+      // Migrate old volunteers without requirements
+      if (!volunteer.requirements) {
+        volunteer.requirements = [];
       }
 
       return volunteer;
