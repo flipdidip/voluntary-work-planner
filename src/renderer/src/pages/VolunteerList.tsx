@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { UserPlus, Search, Mail, Phone, X } from "lucide-react";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
@@ -44,7 +44,19 @@ export default function VolunteerList(): JSX.Element {
   const [upcomingBirthday, setUpcomingBirthday] = useState(false);
   const [joinedFilter, setJoinedFilter] = useState<JoinedFilter>("all");
 
-  const statusFilter = searchParams.get("status") as VolunteerStatus | null;
+  const statusFromQuery = searchParams.get("status");
+
+  useEffect(() => {
+    if (
+      statusFromQuery === "active" ||
+      statusFromQuery === "inactive" ||
+      statusFromQuery === "archived"
+    ) {
+      setSelectedStatus(statusFromQuery);
+      return;
+    }
+    setSelectedStatus(null);
+  }, [statusFromQuery]);
 
   // Extract all unique roles from volunteers
   const allRoles = useMemo(() => {
@@ -58,9 +70,7 @@ export default function VolunteerList(): JSX.Element {
     if (!index) return [];
     return index.volunteers.filter((v) => {
       // Status filter
-      const matchesStatus =
-        (!statusFilter || v.status === statusFilter) &&
-        (!selectedStatus || v.status === selectedStatus);
+      const matchesStatus = !selectedStatus || v.status === selectedStatus;
 
       // Search query filter
       const q = query.toLowerCase();
@@ -143,7 +153,6 @@ export default function VolunteerList(): JSX.Element {
   }, [
     index,
     query,
-    statusFilter,
     selectedStatus,
     selectedRoles,
     hasEmail,

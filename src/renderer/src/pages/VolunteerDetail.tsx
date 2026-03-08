@@ -84,11 +84,26 @@ export default function VolunteerDetail(): JSX.Element {
     }
   };
 
-  const handleDelete = async (): Promise<void> => {
-    if (!confirm(`${form.firstName} ${form.lastName} wirklich archivieren?`))
+  const handleArchive = async (): Promise<void> => {
+    if (form.status === "archived") return;
+    if (!confirm(`${form.firstName} ${form.lastName} wirklich archivieren?`)) {
       return;
-    await window.api.deleteVolunteer(form.id);
-    navigate("/volunteers");
+    }
+
+    setSaving(true);
+    setError(null);
+
+    const result = await window.api.saveVolunteer({
+      ...form,
+      status: "archived",
+    });
+
+    setSaving(false);
+    if (result.success) {
+      navigate("/volunteers?status=archived");
+    } else {
+      setError(result.message);
+    }
   };
 
   // ── Reminders ─────────────────────────────────────────
@@ -147,8 +162,16 @@ export default function VolunteerDetail(): JSX.Element {
         <div className="detail-actions">
           {successMsg && <span className="success-msg">{successMsg}</span>}
           {error && <span className="error-msg">{error}</span>}
-          <button className="btn btn-danger" onClick={handleDelete}>
-            <Trash2 size={15} /> Archivieren
+          <button
+            className="btn btn-danger"
+            onClick={handleArchive}
+            disabled={saving || form.status === "archived"}
+            title={
+              form.status === "archived" ? "Bereits archiviert" : undefined
+            }
+          >
+            <Trash2 size={15} />
+            {form.status === "archived" ? "Archiviert" : "Archivieren"}
           </button>
           <button
             className="btn btn-primary"
