@@ -407,9 +407,6 @@ export default function VolunteerList(): JSX.Element {
           const age = v.dateOfBirth
             ? differenceInYears(new Date(), parseISO(v.dateOfBirth))
             : null;
-          const volunteerTenure = v.joinedDate
-            ? getVolunteerTenure(v.joinedDate)
-            : null;
           return (
             <div
               key={v.id}
@@ -426,12 +423,6 @@ export default function VolunteerList(): JSX.Element {
                     {v.firstName} {v.lastName}
                   </span>
                   {age !== null && <span className="vol-age">{age} Jahre</span>}
-                  {volunteerTenure && (
-                    <span className="vol-tenure">
-                      Seit {volunteerTenure.formattedDate} ·{" "}
-                      {volunteerTenure.duration}
-                    </span>
-                  )}
                 </div>
                 <span className="vol-roles">{v.roles.join(", ") || "—"}</span>
                 <div className="vol-contact">
@@ -466,31 +457,4 @@ export default function VolunteerList(): JSX.Element {
       </div>
     </div>
   );
-}
-
-function getVolunteerTenure(
-  joinedDateIso: string,
-): { formattedDate: string; duration: string } | null {
-  const joinedDate = parseISO(joinedDateIso);
-  if (Number.isNaN(joinedDate.getTime())) return null;
-
-  const now = new Date();
-  const from = joinedDate <= now ? joinedDate : now;
-  const to = joinedDate <= now ? now : joinedDate;
-
-  const totalMonths = differenceInMonths(to, from);
-  const years = Math.floor(totalMonths / 12);
-  const months = totalMonths % 12;
-
-  const durationParts: string[] = [];
-  if (years > 0)
-    durationParts.push(`${years} ${years === 1 ? "Jahr" : "Jahre"}`);
-  if (months > 0)
-    durationParts.push(`${months} ${months === 1 ? "Monat" : "Monate"}`);
-  if (durationParts.length === 0) durationParts.push("< 1 Monat");
-
-  return {
-    formattedDate: format(joinedDate, "dd.MM.yyyy", { locale: de }),
-    duration: durationParts.join(" "),
-  };
 }

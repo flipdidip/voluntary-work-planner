@@ -18,13 +18,10 @@ import {
   Reminder,
   ReminderType,
   VolunteerStatus,
+  calculateActivityTime,
+  formatActivityTime,
 } from "@shared/types";
-import {
-  format,
-  parseISO,
-  differenceInMonths,
-  differenceInYears,
-} from "date-fns";
+import { format, parseISO, differenceInYears } from "date-fns";
 import { de } from "date-fns/locale";
 import { v4 as uuidv4 } from "uuid";
 import "./VolunteerDetail.css";
@@ -57,9 +54,8 @@ export default function VolunteerDetail(): JSX.Element {
   const age = form.dateOfBirth
     ? differenceInYears(new Date(), parseISO(form.dateOfBirth))
     : null;
-  const volunteerTenure = form.joinedDate
-    ? getVolunteerTenure(form.joinedDate)
-    : null;
+  const activityTimeMs = calculateActivityTime(form);
+  const activityTimeFormatted = formatActivityTime(activityTimeMs);
 
   const update = (partial: Partial<Volunteer>): void =>
     setForm((prev) => (prev ? { ...prev, ...partial } : prev));
@@ -293,11 +289,33 @@ export default function VolunteerDetail(): JSX.Element {
               onChange={(e) => update({ joinedDate: e.target.value })}
             />
           </label>
-          {volunteerTenure && (
-            <p className="joined-meta">
-              Seit {volunteerTenure.formattedDate} · {volunteerTenure.duration}
-            </p>
+
+          {activityTimeMs > 0 && (
+            <div
+              className="activity-time-box"
+              style={{
+                marginTop: "1rem",
+                padding: "0.75rem",
+                backgroundColor: "var(--color-bg-secondary, #f5f5f5)",
+                borderRadius: "6px",
+                borderLeft: "3px solid var(--color-primary, #4f46e5)",
+              }}
+            >
+              <strong>Aktive Zeit:</strong> {activityTimeFormatted}
+              {form.status === "active" && (
+                <span
+                  style={{
+                    marginLeft: "0.5rem",
+                    fontSize: "0.85em",
+                    opacity: 0.7,
+                  }}
+                >
+                  (läuft)
+                </span>
+              )}
+            </div>
           )}
+
           <label className="mt">
             Aufgaben
             <RolesInput
@@ -313,6 +331,72 @@ export default function VolunteerDetail(): JSX.Element {
               onChange={(e) => update({ notes: e.target.value })}
             />
           </label>
+
+          {/* Status Change History */}
+          {form.statusLog && form.statusLog.length > 0 && (
+            <details className="status-history" style={{ marginTop: "1.5rem" }}>
+              <summary
+                style={{
+                  cursor: "pointer",
+                  fontWeight: "500",
+                  padding: "0.5rem",
+                  borderRadius: "4px",
+                  userSelect: "none",
+                }}
+              >
+                Status-Verlauf ({form.statusLog.length} Einträge)
+              </summary>
+              <div
+                style={{
+                  marginTop: "0.75rem",
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                  fontSize: "0.9em",
+                }}
+              >
+                {[...form.statusLog].reverse().map((entry, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "0.5rem 0.75rem",
+                      borderLeft: "2px solid var(--color-border, #e0e0e0)",
+                      marginBottom: "0.5rem",
+                      backgroundColor: "var(--color-bg-secondary, #f9f9f9)",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    <div style={{ fontWeight: "500" }}>
+                      {entry.from
+                        ? `${getStatusLabel(entry.from)} → ${getStatusLabel(entry.to)}`
+                        : `Initial: ${getStatusLabel(entry.to)}`}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.85em",
+                        opacity: 0.7,
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      {format(parseISO(entry.timestamp), "dd.MM.yyyy HH:mm", {
+                        locale: de,
+                      })}
+                    </div>
+                    {entry.note && (
+                      <div
+                        style={{
+                          fontSize: "0.85em",
+                          marginTop: "0.25rem",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {entry.note}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </section>
 
         {/* ── Reminders ─────────────────────────────── */}
@@ -368,31 +452,9 @@ export default function VolunteerDetail(): JSX.Element {
   );
 }
 
-function getVolunteerTenure(
-  joinedDateIso: string,
-): { formattedDate: string; duration: string } | null {
-  const joinedDate = parseISO(joinedDateIso);
-  if (Number.isNaN(joinedDate.getTime())) return null;
-
-  const now = new Date();
-  const from = joinedDate <= now ? joinedDate : now;
-  const to = joinedDate <= now ? now : joinedDate;
-
-  const totalMonths = differenceInMonths(to, from);
-  const years = Math.floor(totalMonths / 12);
-  const months = totalMonths % 12;
-
-  const durationParts: string[] = [];
-  if (years > 0)
-    durationParts.push(`${years} ${years === 1 ? "Jahr" : "Jahre"}`);
-  if (months > 0)
-    durationParts.push(`${months} ${months === 1 ? "Monat" : "Monate"}`);
-  if (durationParts.length === 0) durationParts.push("weniger als 1 Monat");
-
-  return {
-    formattedDate: format(joinedDate, "dd.MM.yyyy", { locale: de }),
-    duration: durationParts.join(" "),
-  };
+function getStatusLabel(status: VolunteerStatus): string {
+  const option = STATUS_OPTIONS.find((o) => o.value === status);
+  return option ? option.label : status;
 }
 
 // ──────────────────────────────────────────────────────────

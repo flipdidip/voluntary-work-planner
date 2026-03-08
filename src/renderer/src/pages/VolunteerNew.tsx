@@ -21,6 +21,7 @@ const EMPTY_VOLUNTEER: Omit<
   address: undefined,
   emergencyContact: undefined,
   status: "active",
+  statusLog: [], // Will be populated by volunteerFileService on save
   joinedDate: new Date().toISOString().split("T")[0],
   roles: [],
   notes: "",

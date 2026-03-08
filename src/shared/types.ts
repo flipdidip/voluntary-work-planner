@@ -37,12 +37,22 @@ export interface ContactPerson {
   email?: string;
 }
 
+export interface StatusLogEntry {
+  timestamp: string; // ISO timestamp
+  from: VolunteerStatus | null; // null for initial status
+  to: VolunteerStatus;
+  note?: string;
+}
+
 export interface Volunteer {
   id: string;
   /** Optimistic locking — increment on every write */
   _version: number;
   _createdAt: string; // ISO timestamp
   _updatedAt: string; // ISO timestamp
+
+  /** Log of status changes for tracking activity time */
+  statusLog: StatusLogEntry[];
 
   // Personal data
   firstName: string;
@@ -159,3 +169,86 @@ export type SaveResult =
       reason: "version-conflict" | "io-error";
       message: string;
     };
+
+// ─────────────────────────────────────────────────
+// Activity time calculation utilities
+// ─────────────────────────────────────────────────
+
+export interface ActivityPeriod {
+  start: string; // ISO timestamp
+  end: string | null; // null if currently active
+  status: VolunteerStatus;
+}
+
+/**
+ * Calculate total activity time (in milliseconds) from status log
+ * Only counts time spent in "active" status
+ */
+export function calculateActivityTime(volunteer: Volunteer): number {
+  if (!volunteer.statusLog || volunteer.statusLog.length === 0) {
+    return 0;
+  }
+
+  const periods = getActivityPeriods(volunteer);
+  const activePeriods = periods.filter((p) => p.status === "active");
+
+  let totalMs = 0;
+  const now = new Date();
+
+  for (const period of activePeriods) {
+    const start = new Date(period.start);
+    const end = period.end ? new Date(period.end) : now;
+    totalMs += end.getTime() - start.getTime();
+  }
+
+  return totalMs;
+}
+
+/**
+ * Format activity time as a human-readable string
+ */
+export function formatActivityTime(milliseconds: number): string {
+  const days = Math.floor(milliseconds / (1000 * 60 * 60 * 24));
+  const years = Math.floor(days / 365);
+  const remainingDays = days % 365;
+  const months = Math.floor(remainingDays / 30);
+  const remainingDaysAfterMonths = remainingDays % 30;
+
+  const parts: string[] = [];
+  if (years > 0) parts.push(`${years} Jahr${years !== 1 ? "e" : ""}`);
+  if (months > 0) parts.push(`${months} Monat${months !== 1 ? "e" : ""}`);
+  if (remainingDaysAfterMonths > 0 || parts.length === 0) {
+    parts.push(
+      `${remainingDaysAfterMonths} Tag${remainingDaysAfterMonths !== 1 ? "e" : ""}`,
+    );
+  }
+
+  return parts.join(", ");
+}
+
+/**
+ * Parse status log into periods for each status
+ */
+export function getActivityPeriods(volunteer: Volunteer): ActivityPeriod[] {
+  if (!volunteer.statusLog || volunteer.statusLog.length === 0) {
+    return [];
+  }
+
+  const periods: ActivityPeriod[] = [];
+  const sortedLog = [...volunteer.statusLog].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+
+  for (let i = 0; i < sortedLog.length; i++) {
+    const entry = sortedLog[i];
+    const nextEntry = sortedLog[i + 1];
+
+    periods.push({
+      start: entry.timestamp,
+      end: nextEntry ? nextEntry.timestamp : null,
+      status: entry.to,
+    });
+  }
+
+  return periods;
+}

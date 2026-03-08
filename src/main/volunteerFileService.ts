@@ -115,7 +115,20 @@ export class VolunteerFileService {
     if (!existsSync(filePath)) return null;
     try {
       const raw = readFileSync(filePath, "utf-8");
-      return JSON.parse(raw) as Volunteer;
+      const volunteer = JSON.parse(raw) as Volunteer;
+
+      // Migrate old volunteers without statusLog
+      if (!volunteer.statusLog) {
+        volunteer.statusLog = [
+          {
+            timestamp: volunteer._createdAt || new Date().toISOString(),
+            from: null,
+            to: volunteer.status,
+          },
+        ];
+      }
+
+      return volunteer;
     } catch {
       return null;
     }
@@ -125,8 +138,9 @@ export class VolunteerFileService {
     const filePath = this.volunteerFilePath(incoming.id);
 
     // Optimistic locking — if file exists, check version
+    let existing: Volunteer | null = null;
     if (existsSync(filePath)) {
-      const existing = this.readVolunteer(incoming.id);
+      existing = this.readVolunteer(incoming.id);
       if (existing && existing._version !== incoming._version) {
         return {
           success: false,
@@ -144,6 +158,28 @@ export class VolunteerFileService {
         _version: incoming._version + 1,
         _updatedAt: new Date().toISOString(),
       };
+
+      // Initialize statusLog if it doesn't exist
+      if (!toWrite.statusLog) {
+        toWrite.statusLog = [];
+      }
+
+      // Log status change if status has changed
+      if (existing && existing.status !== toWrite.status) {
+        toWrite.statusLog.push({
+          timestamp: new Date().toISOString(),
+          from: existing.status,
+          to: toWrite.status,
+        });
+      } else if (!existing && toWrite.statusLog.length === 0) {
+        // Initial status log entry for new volunteers
+        toWrite.statusLog.push({
+          timestamp: toWrite._createdAt || new Date().toISOString(),
+          from: null,
+          to: toWrite.status,
+        });
+      }
+
       writeFileSync(filePath, JSON.stringify(toWrite, null, 2), "utf-8");
       this.updateIndexEntry(toWrite);
       return { success: true, volunteer: toWrite };
