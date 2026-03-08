@@ -37,6 +37,16 @@ export interface ContactPerson {
   email?: string;
 }
 
+export interface FileRecord {
+  id: string;
+  title: string;
+  description: string;
+  fileName?: string; // Original name of the uploaded file
+  filePath?: string; // Path to the file in the attachments folder
+  fileSize?: number; // Size in bytes
+  uploadedAt: string; // ISO timestamp
+}
+
 export interface StatusLogEntry {
   timestamp: string; // ISO timestamp
   from: VolunteerStatus | null; // null for initial status
@@ -77,6 +87,9 @@ export interface Volunteer {
 
   // Reminders attached to this volunteer
   reminders: Reminder[];
+
+  // File records (Akte) attached to this volunteer
+  fileRecords: FileRecord[];
 }
 
 // ─────────────────────────────────────────────────
@@ -117,6 +130,12 @@ export const IPC = {
   GET_VOLUNTEER: "get-volunteer",
   SAVE_VOLUNTEER: "save-volunteer",
   DELETE_VOLUNTEER: "delete-volunteer",
+
+  // File attachments
+  UPLOAD_FILE: "upload-file",
+  DELETE_FILE: "delete-file",
+  OPEN_FILE: "open-file",
+  SELECT_FILE: "select-file",
 
   // Reminders
   GET_DUE_REMINDERS: "get-due-reminders",

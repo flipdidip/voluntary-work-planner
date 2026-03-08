@@ -9,6 +9,10 @@ import {
   BellPlus,
   BellOff,
   X,
+  FileText,
+  Upload,
+  Download,
+  Eye,
 } from "lucide-react";
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
@@ -18,6 +22,7 @@ import {
   Reminder,
   ReminderType,
   VolunteerStatus,
+  FileRecord,
   calculateActivityTime,
   formatActivityTime,
 } from "@shared/types";
@@ -41,6 +46,7 @@ export default function VolunteerDetail(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showReminderForm, setShowReminderForm] = useState(false);
+  const [showFileRecordForm, setShowFileRecordForm] = useState(false);
 
   // Init form from loaded data
   if (initial && !form) {
@@ -118,6 +124,34 @@ export default function VolunteerDetail(): JSX.Element {
           : r,
       ),
     });
+  };
+
+  // ── File Records (Akte) ───────────────────────────────
+  const addFileRecord = (fileRecord: FileRecord): void => {
+    const fileRecords = form.fileRecords || [];
+    update({ fileRecords: [...fileRecords, fileRecord] });
+  };
+
+  const removeFileRecord = async (fileRecordId: string): Promise<void> => {
+    const fileRecords = form.fileRecords || [];
+    const record = fileRecords.find((f) => f.id === fileRecordId);
+    
+    if (record?.filePath) {
+      const result = await window.api.deleteFile(record.filePath);
+      if (!result.success) {
+        setError(`Fehler beim Löschen der Datei: ${result.error}`);
+        return;
+      }
+    }
+    
+    update({ fileRecords: fileRecords.filter((f) => f.id !== fileRecordId) });
+  };
+
+  const openFileRecord = async (filePath: string): Promise<void> => {
+    const result = await window.api.openFile(filePath);
+    if (!result.success) {
+      setError(`Fehler beim Öffnen der Datei: ${result.error}`);
+    }
   };
 
   return (
@@ -447,6 +481,49 @@ export default function VolunteerDetail(): JSX.Element {
               ))}
           </div>
         </section>
+
+        {/* ── File Records (Akte) ──────────────────────── */}
+        <section className="card section-card file-records-section">
+          <div className="section-header">
+            <h2>
+              <FileText size={17} /> Akte
+            </h2>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowFileRecordForm(true)}
+            >
+              <Upload size={15} /> Hinzufügen
+            </button>
+          </div>
+
+          <p className="hint" style={{ marginBottom: "1rem" }}>
+            Dokumentieren Sie wichtige Informationen und fügen Sie optional Dateien hinzu.
+          </p>
+
+          {showFileRecordForm && (
+            <FileRecordForm
+              volunteerId={form.id}
+              onAdd={addFileRecord}
+              onClose={() => setShowFileRecordForm(false)}
+            />
+          )}
+
+          <div className="file-record-list">
+            {(!form.fileRecords || form.fileRecords.length === 0) && (
+              <p className="empty-hint">
+                Keine Dokumente vorhanden.
+              </p>
+            )}
+            {form.fileRecords?.map((record) => (
+              <FileRecordItem
+                key={record.id}
+                record={record}
+                onRemove={() => removeFileRecord(record.id)}
+                onOpen={() => record.filePath && openFileRecord(record.filePath)}
+              />
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -617,6 +694,189 @@ function ReminderItem({
         >
           {reminder.dismissed ? <Bell size={15} /> : <BellOff size={15} />}
         </button>
+        <button
+          className="btn btn-ghost danger-ghost"
+          title="Löschen"
+          onClick={onRemove}
+        >
+          <X size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// FileRecordForm — inline sub-component
+// ──────────────────────────────────────────────────────────
+
+interface FileRecordFormProps {
+  volunteerId: string;
+  onAdd: (r: FileRecord) => void;
+  onClose: () => void;
+}
+
+function FileRecordForm({
+  volunteerId,
+  onAdd,
+  onClose,
+}: FileRecordFormProps): JSX.Element {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleSelectFile = async (): Promise<void> => {
+    const filePath = await window.api.selectFile();
+    if (filePath) {
+      setSelectedFilePath(filePath);
+    }
+  };
+
+  const handleAdd = async (): Promise<void> => {
+    if (!title.trim()) return;
+    
+    setUploading(true);
+    let uploadResult = null;
+    
+    if (selectedFilePath) {
+      uploadResult = await window.api.uploadFile(volunteerId, selectedFilePath);
+      if (!uploadResult.success) {
+        alert(`Fehler beim Hochladen: ${uploadResult.error}`);
+        setUploading(false);
+        return;
+      }
+    }
+
+    const fileRecord: FileRecord = {
+      id: uuidv4(),
+      title: title.trim(),
+      description: description.trim(),
+      fileName: uploadResult?.fileName,
+      filePath: uploadResult?.filePath,
+      fileSize: 0, // TODO: Get actual file size
+      uploadedAt: new Date().toISOString(),
+    };
+    
+    onAdd(fileRecord);
+    setUploading(false);
+    onClose();
+  };
+
+  return (
+    <div className="file-record-form card">
+      <div className="file-record-form-header">
+        <h3>Neues Dokument</h3>
+        <button className="btn btn-ghost" onClick={onClose}>
+          <X size={16} />
+        </button>
+      </div>
+
+      <label>
+        Titel *
+        <input
+          className="input"
+          placeholder="z.B. Einverständniserklärung"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </label>
+      
+      <label>
+        Beschreibung
+        <textarea
+          className="textarea"
+          placeholder="Optionale Beschreibung..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </label>
+
+      <label>
+        Datei (optional)
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleSelectFile}
+            type="button"
+          >
+            <Upload size={15} /> Datei auswählen
+          </button>
+          {selectedFilePath && (
+            <span style={{ fontSize: "0.9em", color: "var(--color-text-secondary)" }}>
+              {selectedFilePath.split(/[\\/]/).pop()}
+            </span>
+          )}
+        </div>
+      </label>
+
+      <div className="file-record-form-actions">
+        <button className="btn btn-secondary" onClick={onClose}>
+          Abbrechen
+        </button>
+        <button 
+          className="btn btn-primary" 
+          onClick={handleAdd}
+          disabled={uploading || !title.trim()}
+        >
+          <Upload size={15} /> {uploading ? "Hochladen..." : "Hinzufügen"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// FileRecordItem — display one file record
+// ──────────────────────────────────────────────────────────
+
+interface FileRecordItemProps {
+  record: FileRecord;
+  onRemove: () => void;
+  onOpen: () => void;
+}
+
+function FileRecordItem({
+  record,
+  onRemove,
+  onOpen,
+}: FileRecordItemProps): JSX.Element {
+  return (
+    <div className="file-record-item">
+      <div className="file-record-item-icon">
+        <FileText size={20} />
+      </div>
+      <div className="file-record-item-body">
+        <div className="file-record-item-title">{record.title}</div>
+        {record.description && (
+          <div className="file-record-item-description">{record.description}</div>
+        )}
+        <div className="file-record-item-meta">
+          {record.fileName && (
+            <span>
+              📎 {record.fileName}
+            </span>
+          )}
+          {record.uploadedAt && (
+            <span>
+              {" · "}
+              {format(parseISO(record.uploadedAt), "dd.MM.yyyy", {
+                locale: de,
+              })}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="file-record-item-actions">
+        {record.fileName && record.filePath && (
+          <button
+            className="btn btn-ghost"
+            title="Datei öffnen"
+            onClick={onOpen}
+          >
+            <Eye size={15} /> Öffnen
+          </button>
+        )}
         <button
           className="btn btn-ghost danger-ghost"
           title="Löschen"

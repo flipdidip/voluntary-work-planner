@@ -13,10 +13,12 @@ function getFileService(
   if (!dataPath) return null;
   mkdirSync(settings.getVolunteersPath(), { recursive: true });
   mkdirSync(settings.getBackupsPath(), { recursive: true });
+  mkdirSync(settings.getAttachmentsPath(), { recursive: true });
   return new VolunteerFileService(
     settings.getVolunteersPath(),
     settings.getIndexPath(),
     settings.getBackupsPath(),
+    settings.getAttachmentsPath(),
   );
 }
 
@@ -100,6 +102,44 @@ export function registerVolunteerHandlers(
     const svc = getFileService(settings);
     if (!svc) return;
     svc.deleteVolunteer(id);
+  });
+
+  // ── File Attachments ──────────────────────────────────
+  ipcMain.handle(IPC.SELECT_FILE, async (event) => {
+    const win = require("electron").BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(win!, {
+      title: "Datei auswählen",
+      properties: ["openFile"],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle(
+    IPC.UPLOAD_FILE,
+    async (event, volunteerId: string, sourcePath: string) => {
+      const svc = getFileService(settings);
+      if (!svc) {
+        return { success: false, error: "No data folder configured" };
+      }
+      return svc.uploadFile(volunteerId, sourcePath);
+    },
+  );
+
+  ipcMain.handle(IPC.DELETE_FILE, (_event, filePath: string) => {
+    const svc = getFileService(settings);
+    if (!svc) {
+      return { success: false, error: "No data folder configured" };
+    }
+    return svc.deleteFile(filePath);
+  });
+
+  ipcMain.handle(IPC.OPEN_FILE, (_event, filePath: string) => {
+    const svc = getFileService(settings);
+    if (!svc) {
+      return { success: false, error: "No data folder configured" };
+    }
+    return svc.openFile(filePath);
   });
 
   // ── Reminders ─────────────────────────────────────────

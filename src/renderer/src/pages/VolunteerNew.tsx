@@ -26,6 +26,7 @@ const EMPTY_VOLUNTEER: Omit<
   roles: [],
   notes: "",
   reminders: [],
+  fileRecords: [],
 };
 
 export default function VolunteerNew(): JSX.Element {

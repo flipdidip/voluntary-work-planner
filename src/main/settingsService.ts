@@ -64,4 +64,8 @@ export class SettingsService {
   getBackupsPath(): string {
     return join(this.settings.dataFolderPath, "backups");
   }
+
+  getAttachmentsPath(): string {
+    return join(this.settings.dataFolderPath, "attachments");
+  }
 }

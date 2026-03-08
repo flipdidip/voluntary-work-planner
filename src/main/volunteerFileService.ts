@@ -4,8 +4,10 @@ import {
   writeFileSync,
   mkdirSync,
   copyFileSync,
+  unlinkSync,
 } from "fs";
-import { join } from "path";
+import { join, basename } from "path";
+import { shell } from "electron";
 import {
   Volunteer,
   VolunteerIndex,
@@ -18,9 +20,11 @@ export class VolunteerFileService {
     private volunteersPath: string,
     private indexPath: string,
     private backupsPath: string,
+    private attachmentsPath: string,
   ) {
     mkdirSync(this.volunteersPath, { recursive: true });
     mkdirSync(this.backupsPath, { recursive: true });
+    mkdirSync(this.attachmentsPath, { recursive: true });
   }
 
   // ────────────────────────────────────────────
@@ -128,6 +132,11 @@ export class VolunteerFileService {
         ];
       }
 
+      // Migrate old volunteers without fileRecords
+      if (!volunteer.fileRecords) {
+        volunteer.fileRecords = [];
+      }
+
       return volunteer;
     } catch {
       return null;
@@ -220,6 +229,75 @@ export class VolunteerFileService {
       copyFileSync(source, dest);
     } catch {
       // non-fatal
+    }
+  }
+
+  // ────────────────────────────────────────────
+  // File Attachments
+  // ────────────────────────────────────────────
+
+  /**
+   * Upload a file to the attachments folder
+   * Returns the relative path to the file within attachments folder
+   */
+  uploadFile(
+    volunteerId: string,
+    sourcePath: string,
+  ): { success: boolean; filePath?: string; fileName?: string; error?: string } {
+    try {
+      if (!existsSync(sourcePath)) {
+        return { success: false, error: "Source file does not exist" };
+      }
+
+      // Create a subdirectory for this volunteer
+      const volunteerAttachmentsPath = join(this.attachmentsPath, volunteerId);
+      mkdirSync(volunteerAttachmentsPath, { recursive: true });
+
+      // Use original filename with timestamp to avoid conflicts
+      const originalName = basename(sourcePath);
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${originalName}`;
+      const destPath = join(volunteerAttachmentsPath, fileName);
+
+      // Copy the file
+      copyFileSync(sourcePath, destPath);
+
+      // Return relative path from attachments root
+      const relativePath = join(volunteerId, fileName);
+      return { success: true, filePath: relativePath, fileName: originalName };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  /**
+   * Delete a file from the attachments folder
+   */
+  deleteFile(filePath: string): { success: boolean; error?: string } {
+    try {
+      const fullPath = join(this.attachmentsPath, filePath);
+      if (existsSync(fullPath)) {
+        unlinkSync(fullPath);
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  /**
+   * Open a file with the system's default application
+   */
+  openFile(filePath: string): { success: boolean; error?: string } {
+    try {
+      const fullPath = join(this.attachmentsPath, filePath);
+      if (!existsSync(fullPath)) {
+        return { success: false, error: "File does not exist" };
+      }
+      shell.openPath(fullPath);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
     }
   }
 }
