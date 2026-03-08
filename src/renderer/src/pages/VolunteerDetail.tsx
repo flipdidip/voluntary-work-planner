@@ -8,9 +8,7 @@ import {
   BellRing,
   BellPlus,
   BellOff,
-  Plus,
   X,
-  Calendar,
 } from "lucide-react";
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
@@ -19,7 +17,6 @@ import {
   Volunteer,
   Reminder,
   ReminderType,
-  ActivityEntry,
   VolunteerStatus,
 } from "@shared/types";
 import {
@@ -47,8 +44,6 @@ export default function VolunteerDetail(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showReminderForm, setShowReminderForm] = useState(false);
-  const [newActivity, setNewActivity] = useState("");
-  const [newActivityHours, setNewActivityHours] = useState("");
 
   // Init form from loaded data
   if (initial && !form) {
@@ -127,20 +122,6 @@ export default function VolunteerDetail(): JSX.Element {
           : r,
       ),
     });
-  };
-
-  // ── Activity Log ──────────────────────────────────────
-  const addActivity = (): void => {
-    if (!newActivity.trim()) return;
-    const entry: ActivityEntry = {
-      id: uuidv4(),
-      date: new Date().toISOString(),
-      description: newActivity.trim(),
-      hoursSpent: newActivityHours ? parseFloat(newActivityHours) : undefined,
-    };
-    update({ activityLog: [entry, ...form.activityLog] });
-    setNewActivity("");
-    setNewActivityHours("");
   };
 
   return (
@@ -380,50 +361,6 @@ export default function VolunteerDetail(): JSX.Element {
                   onToggleDismiss={() => toggleDismissReminder(r.id)}
                 />
               ))}
-          </div>
-        </section>
-
-        {/* ── Activity Log ──────────────────────────── */}
-        <section className="card section-card">
-          <h2>
-            <Calendar size={17} /> Aktivitäten
-          </h2>
-          <div className="activity-input-row">
-            <input
-              className="input"
-              placeholder="Tätigkeit beschreiben..."
-              value={newActivity}
-              onChange={(e) => setNewActivity(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addActivity()}
-            />
-            <input
-              className="input hours-input"
-              type="number"
-              placeholder="Std."
-              min={0}
-              step={0.5}
-              value={newActivityHours}
-              onChange={(e) => setNewActivityHours(e.target.value)}
-            />
-            <button className="btn btn-secondary" onClick={addActivity}>
-              <Plus size={15} />
-            </button>
-          </div>
-          <div className="activity-log">
-            {form.activityLog.length === 0 && (
-              <p className="empty-hint">Noch keine Aktivitäten.</p>
-            )}
-            {form.activityLog.map((a) => (
-              <div key={a.id} className="activity-item">
-                <div className="activity-date">
-                  {format(parseISO(a.date), "dd.MM.yyyy", { locale: de })}
-                </div>
-                <div className="activity-desc">{a.description}</div>
-                {a.hoursSpent && (
-                  <div className="activity-hours">{a.hoursSpent}h</div>
-                )}
-              </div>
-            ))}
           </div>
         </section>
       </div>

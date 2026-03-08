@@ -24,7 +24,6 @@ const EMPTY_VOLUNTEER: Omit<
   joinedDate: new Date().toISOString().split("T")[0],
   roles: [],
   notes: "",
-  activityLog: [],
   reminders: [],
 };
 

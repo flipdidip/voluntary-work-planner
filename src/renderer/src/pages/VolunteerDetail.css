@@ -217,52 +217,6 @@ label {
   gap: 8px;
 }
 
-/* Activity log */
-.activity-input-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.hours-input {
-  max-width: 70px;
-}
-
-.activity-log {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.activity-item {
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-  padding: 8px 12px;
-  background: var(--color-surface-2);
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-}
-
-.activity-date {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  min-width: 80px;
-}
-
-.activity-desc {
-  flex: 1;
-}
-
-.activity-hours {
-  font-size: 0.75rem;
-  color: var(--color-secondary);
-  font-weight: 600;
-}
-
 .loading {
   padding: 40px;
   color: var(--color-text-muted);

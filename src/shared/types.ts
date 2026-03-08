@@ -37,14 +37,6 @@ export interface ContactPerson {
   email?: string;
 }
 
-export interface ActivityEntry {
-  id: string;
-  date: string; // ISO date
-  description: string;
-  hoursSpent?: number;
-  createdBy?: string;
-}
-
 export interface Volunteer {
   id: string;
   /** Optimistic locking — increment on every write */
@@ -72,9 +64,6 @@ export interface Volunteer {
   joinedDate?: string; // ISO date
   roles: string[]; // e.g. ['Sterbebegleitung', 'Fahrdienst']
   notes: string;
-
-  // Activity log
-  activityLog: ActivityEntry[];
 
   // Reminders attached to this volunteer
   reminders: Reminder[];

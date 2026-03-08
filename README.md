@@ -16,8 +16,7 @@ Built for German _gemeinnützige Vereine_, particularly hospice and end-of-life 
 - 📁 **File-based database** — works with OneDrive / SharePoint sync folders
 - 🔔 **Smart reminders** — round birthdays (50, 60, 70...), annual birthdays, custom dates
 - 🪟 **Windows taskbar notifications** — OS-level alerts when reminders are due
-- 📋 **Activity log** — track hours and activities per volunteer
-- 🔒 **Optimistic locking** — safe multi-user access via OneDrive sync
+- **Optimistic locking** — safe multi-user access via OneDrive sync
 - 🔄 **Auto-updates** — via GitHub Releases
 - 📦 **Windows installer** — `.exe` and `.msi` via GitHub Actions
 
