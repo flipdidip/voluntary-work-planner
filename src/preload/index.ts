@@ -30,8 +30,7 @@ const api = {
   deleteVolunteer: (id: string) => ipcRenderer.invoke(IPC.DELETE_VOLUNTEER, id),
 
   // File attachments
-  selectFile: (): Promise<string | null> =>
-    ipcRenderer.invoke(IPC.SELECT_FILE),
+  selectFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.SELECT_FILE),
 
   uploadFile: (
     volunteerId: string,
@@ -48,9 +47,7 @@ const api = {
   ): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC.DELETE_FILE, filePath),
 
-  openFile: (
-    filePath: string,
-  ): Promise<{ success: boolean; error?: string }> =>
+  openFile: (filePath: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC.OPEN_FILE, filePath),
 
   // Reminders

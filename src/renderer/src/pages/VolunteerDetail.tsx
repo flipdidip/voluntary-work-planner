@@ -135,7 +135,7 @@ export default function VolunteerDetail(): JSX.Element {
   const removeFileRecord = async (fileRecordId: string): Promise<void> => {
     const fileRecords = form.fileRecords || [];
     const record = fileRecords.find((f) => f.id === fileRecordId);
-    
+
     if (record?.filePath) {
       const result = await window.api.deleteFile(record.filePath);
       if (!result.success) {
@@ -143,7 +143,7 @@ export default function VolunteerDetail(): JSX.Element {
         return;
       }
     }
-    
+
     update({ fileRecords: fileRecords.filter((f) => f.id !== fileRecordId) });
   };
 
@@ -497,7 +497,8 @@ export default function VolunteerDetail(): JSX.Element {
           </div>
 
           <p className="hint" style={{ marginBottom: "1rem" }}>
-            Dokumentieren Sie wichtige Informationen und fügen Sie optional Dateien hinzu.
+            Dokumentieren Sie wichtige Informationen und fügen Sie optional
+            Dateien hinzu.
           </p>
 
           {showFileRecordForm && (
@@ -510,16 +511,16 @@ export default function VolunteerDetail(): JSX.Element {
 
           <div className="file-record-list">
             {(!form.fileRecords || form.fileRecords.length === 0) && (
-              <p className="empty-hint">
-                Keine Dokumente vorhanden.
-              </p>
+              <p className="empty-hint">Keine Dokumente vorhanden.</p>
             )}
             {form.fileRecords?.map((record) => (
               <FileRecordItem
                 key={record.id}
                 record={record}
                 onRemove={() => removeFileRecord(record.id)}
-                onOpen={() => record.filePath && openFileRecord(record.filePath)}
+                onOpen={() =>
+                  record.filePath && openFileRecord(record.filePath)
+                }
               />
             ))}
           </div>
@@ -735,10 +736,10 @@ function FileRecordForm({
 
   const handleAdd = async (): Promise<void> => {
     if (!title.trim()) return;
-    
+
     setUploading(true);
     let uploadResult = null;
-    
+
     if (selectedFilePath) {
       uploadResult = await window.api.uploadFile(volunteerId, selectedFilePath);
       if (!uploadResult.success) {
@@ -757,7 +758,7 @@ function FileRecordForm({
       fileSize: 0, // TODO: Get actual file size
       uploadedAt: new Date().toISOString(),
     };
-    
+
     onAdd(fileRecord);
     setUploading(false);
     onClose();
@@ -781,7 +782,7 @@ function FileRecordForm({
           onChange={(e) => setTitle(e.target.value)}
         />
       </label>
-      
+
       <label>
         Beschreibung
         <textarea
@@ -803,7 +804,12 @@ function FileRecordForm({
             <Upload size={15} /> Datei auswählen
           </button>
           {selectedFilePath && (
-            <span style={{ fontSize: "0.9em", color: "var(--color-text-secondary)" }}>
+            <span
+              style={{
+                fontSize: "0.9em",
+                color: "var(--color-text-secondary)",
+              }}
+            >
               {selectedFilePath.split(/[\\/]/).pop()}
             </span>
           )}
@@ -814,8 +820,8 @@ function FileRecordForm({
         <button className="btn btn-secondary" onClick={onClose}>
           Abbrechen
         </button>
-        <button 
-          className="btn btn-primary" 
+        <button
+          className="btn btn-primary"
           onClick={handleAdd}
           disabled={uploading || !title.trim()}
         >
@@ -849,14 +855,12 @@ function FileRecordItem({
       <div className="file-record-item-body">
         <div className="file-record-item-title">{record.title}</div>
         {record.description && (
-          <div className="file-record-item-description">{record.description}</div>
+          <div className="file-record-item-description">
+            {record.description}
+          </div>
         )}
         <div className="file-record-item-meta">
-          {record.fileName && (
-            <span>
-              📎 {record.fileName}
-            </span>
-          )}
+          {record.fileName && <span>📎 {record.fileName}</span>}
           {record.uploadedAt && (
             <span>
               {" · "}

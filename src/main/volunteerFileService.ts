@@ -243,7 +243,12 @@ export class VolunteerFileService {
   uploadFile(
     volunteerId: string,
     sourcePath: string,
-  ): { success: boolean; filePath?: string; fileName?: string; error?: string } {
+  ): {
+    success: boolean;
+    filePath?: string;
+    fileName?: string;
+    error?: string;
+  } {
     try {
       if (!existsSync(sourcePath)) {
         return { success: false, error: "Source file does not exist" };
