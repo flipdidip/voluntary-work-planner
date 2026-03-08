@@ -60,6 +60,8 @@ export default function VolunteerDetail(): JSX.Element {
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [showFileRecordForm, setShowFileRecordForm] = useState(false);
   const [showRequirementForm, setShowRequirementForm] = useState(false);
+  const [selectedRequirementType, setSelectedRequirementType] =
+    useState<RequirementType | null>(null);
 
   // Init form from loaded data
   if (initial && !form) {
@@ -603,8 +605,12 @@ export default function VolunteerDetail(): JSX.Element {
             <RequirementForm
               volunteerId={form.id}
               existingRequirements={form.requirements || []}
+              initialRequirementType={selectedRequirementType}
               onAdd={addOrUpdateRequirement}
-              onClose={() => setShowRequirementForm(false)}
+              onClose={() => {
+                setShowRequirementForm(false);
+                setSelectedRequirementType(null);
+              }}
             />
           )}
 
@@ -634,7 +640,10 @@ export default function VolunteerDetail(): JSX.Element {
                     <MissingRequirementItem
                       key={reqType}
                       requirementType={reqType}
-                      onAdd={() => setShowRequirementForm(true)}
+                      onAdd={() => {
+                        setSelectedRequirementType(reqType);
+                        setShowRequirementForm(true);
+                      }}
                     />
                   );
                 }
@@ -1017,6 +1026,7 @@ function FileRecordItem({
 interface RequirementFormProps {
   volunteerId: string;
   existingRequirements: RequirementRecord[];
+  initialRequirementType: RequirementType | null;
   onAdd: (r: RequirementRecord) => void;
   onClose: () => void;
 }
@@ -1024,11 +1034,12 @@ interface RequirementFormProps {
 function RequirementForm({
   volunteerId,
   existingRequirements,
+  initialRequirementType,
   onAdd,
   onClose,
 }: RequirementFormProps): JSX.Element {
   const [requirementType, setRequirementType] = useState<RequirementType | "">(
-    "",
+    initialRequirementType || "",
   );
   const [completedDate, setCompletedDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -1100,23 +1111,31 @@ function RequirementForm({
         </button>
       </div>
 
-      <label>
-        Typ *
-        <select
-          className="select"
-          value={requirementType}
-          onChange={(e) =>
-            setRequirementType(e.target.value as RequirementType)
-          }
-        >
-          <option value="">-- Bitte auswählen --</option>
-          {availableRequirements.map((type) => (
-            <option key={type} value={type}>
-              {REQUIREMENT_DEFINITIONS[type].label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {!initialRequirementType && (
+        <label>
+          Typ *
+          <select
+            className="select"
+            value={requirementType}
+            onChange={(e) =>
+              setRequirementType(e.target.value as RequirementType)
+            }
+          >
+            <option value="">-- Bitte auswählen --</option>
+            {availableRequirements.map((type) => (
+              <option key={type} value={type}>
+                {REQUIREMENT_DEFINITIONS[type].label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {initialRequirementType && selectedDef && (
+        <div className="requirement-info" style={{ marginBottom: "1rem" }}>
+          <strong>Typ:</strong> {selectedDef.label}
+        </div>
+      )}
 
       {selectedDef && (
         <>
