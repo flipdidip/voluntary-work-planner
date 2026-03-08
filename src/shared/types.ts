@@ -236,9 +236,15 @@ export interface AppSettings {
   enableYearlyBirthdayReminders: boolean;
   enableRoundBirthdayReminders: boolean;
   roundBirthdayYears: number[];
-  // Anniversary reminder settings (years of service)
-  enableAnniversaryReminders: boolean;
-  anniversaryYears: number[];
+  // Anniversary reminder settings - based on joining date (Eintrittsdatum)
+  enableJoinedDateAnniversaryReminders: boolean;
+  joinedDateAnniversaryYears: number[];
+  // Anniversary reminder settings - based on total activity time
+  enableActivityTimeAnniversaryReminders: boolean;
+  activityTimeAnniversaryYears: number[];
+  // Legacy: deprecated, kept for backwards compatibility
+  enableAnniversaryReminders?: boolean;
+  anniversaryYears?: number[];
   // DSGVO/GDPR compliance
   privacyConsentGiven: boolean;
   privacyConsentDate?: string; // ISO timestamp
@@ -252,8 +258,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enableYearlyBirthdayReminders: true,
   enableRoundBirthdayReminders: true,
   roundBirthdayYears: [50, 60, 70, 75, 80, 85, 90, 95, 100],
-  enableAnniversaryReminders: true,
-  anniversaryYears: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+  enableJoinedDateAnniversaryReminders: true,
+  joinedDateAnniversaryYears: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+  enableActivityTimeAnniversaryReminders: true,
+  activityTimeAnniversaryYears: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
   privacyConsentGiven: false,
   privacyConsentDate: undefined,
   privacyConsentVersion: "1.0",

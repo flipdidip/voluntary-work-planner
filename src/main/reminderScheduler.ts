@@ -4,8 +4,14 @@ import {
   isToday,
   parseISO,
   startOfDay,
+  subMilliseconds,
 } from "date-fns";
-import { Reminder, Volunteer, VolunteerIndex } from "@shared/types";
+import {
+  Reminder,
+  Volunteer,
+  VolunteerIndex,
+  calculateActivityTime,
+} from "@shared/types";
 import { VolunteerFileService } from "./volunteerFileService";
 import { SettingsService } from "./settingsService";
 import { mkdirSync } from "fs";
@@ -112,8 +118,84 @@ export class ReminderScheduler {
           }
         }
 
-        // Check anniversary reminder (years of service)
-        if (volunteer.joinedDate && appSettings.enableAnniversaryReminders) {
+        // Check anniversary reminder based on joined date (Eintrittsdatum)
+        if (
+          volunteer.joinedDate &&
+          appSettings.enableJoinedDateAnniversaryReminders
+        ) {
+          const joinedDate = parseISO(volunteer.joinedDate);
+          const isAnniversaryToday =
+            joinedDate.getDate() === now.getDate() &&
+            joinedDate.getMonth() === now.getMonth();
+
+          if (isAnniversaryToday) {
+            const yearsOfService = differenceInYears(now, joinedDate);
+            const joinedDateAnniversaryYears =
+              appSettings.joinedDateAnniversaryYears || [
+                5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+              ];
+            if (
+              yearsOfService > 0 &&
+              joinedDateAnniversaryYears.includes(yearsOfService)
+            ) {
+              dueReminders.push({
+                volunteerId: volunteer.id,
+                volunteerName: `${volunteer.firstName} ${volunteer.lastName}`,
+                reminder: {
+                  id: `anniversary-joined-${volunteer.id}`,
+                  type: "custom",
+                  title: `Jubiläum (Eintrittsdatum): ${volunteer.firstName} ${volunteer.lastName}`,
+                  message: `${volunteer.firstName} ${volunteer.lastName} ist seit ${yearsOfService} Jahren registriert!`,
+                  dismissed: false,
+                },
+              });
+            }
+          }
+        }
+
+        // Check anniversary reminder based on total activity time
+        if (
+          appSettings.enableActivityTimeAnniversaryReminders &&
+          volunteer.status === "active"
+        ) {
+          const activityTimeMs = calculateActivityTime(volunteer);
+          if (activityTimeMs > 0) {
+            const activityTimeAnniversaryYears =
+              appSettings.activityTimeAnniversaryYears || [
+                5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+              ];
+
+            // Check each milestone to see if we're reaching it today
+            for (const milestoneYears of activityTimeAnniversaryYears) {
+              const milestoneMs = milestoneYears * 365 * 24 * 60 * 60 * 1000;
+              const remainingMs = milestoneMs - activityTimeMs;
+              const remainingDays = remainingMs / (1000 * 60 * 60 * 24);
+
+              // Trigger if milestone is reached today (between 0 and 1 day remaining)
+              if (remainingDays >= 0 && remainingDays < 1) {
+                dueReminders.push({
+                  volunteerId: volunteer.id,
+                  volunteerName: `${volunteer.firstName} ${volunteer.lastName}`,
+                  reminder: {
+                    id: `anniversary-activity-${volunteer.id}-${milestoneYears}`,
+                    type: "custom",
+                    title: `Jubiläum (Aktivitätszeit): ${volunteer.firstName} ${volunteer.lastName}`,
+                    message: `${volunteer.firstName} ${volunteer.lastName} hat insgesamt ${milestoneYears} Jahre aktive Zeit erreicht!`,
+                    dismissed: false,
+                  },
+                });
+              }
+            }
+          }
+        }
+
+        // Backwards compatibility: check legacy enableAnniversaryReminders only if new settings don't exist
+        if (
+          volunteer.joinedDate &&
+          appSettings.enableAnniversaryReminders &&
+          appSettings.enableJoinedDateAnniversaryReminders === undefined &&
+          appSettings.enableActivityTimeAnniversaryReminders === undefined
+        ) {
           const joinedDate = parseISO(volunteer.joinedDate);
           const isAnniversaryToday =
             joinedDate.getDate() === now.getDate() &&
@@ -263,6 +345,114 @@ export function getUpcomingReminders(
               },
             });
           }
+        }
+      }
+    }
+
+    // Check anniversary reminders based on joined date (Eintrittsdatum)
+    if (v.joinedDate && appSettings.enableJoinedDateAnniversaryReminders) {
+      const joinedDate = parseISO(v.joinedDate);
+      const joinedDateAnniversaryYears =
+        appSettings.joinedDateAnniversaryYears || [
+          5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+        ];
+      for (const years of joinedDateAnniversaryYears) {
+        const anniversaryDate = new Date(
+          joinedDate.getFullYear() + years,
+          joinedDate.getMonth(),
+          joinedDate.getDate(),
+        );
+        const daysUntil = differenceInCalendarDays(anniversaryDate, today);
+        if (daysUntil >= 0 && daysUntil <= daysAhead) {
+          results.push({
+            volunteerId: v.id,
+            volunteerName: `${v.firstName} ${v.lastName}`,
+            reminder: {
+              id: `anniversary-joined-${v.id}-${years}`,
+              type: "custom",
+              title: `${years}-jähriges Jubiläum (Eintrittsdatum): ${v.firstName} ${v.lastName}`,
+              message: `${v.firstName} ${v.lastName} - ${years} Jahre seit Eintritt`,
+              dismissed: false,
+            },
+          });
+        }
+      }
+    }
+
+    // Check anniversary reminders based on activity time
+    if (
+      appSettings.enableActivityTimeAnniversaryReminders &&
+      v.status === "active"
+    ) {
+      const activityTimeMs = calculateActivityTime(v);
+      if (activityTimeMs > 0 && v.statusLog && v.statusLog.length > 0) {
+        const activityTimeAnniversaryYears =
+          appSettings.activityTimeAnniversaryYears || [
+            5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+          ];
+
+        // For each milestone, check if we're approaching it
+        for (const milestoneYears of activityTimeAnniversaryYears) {
+          const milestoneMs = milestoneYears * 365 * 24 * 60 * 60 * 1000;
+
+          // Only show if milestone not yet reached
+          if (activityTimeMs < milestoneMs) {
+            const remainingMs = milestoneMs - activityTimeMs;
+            const remainingDays = Math.ceil(
+              remainingMs / (1000 * 60 * 60 * 24),
+            );
+
+            if (remainingDays >= 0 && remainingDays <= daysAhead) {
+              const anniversaryDate = new Date(today.getTime() + remainingMs);
+              results.push({
+                volunteerId: v.id,
+                volunteerName: `${v.firstName} ${v.lastName}`,
+                reminder: {
+                  id: `anniversary-activity-${v.id}-${milestoneYears}`,
+                  type: "custom",
+                  title: `${milestoneYears}-jähriges Jubiläum (Aktivitätszeit): ${v.firstName} ${v.lastName}`,
+                  message: `${v.firstName} ${v.lastName} - ${milestoneYears} Jahre Aktivitätszeit`,
+                  dismissed: false,
+                },
+              });
+            }
+            // Only check the next upcoming milestone
+            break;
+          }
+        }
+      }
+    }
+
+    // Backwards compatibility: check legacy anniversaries only if new settings don't exist
+    if (
+      v.joinedDate &&
+      appSettings.enableAnniversaryReminders &&
+      appSettings.enableJoinedDateAnniversaryReminders === undefined &&
+      appSettings.enableActivityTimeAnniversaryReminders === undefined
+    ) {
+      const joinedDate = parseISO(v.joinedDate);
+      const anniversaryYears = appSettings.anniversaryYears || [
+        5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+      ];
+      for (const years of anniversaryYears) {
+        const anniversaryDate = new Date(
+          joinedDate.getFullYear() + years,
+          joinedDate.getMonth(),
+          joinedDate.getDate(),
+        );
+        const daysUntil = differenceInCalendarDays(anniversaryDate, today);
+        if (daysUntil >= 0 && daysUntil <= daysAhead) {
+          results.push({
+            volunteerId: v.id,
+            volunteerName: `${v.firstName} ${v.lastName}`,
+            reminder: {
+              id: `anniversary-${v.id}-${years}`,
+              type: "custom",
+              title: `${years}-jähriges Jubiläum: ${v.firstName} ${v.lastName}`,
+              message: `${v.firstName} ${v.lastName} - ${years} Jahre`,
+              dismissed: false,
+            },
+          });
         }
       }
     }

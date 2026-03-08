@@ -12,10 +12,15 @@ export default function Settings(): JSX.Element {
   const [enableYearlyBirthday, setEnableYearlyBirthday] = useState(true);
   const [enableRoundBirthday, setEnableRoundBirthday] = useState(true);
   const [roundYears, setRoundYears] = useState<number[]>([50, 60, 70, 80, 90]);
-  const [enableAnniversary, setEnableAnniversary] = useState(true);
-  const [anniversaryYears, setAnniversaryYears] = useState<number[]>([
-    5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-  ]);
+  const [enableJoinedDateAnniversary, setEnableJoinedDateAnniversary] =
+    useState(true);
+  const [joinedDateAnniversaryYears, setJoinedDateAnniversaryYears] = useState<
+    number[]
+  >([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
+  const [enableActivityTimeAnniversary, setEnableActivityTimeAnniversary] =
+    useState(true);
+  const [activityTimeAnniversaryYears, setActivityTimeAnniversaryYears] =
+    useState<number[]>([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [consentDate, setConsentDate] = useState<string | undefined>();
 
@@ -30,9 +35,21 @@ export default function Settings(): JSX.Element {
       setRoundYears(
         settings.roundBirthdayYears || [50, 60, 70, 75, 80, 85, 90, 95, 100],
       );
-      setEnableAnniversary(settings.enableAnniversaryReminders ?? true);
-      setAnniversaryYears(
-        settings.anniversaryYears || [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+      setEnableJoinedDateAnniversary(
+        settings.enableJoinedDateAnniversaryReminders ?? true,
+      );
+      setJoinedDateAnniversaryYears(
+        settings.joinedDateAnniversaryYears || [
+          5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+        ],
+      );
+      setEnableActivityTimeAnniversary(
+        settings.enableActivityTimeAnniversaryReminders ?? true,
+      );
+      setActivityTimeAnniversaryYears(
+        settings.activityTimeAnniversaryYears || [
+          5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+        ],
       );
     });
   }, []);
@@ -51,8 +68,10 @@ export default function Settings(): JSX.Element {
       enableYearlyBirthdayReminders: enableYearlyBirthday,
       enableRoundBirthdayReminders: enableRoundBirthday,
       roundBirthdayYears: roundYears,
-      enableAnniversaryReminders: enableAnniversary,
-      anniversaryYears: anniversaryYears,
+      enableJoinedDateAnniversaryReminders: enableJoinedDateAnniversary,
+      joinedDateAnniversaryYears: joinedDateAnniversaryYears,
+      enableActivityTimeAnniversaryReminders: enableActivityTimeAnniversary,
+      activityTimeAnniversaryYears: activityTimeAnniversaryYears,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -162,44 +181,94 @@ export default function Settings(): JSX.Element {
 
         <div className="birthday-reminders" style={{ marginTop: "2rem" }}>
           <h3 className="birthday-reminders-title">Jubiläumserinnerungen</h3>
-          <p className="hint birthday-reminders-hint">
-            Diese Einstellungen gelten für alle Freiwilligen mit hinterlegtem
-            Eintrittsdatum (Wie lange aktiv).
-          </p>
 
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={enableAnniversary}
-              onChange={(e) => setEnableAnniversary(e.target.checked)}
-            />
-            <span>Erinnerungen für Jubiläen aktivieren</span>
-          </label>
-        </div>
-
-        {enableAnniversary && (
-          <div className="round-years-section">
-            <label className="round-years-label">Jubiläumsjahre</label>
-            <div className="round-years-grid">
-              {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((year) => (
-                <button
-                  key={year}
-                  type="button"
-                  className={`btn ${anniversaryYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
-                  onClick={() => {
-                    setAnniversaryYears((prev) =>
-                      prev.includes(year)
-                        ? prev.filter((y) => y !== year)
-                        : [...prev, year].sort((a, b) => a - b),
-                    );
-                  }}
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
+          {/* Joined Date Anniversaries */}
+          <div style={{ marginBottom: "1.5rem" }}>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={enableJoinedDateAnniversary}
+                onChange={(e) =>
+                  setEnableJoinedDateAnniversary(e.target.checked)
+                }
+              />
+              <span>Erinnerungen für Eintrittsdatum-Jubiläen aktivieren</span>
+            </label>
+            <p className="hint birthday-reminders-hint">
+              Basierend auf dem Eintrittsdatum (Wie lange registriert).
+            </p>
           </div>
-        )}
+
+          {enableJoinedDateAnniversary && (
+            <div className="round-years-section">
+              <label className="round-years-label">
+                Eintrittsdatum-Jubiläumsjahre
+              </label>
+              <div className="round-years-grid">
+                {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((year) => (
+                  <button
+                    key={`joined-${year}`}
+                    type="button"
+                    className={`btn ${joinedDateAnniversaryYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
+                    onClick={() => {
+                      setJoinedDateAnniversaryYears((prev) =>
+                        prev.includes(year)
+                          ? prev.filter((y) => y !== year)
+                          : [...prev, year].sort((a, b) => a - b),
+                      );
+                    }}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Activity Time Anniversaries */}
+          <div style={{ marginTop: "1.5rem", marginBottom: "1.5rem" }}>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={enableActivityTimeAnniversary}
+                onChange={(e) =>
+                  setEnableActivityTimeAnniversary(e.target.checked)
+                }
+              />
+              <span>Erinnerungen für Aktivitätszeit-Jubiläen aktivieren</span>
+            </label>
+            <p className="hint birthday-reminders-hint">
+              Basierend auf der gesamten Aktivitätszeit (nicht nur
+              Registrierungsdatum).
+            </p>
+          </div>
+
+          {enableActivityTimeAnniversary && (
+            <div className="round-years-section">
+              <label className="round-years-label">
+                Aktivitätszeit-Jubiläumsjahre
+              </label>
+              <div className="round-years-grid">
+                {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((year) => (
+                  <button
+                    key={`activity-${year}`}
+                    type="button"
+                    className={`btn ${activityTimeAnniversaryYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
+                    onClick={() => {
+                      setActivityTimeAnniversaryYears((prev) =>
+                        prev.includes(year)
+                          ? prev.filter((y) => y !== year)
+                          : [...prev, year].sort((a, b) => a - b),
+                      );
+                    }}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="settings-card card">

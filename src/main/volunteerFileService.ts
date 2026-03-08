@@ -146,7 +146,10 @@ export class VolunteerFileService {
       if (!volunteer.statusLog) {
         volunteer.statusLog = [
           {
-            timestamp: volunteer._createdAt || new Date().toISOString(),
+            timestamp:
+              volunteer.joinedDate ||
+              volunteer._createdAt ||
+              new Date().toISOString(),
             from: null,
             to: volunteer.status,
           },
@@ -209,7 +212,10 @@ export class VolunteerFileService {
       } else if (!existing && toWrite.statusLog.length === 0) {
         // Initial status log entry for new volunteers
         toWrite.statusLog.push({
-          timestamp: toWrite._createdAt || new Date().toISOString(),
+          timestamp:
+            toWrite.joinedDate ||
+            toWrite._createdAt ||
+            new Date().toISOString(),
           from: null,
           to: toWrite.status,
         });

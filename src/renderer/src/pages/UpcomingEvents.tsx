@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "lucide-react";
-import { Reminder, Volunteer } from "@shared/types";
+import { Reminder, Volunteer, calculateActivityTime } from "@shared/types";
 import {
   addYears,
   differenceInCalendarDays,
@@ -139,12 +139,100 @@ export default function UpcomingEvents(): JSX.Element {
         }
       }
 
-      // Show anniversaries based on global settings
-      if (settings.enableAnniversaryReminders) {
+      // Show anniversaries based on joined date
+      if (settings.enableJoinedDateAnniversaryReminders) {
         for (const v of activeVolunteers) {
           if (!v.joinedDate) continue;
           const joinedDate = parseISO(v.joinedDate);
-          const nextAnniversary = new Date(
+          let nextAnniversary = new Date(
+            today.getFullYear(),
+            joinedDate.getMonth(),
+            joinedDate.getDate(),
+          );
+          if (differenceInCalendarDays(nextAnniversary, today) < 0) {
+            nextAnniversary.setFullYear(nextAnniversary.getFullYear() + 1);
+          }
+          const yearsOfService =
+            nextAnniversary.getFullYear() - joinedDate.getFullYear();
+          const joinedDateAnniversaryYears =
+            settings.joinedDateAnniversaryYears || [
+              5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+            ];
+
+          if (
+            yearsOfService > 0 &&
+            joinedDateAnniversaryYears.includes(yearsOfService)
+          ) {
+            const daysUntil = differenceInCalendarDays(nextAnniversary, today);
+            result.push({
+              volunteerId: v.id,
+              volunteerName: `${v.firstName} ${v.lastName}`,
+              eventType: "reminder",
+              label: `${yearsOfService}-jähriges Jubiläum (Eintrittsdatum)`,
+              date: format(nextAnniversary, "yyyy-MM-dd"),
+              daysUntil,
+            });
+          }
+        }
+      }
+
+      // Load full volunteer data to access statusLog for activity time calculations
+      const fullVolunteers = (
+        await Promise.all(
+          activeVolunteers.map((v) => window.api.getVolunteer(v.id)),
+        )
+      ).filter((v): v is Volunteer => Boolean(v));
+
+      // Show anniversaries based on activity time
+      if (settings.enableActivityTimeAnniversaryReminders) {
+        for (const v of fullVolunteers) {
+          if (v.status !== "active" || !v.statusLog || v.statusLog.length === 0)
+            continue;
+          const activityTimeMs = calculateActivityTime(v);
+          if (activityTimeMs > 0) {
+            const activityTimeAnniversaryYears =
+              settings.activityTimeAnniversaryYears || [
+                5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
+              ];
+
+            // For each milestone, check if we're approaching it
+            for (const milestoneYears of activityTimeAnniversaryYears) {
+              const milestoneMs = milestoneYears * 365 * 24 * 60 * 60 * 1000;
+
+              // Only show if milestone not yet reached
+              if (activityTimeMs < milestoneMs) {
+                const remainingMs = milestoneMs - activityTimeMs;
+                const remainingDays = Math.ceil(
+                  remainingMs / (1000 * 60 * 60 * 24),
+                );
+
+                const anniversaryDate = new Date(today.getTime() + remainingMs);
+                result.push({
+                  volunteerId: v.id,
+                  volunteerName: `${v.firstName} ${v.lastName}`,
+                  eventType: "reminder",
+                  label: `${milestoneYears}-jähriges Jubiläum (Aktivitätszeit)`,
+                  date: format(anniversaryDate, "yyyy-MM-dd"),
+                  daysUntil: remainingDays,
+                });
+                // Only check the next upcoming milestone
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Backwards compatibility: Show legacy anniversaries only if new settings don't exist
+      if (
+        settings.enableAnniversaryReminders &&
+        settings.enableJoinedDateAnniversaryReminders === undefined &&
+        settings.enableActivityTimeAnniversaryReminders === undefined
+      ) {
+        for (const v of activeVolunteers) {
+          if (!v.joinedDate) continue;
+          const joinedDate = parseISO(v.joinedDate);
+          let nextAnniversary = new Date(
             today.getFullYear(),
             joinedDate.getMonth(),
             joinedDate.getDate(),
@@ -171,12 +259,6 @@ export default function UpcomingEvents(): JSX.Element {
           }
         }
       }
-
-      const fullVolunteers = (
-        await Promise.all(
-          activeVolunteers.map((v) => window.api.getVolunteer(v.id)),
-        )
-      ).filter((v): v is Volunteer => Boolean(v));
 
       // Only show custom reminders now
       for (const volunteer of fullVolunteers) {
