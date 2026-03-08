@@ -32,7 +32,13 @@ import {
   calculateActivityTime,
   formatActivityTime,
 } from "@shared/types";
-import { format, parseISO, differenceInYears, addMonths, isBefore } from "date-fns";
+import {
+  format,
+  parseISO,
+  differenceInYears,
+  addMonths,
+  isBefore,
+} from "date-fns";
 import { de } from "date-fns/locale";
 import { v4 as uuidv4 } from "uuid";
 import "./VolunteerDetail.css";
@@ -165,9 +171,9 @@ export default function VolunteerDetail(): JSX.Element {
   const addOrUpdateRequirement = (requirement: RequirementRecord): void => {
     const requirements = form.requirements || [];
     const existingIdx = requirements.findIndex(
-      (r) => r.requirementType === requirement.requirementType
+      (r) => r.requirementType === requirement.requirementType,
     );
-    
+
     if (existingIdx >= 0) {
       // Update existing
       const updated = [...requirements];
@@ -179,9 +185,13 @@ export default function VolunteerDetail(): JSX.Element {
     }
   };
 
-  const removeRequirement = async (requirementType: RequirementType): Promise<void> => {
+  const removeRequirement = async (
+    requirementType: RequirementType,
+  ): Promise<void> => {
     const requirements = form.requirements || [];
-    const requirement = requirements.find((r) => r.requirementType === requirementType);
+    const requirement = requirements.find(
+      (r) => r.requirementType === requirementType,
+    );
 
     if (requirement?.filePath) {
       const result = await window.api.deleteFile(requirement.filePath);
@@ -192,7 +202,9 @@ export default function VolunteerDetail(): JSX.Element {
     }
 
     update({
-      requirements: requirements.filter((r) => r.requirementType !== requirementType),
+      requirements: requirements.filter(
+        (r) => r.requirementType !== requirementType,
+      ),
     });
   };
 
@@ -582,8 +594,9 @@ export default function VolunteerDetail(): JSX.Element {
           </h2>
 
           <p className="hint" style={{ marginBottom: "1rem" }}>
-            Verwalten Sie Schulungen, Bescheinigungen und gesetzlich erforderliche Nachweise.
-            Einige Qualifikationen müssen regelmäßig erneuert werden.
+            Verwalten Sie Schulungen, Bescheinigungen und gesetzlich
+            erforderliche Nachweise. Einige Qualifikationen müssen regelmäßig
+            erneuert werden.
           </p>
 
           {showRequirementForm && (
@@ -607,7 +620,9 @@ export default function VolunteerDetail(): JSX.Element {
                     <RequirementItem
                       key={reqType}
                       requirement={requirement}
-                      onRemove={() => removeRequirement(requirement.requirementType)}
+                      onRemove={() =>
+                        removeRequirement(requirement.requirementType)
+                      }
                       onOpen={() =>
                         requirement.filePath &&
                         openRequirementFile(requirement.filePath)
@@ -1012,7 +1027,9 @@ function RequirementForm({
   onAdd,
   onClose,
 }: RequirementFormProps): JSX.Element {
-  const [requirementType, setRequirementType] = useState<RequirementType | "">("");
+  const [requirementType, setRequirementType] = useState<RequirementType | "">(
+    "",
+  );
   const [completedDate, setCompletedDate] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
@@ -1026,12 +1043,14 @@ function RequirementForm({
   const availableRequirements = (
     Object.keys(REQUIREMENT_DEFINITIONS) as RequirementType[]
   ).filter((type) => {
-    const existing = existingRequirements.find((r) => r.requirementType === type);
+    const existing = existingRequirements.find(
+      (r) => r.requirementType === type,
+    );
     if (!existing) return true; // Not yet added
-    
+
     const def = REQUIREMENT_DEFINITIONS[type];
     if (def.renewalMonths === null) return false; // One-time only, already exists
-    
+
     return true; // Can be renewed
   });
 
@@ -1086,7 +1105,9 @@ function RequirementForm({
         <select
           className="select"
           value={requirementType}
-          onChange={(e) => setRequirementType(e.target.value as RequirementType)}
+          onChange={(e) =>
+            setRequirementType(e.target.value as RequirementType)
+          }
         >
           <option value="">-- Bitte auswählen --</option>
           {availableRequirements.map((type) => (
@@ -1198,18 +1219,23 @@ function RequirementItem({
   onOpen,
 }: RequirementItemProps): JSX.Element {
   const def = REQUIREMENT_DEFINITIONS[requirement.requirementType];
-  
+
   // Check if renewal is due
   let isExpired = false;
   let expiryDate: Date | null = null;
-  
+
   if (def.renewalMonths !== null && requirement.completedDate) {
-    expiryDate = addMonths(parseISO(requirement.completedDate), def.renewalMonths);
+    expiryDate = addMonths(
+      parseISO(requirement.completedDate),
+      def.renewalMonths,
+    );
     isExpired = isBefore(expiryDate, new Date());
   }
 
   return (
-    <div className={`requirement-item ${isExpired ? "requirement-item--expired" : ""}`}>
+    <div
+      className={`requirement-item ${isExpired ? "requirement-item--expired" : ""}`}
+    >
       <div className="requirement-item-icon">
         {isExpired ? (
           <AlertCircle size={20} className="icon-warning" />
@@ -1219,7 +1245,7 @@ function RequirementItem({
       </div>
       <div className="requirement-item-body">
         <div className="requirement-item-title">{def.label}</div>
-        
+
         <div className="requirement-item-meta">
           {requirement.completedDate && (
             <span>
@@ -1239,9 +1265,7 @@ function RequirementItem({
         </div>
 
         {requirement.fileName && (
-          <div className="requirement-item-file">
-            📎 {requirement.fileName}
-          </div>
+          <div className="requirement-item-file">📎 {requirement.fileName}</div>
         )}
 
         {requirement.notes && (

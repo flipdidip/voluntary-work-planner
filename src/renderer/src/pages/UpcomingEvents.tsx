@@ -59,7 +59,7 @@ function getReminderNextDate(
   if (reminder.type === "birthday-round") {
     const dob = parseISO(volunteer.dateOfBirth);
     const roundYears = [
-      ...(reminder.roundBirthdayYears ?? [50, 60, 65, 70, 75, 80, 85, 90]),
+      ...(reminder.roundBirthdayYears ?? [50, 60, 70, 75, 80, 85, 90, 95, 100]),
     ].sort((a, b) => a - b);
 
     for (const years of roundYears) {

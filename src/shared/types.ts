@@ -248,7 +248,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   language: "de",
   enableYearlyBirthdayReminders: true,
   enableRoundBirthdayReminders: true,
-  roundBirthdayYears: [50, 60, 70, 80, 90],
+  roundBirthdayYears: [50, 60, 70, 75, 80, 85, 90, 95, 100],
   privacyConsentGiven: false,
   privacyConsentDate: undefined,
   privacyConsentVersion: "1.0",
