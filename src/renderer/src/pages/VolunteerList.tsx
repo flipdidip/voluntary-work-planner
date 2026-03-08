@@ -1,4 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import {
+  useState,
+  useMemo,
+  useEffect,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { UserPlus, Search, Mail, Phone, X } from "lucide-react";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
@@ -16,7 +22,8 @@ import {
 import { de } from "date-fns/locale";
 import "./VolunteerList.css";
 
-type JoinedFilter = "all" | "last12m" | "atLeast12m";
+type FilterMode = "off" | "include" | "exclude";
+type JoinedFilter = "last12m" | "atLeast12m";
 
 const STATUS_LABELS: Record<VolunteerStatus, string> = {
   active: "Aktiv",
@@ -36,13 +43,18 @@ export default function VolunteerList(): JSX.Element {
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<VolunteerStatus | null>(
-    null,
+    "archived",
   );
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [hasEmail, setHasEmail] = useState(false);
-  const [hasPhone, setHasPhone] = useState(false);
-  const [upcomingBirthday, setUpcomingBirthday] = useState(false);
-  const [joinedFilter, setJoinedFilter] = useState<JoinedFilter>("all");
+  const [selectedStatusMode, setSelectedStatusMode] =
+    useState<FilterMode>("exclude");
+  const [includedRoles, setIncludedRoles] = useState<string[]>([]);
+  const [excludedRoles, setExcludedRoles] = useState<string[]>([]);
+  const [emailFilterMode, setEmailFilterMode] = useState<FilterMode>("off");
+  const [phoneFilterMode, setPhoneFilterMode] = useState<FilterMode>("off");
+  const [birthdayFilterMode, setBirthdayFilterMode] =
+    useState<FilterMode>("off");
+  const [joinedFilter, setJoinedFilter] = useState<JoinedFilter | null>(null);
+  const [joinedFilterMode, setJoinedFilterMode] = useState<FilterMode>("off");
 
   const statusFromQuery = searchParams.get("status");
 
@@ -53,9 +65,11 @@ export default function VolunteerList(): JSX.Element {
       statusFromQuery === "archived"
     ) {
       setSelectedStatus(statusFromQuery);
+      setSelectedStatusMode("include");
       return;
     }
-    setSelectedStatus(null);
+    setSelectedStatus("archived");
+    setSelectedStatusMode("exclude");
   }, [statusFromQuery]);
 
   // Extract all unique roles from volunteers
@@ -70,7 +84,12 @@ export default function VolunteerList(): JSX.Element {
     if (!index) return [];
     return index.volunteers.filter((v) => {
       // Status filter
-      const matchesStatus = !selectedStatus || v.status === selectedStatus;
+      let matchesStatus = true;
+      if (selectedStatus && selectedStatusMode !== "off") {
+        const hasStatus = v.status === selectedStatus;
+        matchesStatus =
+          selectedStatusMode === "include" ? hasStatus : !hasStatus;
+      }
 
       // Search query filter
       const q = query.toLowerCase();
@@ -81,17 +100,33 @@ export default function VolunteerList(): JSX.Element {
         v.roles.some((r) => r.toLowerCase().includes(q));
 
       // Role filter
-      const matchesRoles =
-        selectedRoles.length === 0 ||
-        selectedRoles.some((role) => v.roles.includes(role));
+      const matchesIncludedRoles =
+        includedRoles.length === 0 ||
+        includedRoles.some((role) => v.roles.includes(role));
+      const matchesExcludedRoles =
+        excludedRoles.length === 0 ||
+        excludedRoles.every((role) => !v.roles.includes(role));
+      const matchesRoles = matchesIncludedRoles && matchesExcludedRoles;
 
-      // Contact filters - need to check main volunteer data (not in index)
-      const matchesEmail = !hasEmail; // Will need full data
-      const matchesPhone = !hasPhone; // Will need full data
+      // Contact filters
+      const hasVolunteerEmail = Boolean(v.email);
+      const hasVolunteerPhone = Boolean(v.phone || v.mobile);
+      const matchesEmail =
+        emailFilterMode === "off"
+          ? true
+          : emailFilterMode === "include"
+            ? hasVolunteerEmail
+            : !hasVolunteerEmail;
+      const matchesPhone =
+        phoneFilterMode === "off"
+          ? true
+          : phoneFilterMode === "include"
+            ? hasVolunteerPhone
+            : !hasVolunteerPhone;
 
       // Birthday filter
-      let matchesBirthday = true;
-      if (upcomingBirthday && v.dateOfBirth) {
+      let isUpcomingBirthday = false;
+      if (v.dateOfBirth) {
         const today = new Date();
         const dob = parseISO(v.dateOfBirth);
         const thisYearBirthday = new Date(
@@ -114,30 +149,34 @@ export default function VolunteerList(): JSX.Element {
             start: today,
             end: addDays(today, 30),
           });
-        matchesBirthday = upcoming;
-      } else if (upcomingBirthday) {
-        matchesBirthday = false;
+        isUpcomingBirthday = upcoming;
       }
+
+      const matchesBirthday =
+        birthdayFilterMode === "off"
+          ? true
+          : birthdayFilterMode === "include"
+            ? isUpcomingBirthday
+            : !isUpcomingBirthday;
 
       // Joined date / tenure filter
       let matchesJoined = true;
-      if (joinedFilter !== "all") {
-        if (!v.joinedDate) {
-          matchesJoined = false;
-        } else {
+      if (joinedFilter && joinedFilterMode !== "off") {
+        let inJoinedFilter = false;
+        if (v.joinedDate) {
           const joinedDate = parseISO(v.joinedDate);
-          if (Number.isNaN(joinedDate.getTime())) {
-            matchesJoined = false;
-          } else {
+          if (!Number.isNaN(joinedDate.getTime())) {
             const today = new Date();
             if (joinedFilter === "last12m") {
-              matchesJoined = isAfter(joinedDate, subYears(today, 1));
+              inJoinedFilter = isAfter(joinedDate, subYears(today, 1));
             }
             if (joinedFilter === "atLeast12m") {
-              matchesJoined = differenceInMonths(today, joinedDate) >= 12;
+              inJoinedFilter = differenceInMonths(today, joinedDate) >= 12;
             }
           }
         }
+        matchesJoined =
+          joinedFilterMode === "include" ? inJoinedFilter : !inJoinedFilter;
       }
 
       return (
@@ -154,35 +193,96 @@ export default function VolunteerList(): JSX.Element {
     index,
     query,
     selectedStatus,
-    selectedRoles,
-    hasEmail,
-    hasPhone,
-    upcomingBirthday,
+    selectedStatusMode,
+    includedRoles,
+    excludedRoles,
+    emailFilterMode,
+    phoneFilterMode,
+    birthdayFilterMode,
     joinedFilter,
+    joinedFilterMode,
   ]);
 
-  const toggleRole = (role: string) => {
-    setSelectedRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
-    );
+  const cycleRole = (role: string) => {
+    const isIncluded = includedRoles.includes(role);
+    const isExcluded = excludedRoles.includes(role);
+
+    if (!isIncluded && !isExcluded) {
+      setIncludedRoles((prev) => [...prev, role]);
+      return;
+    }
+    if (isIncluded) {
+      setIncludedRoles((prev) => prev.filter((r) => r !== role));
+      setExcludedRoles((prev) => [...prev, role]);
+      return;
+    }
+    setExcludedRoles((prev) => prev.filter((r) => r !== role));
+  };
+
+  const cycleBinaryFilter = (setMode: Dispatch<SetStateAction<FilterMode>>) => {
+    setMode((prev) => {
+      if (prev === "off") return "include";
+      if (prev === "include") return "exclude";
+      return "off";
+    });
+  };
+
+  const cycleStatus = (status: VolunteerStatus) => {
+    if (selectedStatus !== status) {
+      setSelectedStatus(status);
+      setSelectedStatusMode("include");
+      return;
+    }
+
+    setSelectedStatusMode((prev) => {
+      if (prev === "off") return "include";
+      if (prev === "include") return "exclude";
+      setSelectedStatus(null);
+      return "off";
+    });
+  };
+
+  const cycleJoinedFilter = (value: JoinedFilter) => {
+    if (joinedFilter !== value) {
+      setJoinedFilter(value);
+      setJoinedFilterMode("include");
+      return;
+    }
+
+    setJoinedFilterMode((prev) => {
+      if (prev === "off") return "include";
+      if (prev === "include") return "exclude";
+      setJoinedFilter(null);
+      return "off";
+    });
+  };
+
+  const chipModeClass = (mode: FilterMode): string => {
+    if (mode === "include") return "active";
+    if (mode === "exclude") return "exclude";
+    return "";
   };
 
   const clearFilters = () => {
     setSelectedStatus(null);
-    setSelectedRoles([]);
-    setHasEmail(false);
-    setHasPhone(false);
-    setUpcomingBirthday(false);
-    setJoinedFilter("all");
+    setSelectedStatusMode("off");
+    setIncludedRoles([]);
+    setExcludedRoles([]);
+    setEmailFilterMode("off");
+    setPhoneFilterMode("off");
+    setBirthdayFilterMode("off");
+    setJoinedFilter(null);
+    setJoinedFilterMode("off");
   };
 
   const hasActiveFilters =
-    selectedStatus ||
-    selectedRoles.length > 0 ||
-    hasEmail ||
-    hasPhone ||
-    upcomingBirthday ||
-    joinedFilter !== "all";
+    (selectedStatus !== null && selectedStatusMode !== "off") ||
+    includedRoles.length > 0 ||
+    excludedRoles.length > 0 ||
+    emailFilterMode !== "off" ||
+    phoneFilterMode !== "off" ||
+    birthdayFilterMode !== "off" ||
+    (joinedFilter !== null && joinedFilterMode !== "off");
 
   return (
     <div className="volunteer-list-page">
@@ -211,15 +311,6 @@ export default function VolunteerList(): JSX.Element {
       </div>
 
       <div className="filters-section">
-        {hasActiveFilters && (
-          <div className="filters-header">
-            <button className="btn-clear-filters" onClick={clearFilters}>
-              <X size={14} />
-              Alle zurücksetzen
-            </button>
-          </div>
-        )}
-
         <div className="filter-group">
           <span className="filter-group-label">Status:</span>
           <div className="filter-chips">
@@ -227,10 +318,8 @@ export default function VolunteerList(): JSX.Element {
               (status) => (
                 <button
                   key={status}
-                  className={`filter-chip ${selectedStatus === status ? "active" : ""}`}
-                  onClick={() =>
-                    setSelectedStatus(selectedStatus === status ? null : status)
-                  }
+                  className={`filter-chip ${selectedStatus === status ? chipModeClass(selectedStatusMode) : ""}`}
+                  onClick={() => cycleStatus(status)}
                 >
                   {STATUS_LABELS[status]}
                 </button>
@@ -243,20 +332,20 @@ export default function VolunteerList(): JSX.Element {
           <span className="filter-group-label">Sonstiges:</span>
           <div className="filter-chips">
             <button
-              className={`filter-chip ${upcomingBirthday ? "active" : ""}`}
-              onClick={() => setUpcomingBirthday(!upcomingBirthday)}
+              className={`filter-chip ${chipModeClass(birthdayFilterMode)}`}
+              onClick={() => cycleBinaryFilter(setBirthdayFilterMode)}
             >
               Geburtstag (30 Tage)
             </button>
             <button
-              className={`filter-chip ${hasEmail ? "active" : ""}`}
-              onClick={() => setHasEmail(!hasEmail)}
+              className={`filter-chip ${chipModeClass(emailFilterMode)}`}
+              onClick={() => cycleBinaryFilter(setEmailFilterMode)}
             >
               Hat E-Mail
             </button>
             <button
-              className={`filter-chip ${hasPhone ? "active" : ""}`}
-              onClick={() => setHasPhone(!hasPhone)}
+              className={`filter-chip ${chipModeClass(phoneFilterMode)}`}
+              onClick={() => cycleBinaryFilter(setPhoneFilterMode)}
             >
               Hat Telefon
             </button>
@@ -267,22 +356,14 @@ export default function VolunteerList(): JSX.Element {
           <span className="filter-group-label">Beitritt:</span>
           <div className="filter-chips">
             <button
-              className={`filter-chip ${joinedFilter === "last12m" ? "active" : ""}`}
-              onClick={() =>
-                setJoinedFilter((prev) =>
-                  prev === "last12m" ? "all" : "last12m",
-                )
-              }
+              className={`filter-chip ${joinedFilter === "last12m" ? chipModeClass(joinedFilterMode) : ""}`}
+              onClick={() => cycleJoinedFilter("last12m")}
             >
               Letzte 12 Monate
             </button>
             <button
-              className={`filter-chip ${joinedFilter === "atLeast12m" ? "active" : ""}`}
-              onClick={() =>
-                setJoinedFilter((prev) =>
-                  prev === "atLeast12m" ? "all" : "atLeast12m",
-                )
-              }
+              className={`filter-chip ${joinedFilter === "atLeast12m" ? chipModeClass(joinedFilterMode) : ""}`}
+              onClick={() => cycleJoinedFilter("atLeast12m")}
             >
               Seit mind. 1 Jahr
             </button>
@@ -296,13 +377,22 @@ export default function VolunteerList(): JSX.Element {
               {allRoles.map((role) => (
                 <button
                   key={role}
-                  className={`filter-chip ${selectedRoles.includes(role) ? "active" : ""}`}
-                  onClick={() => toggleRole(role)}
+                  className={`filter-chip ${includedRoles.includes(role) ? "active" : excludedRoles.includes(role) ? "exclude" : ""}`}
+                  onClick={() => cycleRole(role)}
                 >
                   {role}
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {hasActiveFilters && (
+          <div className="filters-header">
+            <button className="btn-clear-filters" onClick={clearFilters}>
+              <X size={14} />
+              Alle zurücksetzen
+            </button>
           </div>
         )}
       </div>
