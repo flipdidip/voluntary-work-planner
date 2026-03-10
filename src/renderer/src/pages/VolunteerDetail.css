@@ -22,10 +22,60 @@
   border-radius: 99px;
 }
 
+.vol-requirements {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.requirement-chip {
+  display: inline-block;
+  padding: 3px 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border: 1px solid;
+}
+
+.requirement-chip--complete {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
+.requirement-chip--expired {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.requirement-chip--missing {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
 .detail-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.detail-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  bottom: calc(-1 * var(--main-content-pad-y, 28px) - 2px);
+  z-index: 5;
+  background: var(--color-bg);
+  margin-inline: calc(-1 * var(--main-content-pad-x, 32px));
+  padding: 10px var(--main-content-pad-x, 32px);
+  border-top: 1px solid var(--color-border);
 }
 
 .success-msg {

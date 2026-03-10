@@ -31,6 +31,8 @@ import {
   REQUIREMENT_DEFINITIONS,
   calculateActivityTime,
   formatActivityTime,
+  calculateRequirementsStatus,
+  RequirementStatusSummary,
 } from "@shared/types";
 import {
   format,
@@ -77,6 +79,8 @@ export default function VolunteerDetail(): JSX.Element {
     : null;
   const activityTimeMs = calculateActivityTime(form);
   const activityTimeFormatted = formatActivityTime(activityTimeMs);
+  const requirementsStatus: RequirementStatusSummary =
+    calculateRequirementsStatus(form);
 
   const update = (partial: Partial<Volunteer>): void =>
     setForm((prev) => (prev ? { ...prev, ...partial } : prev));
@@ -232,28 +236,43 @@ export default function VolunteerDetail(): JSX.Element {
             {form.firstName} {form.lastName}
           </h1>
           {age !== null && <span className="age-chip">{age} Jahre</span>}
-        </div>
-        <div className="detail-actions">
-          {successMsg && <span className="success-msg">{successMsg}</span>}
-          {error && <span className="error-msg">{error}</span>}
-          <button
-            className="btn btn-danger"
-            onClick={handleArchive}
-            disabled={saving || form.status === "archived"}
-            title={
-              form.status === "archived" ? "Bereits archiviert" : undefined
-            }
-          >
-            <Trash2 size={15} />
-            {form.status === "archived" ? "Archiviert" : "Archivieren"}
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            <Save size={15} /> {saving ? "Speichern..." : "Speichern"}
-          </button>
+          <div className="vol-requirements">
+            {(Object.keys(REQUIREMENT_DEFINITIONS) as RequirementType[]).map(
+              (reqType) => {
+                const status = requirementsStatus?.[reqType];
+                const def = REQUIREMENT_DEFINITIONS[reqType];
+                const shortLabel = def.label
+                  .split(" ")[0]
+                  .substring(0, 3)
+                  .toUpperCase();
+
+                let className = "requirement-chip";
+                if (status === "complete") {
+                  className += " requirement-chip--complete";
+                } else if (status === "expired") {
+                  className += " requirement-chip--expired";
+                } else {
+                  className += " requirement-chip--missing";
+                }
+
+                return (
+                  <span
+                    key={reqType}
+                    className={className}
+                    title={`${def.label}: ${
+                      status === "complete"
+                        ? "Vollständig"
+                        : status === "expired"
+                          ? "Abgelaufen"
+                          : "Fehlend"
+                    }`}
+                  >
+                    {shortLabel}
+                  </span>
+                );
+              },
+            )}
+          </div>
         </div>
       </div>
 
@@ -651,6 +670,29 @@ export default function VolunteerDetail(): JSX.Element {
             )}
           </div>
         </section>
+      </div>
+
+      <div className="detail-actions-footer">
+        {successMsg && <span className="success-msg">{successMsg}</span>}
+        {error && <span className="error-msg">{error}</span>}
+        <button
+          className="btn btn-danger"
+          onClick={handleArchive}
+          disabled={saving || form.status === "archived"}
+          title={
+            form.status === "archived" ? "Bereits archiviert" : undefined
+          }
+        >
+          <Trash2 size={15} />
+          {form.status === "archived" ? "Archiviert" : "Archivieren"}
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          <Save size={15} /> {saving ? "Speichern..." : "Speichern"}
+        </button>
       </div>
     </div>
   );
