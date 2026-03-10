@@ -679,9 +679,7 @@ export default function VolunteerDetail(): JSX.Element {
           className="btn btn-danger"
           onClick={handleArchive}
           disabled={saving || form.status === "archived"}
-          title={
-            form.status === "archived" ? "Bereits archiviert" : undefined
-          }
+          title={form.status === "archived" ? "Bereits archiviert" : undefined}
         >
           <Trash2 size={15} />
           {form.status === "archived" ? "Archiviert" : "Archivieren"}
