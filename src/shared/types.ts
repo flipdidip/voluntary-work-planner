@@ -242,6 +242,9 @@ export interface AppSettings {
   // Anniversary reminder settings - based on total activity time
   enableActivityTimeAnniversaryReminders: boolean;
   activityTimeAnniversaryYears: number[];
+  // Requirement renewal reminders (for qualifications that need renewal)
+  enableRequirementRenewalReminders: boolean;
+  requirementRenewalDaysWarning: number; // How many days before expiry to show reminder
   // Legacy: deprecated, kept for backwards compatibility
   enableAnniversaryReminders?: boolean;
   anniversaryYears?: number[];
@@ -262,6 +265,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   joinedDateAnniversaryYears: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
   enableActivityTimeAnniversaryReminders: true,
   activityTimeAnniversaryYears: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+  enableRequirementRenewalReminders: true,
+  requirementRenewalDaysWarning: 30,
   privacyConsentGiven: false,
   privacyConsentDate: undefined,
   privacyConsentVersion: "1.0",
@@ -407,4 +412,31 @@ export function calculateRequirementsStatus(
   }
 
   return summary;
+}
+
+/**
+ * Calculate the expiration date for a requirement record
+ * Returns null if the requirement is one-time or has no completion date
+ */
+export function calculateRequirementExpiryDate(
+  record: RequirementRecord,
+  requirementType: RequirementType,
+): Date | null {
+  const def = REQUIREMENT_DEFINITIONS[requirementType];
+
+  // One-time requirements don't expire
+  if (def.renewalMonths === null) {
+    return null;
+  }
+
+  // No completion date means no expiry
+  if (!record.completedDate) {
+    return null;
+  }
+
+  const completedDate = new Date(record.completedDate);
+  const expiryDate = new Date(completedDate);
+  expiryDate.setMonth(expiryDate.getMonth() + def.renewalMonths);
+
+  return expiryDate;
 }

@@ -1,40 +1,63 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Bell, Calendar, FolderOpen } from "lucide-react";
+import {
+  Users,
+  Bell,
+  Calendar,
+  FolderOpen,
+  Cake,
+  Gift,
+  Clock,
+  Award,
+  CheckCircle,
+} from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { de } from "date-fns/locale";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
 import {
-  format,
-  parseISO,
-  differenceInCalendarDays,
-  addYears,
-  startOfDay,
-  differenceInYears,
-} from "date-fns";
-import { de } from "date-fns/locale";
-import { DueReminder } from "../hooks/useReminders";
-import { calculateActivityTime } from "@shared/types";
+  calculateUpcomingEvents,
+  UpcomingEvent,
+} from "@shared/eventCalculationService";
 import "./Dashboard.css";
 
-interface UpcomingEvent {
-  volunteerId: string;
-  volunteerName: string;
-  eventType: "birthday" | "reminder";
-  label: string;
-  daysUntil: number;
-  date: string;
-}
-
-function getNextBirthdayDate(dateOfBirth: string, today: Date): Date {
-  const dob = parseISO(dateOfBirth);
-  const nextBirthday = new Date(
-    today.getFullYear(),
-    dob.getMonth(),
-    dob.getDate(),
-  );
-  if (differenceInCalendarDays(nextBirthday, today) < 0) {
-    return addYears(nextBirthday, 1);
-  }
-  return nextBirthday;
+// Helper to get event kind badge info
+function getEventKindInfo(kind: UpcomingEvent["kind"]) {
+  const info: Record<
+    UpcomingEvent["kind"],
+    { icon: React.ReactNode; label: string; color: string }
+  > = {
+    birthday: {
+      icon: <Cake size={14} />,
+      label: "Geburtstag",
+      color: "badge-blue",
+    },
+    "birthday-round": {
+      icon: <Gift size={14} />,
+      label: "Runder Geburtstag",
+      color: "badge-gold",
+    },
+    "anniversary-joined": {
+      icon: <Bell size={14} />,
+      label: "Jubiläum (Eintritt)",
+      color: "badge-green",
+    },
+    "anniversary-activity": {
+      icon: <Clock size={14} />,
+      label: "Jubiläum (Aktivität)",
+      color: "badge-teal",
+    },
+    "requirement-renewal": {
+      icon: <CheckCircle size={14} />,
+      label: "Qualifikation",
+      color: "badge-orange",
+    },
+    custom: {
+      icon: <Award size={14} />,
+      label: "Erinnerung",
+      color: "badge-purple",
+    },
+  };
+  return info[kind];
 }
 
 export default function Dashboard(): JSX.Element {
@@ -53,231 +76,23 @@ export default function Dashboard(): JSX.Element {
     let cancelled = false;
 
     const loadUpcoming = async (): Promise<void> => {
-      const today = startOfDay(new Date());
-      const events: UpcomingEvent[] = [];
-
-      // Get global settings first
-      const settings = await window.api.getSettings();
-
-      // Show birthdays based on global settings
-      if (
-        settings.enableYearlyBirthdayReminders ||
-        settings.enableRoundBirthdayReminders
-      ) {
-        for (const v of index.volunteers) {
-          if (v.status === "archived" || !v.dateOfBirth) continue;
-
-          const nextBirthday = getNextBirthdayDate(v.dateOfBirth, today);
-          const daysUntil = differenceInCalendarDays(nextBirthday, today);
-
-          if (daysUntil >= 0 && daysUntil <= 30) {
-            const age =
-              nextBirthday.getFullYear() -
-              parseISO(v.dateOfBirth).getFullYear();
-
-            // Check if this is a round birthday
-            const isRound =
-              settings.enableRoundBirthdayReminders &&
-              settings.roundBirthdayYears?.includes(age);
-
-            // Show birthday if yearly reminders are enabled, or if it's a round birthday and round reminders are enabled
-            if (
-              settings.enableYearlyBirthdayReminders ||
-              (isRound && settings.enableRoundBirthdayReminders)
-            ) {
-              events.push({
-                volunteerId: v.id,
-                volunteerName: `${v.firstName} ${v.lastName}`,
-                eventType: "birthday",
-                label: isRound
-                  ? `${age}. Geburtstag (Runder Geburtstag!)`
-                  : `${age}. Geburtstag`,
-                daysUntil,
-                date: format(nextBirthday, "yyyy-MM-dd"),
-              });
-            }
-          }
-        }
-      }
-
-      // Check for upcoming anniversaries (based on joined date) in next 30 days
-      if (settings.enableJoinedDateAnniversaryReminders) {
-        for (const v of index.volunteers) {
-          if (v.status === "archived" || !v.joinedDate) continue;
-
-          const joinedDate = parseISO(v.joinedDate);
-          let nextAnniversary = new Date(
-            today.getFullYear(),
-            joinedDate.getMonth(),
-            joinedDate.getDate(),
-          );
-          if (differenceInCalendarDays(nextAnniversary, today) < 0) {
-            nextAnniversary.setFullYear(nextAnniversary.getFullYear() + 1);
-          }
-          const daysUntil = differenceInCalendarDays(nextAnniversary, today);
-
-          if (daysUntil >= 0 && daysUntil <= 30) {
-            const yearsOfService =
-              nextAnniversary.getFullYear() - joinedDate.getFullYear();
-            const joinedDateAnniversaryYears =
-              settings.joinedDateAnniversaryYears || [
-                5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-              ];
-
-            if (
-              yearsOfService > 0 &&
-              joinedDateAnniversaryYears.includes(yearsOfService)
-            ) {
-              events.push({
-                volunteerId: v.id,
-                volunteerName: `${v.firstName} ${v.lastName}`,
-                eventType: "reminder",
-                label: `${yearsOfService}-jähriges Jubiläum (Eintrittsdatum)`,
-                daysUntil,
-                date: format(nextAnniversary, "yyyy-MM-dd"),
-              });
-            }
-          }
-        }
-      }
-
-      // Check for upcoming anniversaries (based on activity time) in next 30 days
-      if (settings.enableActivityTimeAnniversaryReminders) {
-        // Need to load full volunteer data to access statusLog
-        const activeVolunteers = index.volunteers.filter(
-          (v) => v.status === "active",
+      try {
+        const settings = await window.api.getSettings();
+        const events = await calculateUpcomingEvents(
+          index,
+          settings,
+          (id) => window.api.getVolunteer(id),
+          { daysLimit: 30 },
         );
 
-        for (const indexEntry of activeVolunteers) {
-          try {
-            const v = await window.api.getVolunteer(indexEntry.id);
-            if (!v || !v.statusLog || v.statusLog.length === 0) continue;
-
-            const activityTimeMs = calculateActivityTime(v);
-            if (activityTimeMs > 0) {
-              const activityTimeAnniversaryYears =
-                settings.activityTimeAnniversaryYears || [
-                  5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-                ];
-
-              // For each milestone, check if we're approaching it
-              for (const milestoneYears of activityTimeAnniversaryYears) {
-                const milestoneMs = milestoneYears * 365 * 24 * 60 * 60 * 1000;
-
-                // Only show if milestone not yet reached
-                if (activityTimeMs < milestoneMs) {
-                  const remainingMs = milestoneMs - activityTimeMs;
-                  const remainingDays = Math.ceil(
-                    remainingMs / (1000 * 60 * 60 * 24),
-                  );
-
-                  if (remainingDays >= 0 && remainingDays <= 30) {
-                    const anniversaryDate = new Date(
-                      today.getTime() + remainingMs,
-                    );
-                    events.push({
-                      volunteerId: v.id,
-                      volunteerName: `${v.firstName} ${v.lastName}`,
-                      eventType: "reminder",
-                      label: `${milestoneYears}-jähriges Jubiläum (Aktivitätszeit)`,
-                      daysUntil: remainingDays,
-                      date: format(anniversaryDate, "yyyy-MM-dd"),
-                    });
-                  }
-                  // Only check the next upcoming milestone
-                  break;
-                }
-              }
-            }
-          } catch {
-            // Skip if volunteer cannot be loaded
-            continue;
-          }
-        }
-      }
-
-      // Backwards compatibility: check legacy anniversaries only if new settings don't exist
-      if (
-        settings.enableAnniversaryReminders &&
-        settings.enableJoinedDateAnniversaryReminders === undefined &&
-        settings.enableActivityTimeAnniversaryReminders === undefined
-      ) {
-        for (const v of index.volunteers) {
-          if (v.status === "archived" || !v.joinedDate) continue;
-
-          const joinedDate = parseISO(v.joinedDate);
-          let nextAnniversary = new Date(
-            today.getFullYear(),
-            joinedDate.getMonth(),
-            joinedDate.getDate(),
-          );
-          if (differenceInCalendarDays(nextAnniversary, today) < 0) {
-            nextAnniversary.setFullYear(nextAnniversary.getFullYear() + 1);
-          }
-          const daysUntil = differenceInCalendarDays(nextAnniversary, today);
-
-          if (daysUntil >= 0 && daysUntil <= 30) {
-            const yearsOfService =
-              nextAnniversary.getFullYear() - joinedDate.getFullYear();
-            const anniversaryYears = settings.anniversaryYears || [
-              5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-            ];
-
-            if (
-              yearsOfService > 0 &&
-              anniversaryYears.includes(yearsOfService)
-            ) {
-              events.push({
-                volunteerId: v.id,
-                volunteerName: `${v.firstName} ${v.lastName}`,
-                eventType: "reminder",
-                label: `${yearsOfService}-jähriges Jubiläum`,
-                daysUntil,
-                date: format(nextAnniversary, "yyyy-MM-dd"),
-              });
-            }
-          }
-        }
-      }
-
-      try {
-        const reminders = (await window.api.getDueReminders()) as DueReminder[];
-
-        for (const due of reminders) {
-          const reminder = due.reminder;
-
-          // Skip birthday-based reminders to avoid duplicates (birthdays are already added above)
-          if (
-            reminder.type === "birthday-every-year" ||
-            reminder.type === "birthday-round"
-          ) {
-            continue;
-          }
-
-          // Only process custom reminders
-          if (reminder.type === "custom" && reminder.triggerDate) {
-            const reminderDate = parseISO(reminder.triggerDate);
-            const daysUntil = differenceInCalendarDays(reminderDate, today);
-
-            if (daysUntil >= 0 && daysUntil <= 30) {
-              events.push({
-                volunteerId: due.volunteerId,
-                volunteerName: due.volunteerName,
-                eventType: "reminder",
-                label: reminder.title,
-                daysUntil,
-                date: format(reminderDate, "yyyy-MM-dd"),
-              });
-            }
-          }
+        if (!cancelled) {
+          setUpcoming(events);
         }
       } catch {
-        // Keep birthdays visible even if reminders fail
-      }
-
-      events.sort((a, b) => a.daysUntil - b.daysUntil);
-      if (!cancelled) {
-        setUpcoming(events);
+        // Keep dashboard visible even if calculation fails
+        if (!cancelled) {
+          setUpcoming([]);
+        }
       }
     };
 
@@ -370,26 +185,35 @@ export default function Dashboard(): JSX.Element {
           <p className="text-muted empty-hint">Keine anstehenden Ereignisse.</p>
         )}
         <div className="upcoming-list">
-          {upcoming.map((ev) => (
-            <div
-              key={`${ev.volunteerId}-${ev.date}`}
-              className="upcoming-item card"
-              onClick={() => navigate(`/volunteers/${ev.volunteerId}`)}
-            >
+          {upcoming.map((ev) => {
+            const kindInfo = getEventKindInfo(ev.kind);
+            return (
               <div
-                className={`upcoming-badge ${ev.daysUntil === 0 ? "badge-green" : "badge-purple"} badge`}
+                key={`${ev.volunteerId}-${ev.date}`}
+                className="upcoming-item card"
+                onClick={() => navigate(`/volunteers/${ev.volunteerId}`)}
               >
-                {ev.daysUntil === 0 ? "Heute!" : `in ${ev.daysUntil}d`}
+                <div
+                  className={`upcoming-badge ${ev.daysUntil === 0 ? "badge-green" : "badge-purple"} badge`}
+                >
+                  {ev.daysUntil === 0 ? "Heute!" : `in ${ev.daysUntil}d`}
+                </div>
+                <div
+                  className={`event-kind-badge badge ${kindInfo.color}`}
+                  title={kindInfo.label}
+                >
+                  {kindInfo.icon}
+                </div>
+                <div className="upcoming-info">
+                  <span className="upcoming-name">{ev.volunteerName}</span>
+                  <span className="upcoming-label">{ev.label}</span>
+                </div>
+                <div className="upcoming-date">
+                  {format(parseISO(ev.date), "dd. MMM", { locale: de })}
+                </div>
               </div>
-              <div className="upcoming-info">
-                <span className="upcoming-name">{ev.volunteerName}</span>
-                <span className="upcoming-label">{ev.label}</span>
-              </div>
-              <div className="upcoming-date">
-                {format(parseISO(ev.date), "dd. MMM", { locale: de })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>

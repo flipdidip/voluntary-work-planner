@@ -97,6 +97,16 @@
   box-shadow: var(--shadow-md);
 }
 
+.event-kind-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
 .upcoming-info {
   flex: 1;
   display: flex;

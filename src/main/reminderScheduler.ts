@@ -1,17 +1,18 @@
-import {
-  differenceInYears,
-  differenceInCalendarDays,
-  isToday,
-  parseISO,
-  startOfDay,
-  subMilliseconds,
-} from "date-fns";
+import { differenceInCalendarDays, parseISO, startOfDay } from "date-fns";
 import {
   Reminder,
   Volunteer,
   VolunteerIndex,
   calculateActivityTime,
+  calculateRequirementExpiryDate,
+  REQUIREMENT_DEFINITIONS,
 } from "@shared/types";
+import {
+  isBirthdayToday,
+  getAgeAtDate,
+  isJoinedDateAnniversaryToday,
+  getYearsOfService,
+} from "@shared/eventCalculationService";
 import { VolunteerFileService } from "./volunteerFileService";
 import { SettingsService } from "./settingsService";
 import { mkdirSync } from "fs";
@@ -74,14 +75,11 @@ export class ReminderScheduler {
 
         // Check global birthday reminder settings
         if (volunteer.dateOfBirth) {
-          const dob = parseISO(volunteer.dateOfBirth);
-          const isBirthdayToday =
-            dob.getDate() === now.getDate() &&
-            dob.getMonth() === now.getMonth();
+          const isBirthday = isBirthdayToday(volunteer.dateOfBirth, now);
 
           // Check yearly birthday reminder
-          if (appSettings.enableYearlyBirthdayReminders && isBirthdayToday) {
-            const age = differenceInYears(now, dob);
+          if (appSettings.enableYearlyBirthdayReminders && isBirthday) {
+            const age = getAgeAtDate(volunteer.dateOfBirth, now);
             dueReminders.push({
               volunteerId: volunteer.id,
               volunteerName: `${volunteer.firstName} ${volunteer.lastName}`,
@@ -96,8 +94,8 @@ export class ReminderScheduler {
           }
 
           // Check round birthday reminder
-          if (appSettings.enableRoundBirthdayReminders && isBirthdayToday) {
-            const age = differenceInYears(now, dob);
+          if (appSettings.enableRoundBirthdayReminders && isBirthday) {
+            const age = getAgeAtDate(volunteer.dateOfBirth, now);
             const roundYears = appSettings.roundBirthdayYears || [
               50, 60, 70, 80, 90,
             ];
@@ -123,13 +121,13 @@ export class ReminderScheduler {
           volunteer.joinedDate &&
           appSettings.enableJoinedDateAnniversaryReminders
         ) {
-          const joinedDate = parseISO(volunteer.joinedDate);
-          const isAnniversaryToday =
-            joinedDate.getDate() === now.getDate() &&
-            joinedDate.getMonth() === now.getMonth();
+          const isAnniversaryToday = isJoinedDateAnniversaryToday(
+            volunteer.joinedDate,
+            now,
+          );
 
           if (isAnniversaryToday) {
-            const yearsOfService = differenceInYears(now, joinedDate);
+            const yearsOfService = getYearsOfService(volunteer.joinedDate, now);
             const joinedDateAnniversaryYears =
               appSettings.joinedDateAnniversaryYears || [
                 5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
@@ -196,13 +194,13 @@ export class ReminderScheduler {
           appSettings.enableJoinedDateAnniversaryReminders === undefined &&
           appSettings.enableActivityTimeAnniversaryReminders === undefined
         ) {
-          const joinedDate = parseISO(volunteer.joinedDate);
-          const isAnniversaryToday =
-            joinedDate.getDate() === now.getDate() &&
-            joinedDate.getMonth() === now.getMonth();
+          const isAnniversaryToday = isJoinedDateAnniversaryToday(
+            volunteer.joinedDate,
+            now,
+          );
 
           if (isAnniversaryToday) {
-            const yearsOfService = differenceInYears(now, joinedDate);
+            const yearsOfService = getYearsOfService(volunteer.joinedDate, now);
             const anniversaryYears = appSettings.anniversaryYears || [
               5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
             ];
@@ -236,6 +234,45 @@ export class ReminderScheduler {
               volunteerName: `${volunteer.firstName} ${volunteer.lastName}`,
               reminder,
             });
+          }
+        }
+
+        // Check for requirement renewals expiring soon
+        if (
+          appSettings.enableRequirementRenewalReminders &&
+          volunteer.requirements
+        ) {
+          const warningDays = appSettings.requirementRenewalDaysWarning ?? 30;
+
+          for (const requirement of volunteer.requirements) {
+            const expiryDate = calculateRequirementExpiryDate(
+              requirement,
+              requirement.requirementType,
+            );
+            if (!expiryDate) continue;
+
+            const daysUntilExpiry = Math.ceil(
+              (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+            );
+
+            // Trigger reminder if expiring within warning period (including today)
+            if (daysUntilExpiry >= 0 && daysUntilExpiry <= warningDays) {
+              const requirementLabel =
+                REQUIREMENT_DEFINITIONS[requirement.requirementType]?.label ||
+                requirement.requirementType;
+
+              dueReminders.push({
+                volunteerId: volunteer.id,
+                volunteerName: `${volunteer.firstName} ${volunteer.lastName}`,
+                reminder: {
+                  id: `requirement-renewal-${volunteer.id}-${requirement.requirementType}`,
+                  type: "custom",
+                  title: `Erneuerung fällig: ${requirementLabel}`,
+                  message: `${volunteer.firstName} ${volunteer.lastName}: ${requirementLabel} läuft ${daysUntilExpiry === 0 ? "heute" : `in ${daysUntilExpiry} Tag${daysUntilExpiry !== 1 ? "en" : ""}`} ab!`,
+                  dismissed: false,
+                },
+              });
+            }
           }
         }
       }
