@@ -347,8 +347,7 @@ export function getUpcomingReminders(
     // Check anniversary reminders based on joined date (Eintrittsdatum)
     if (v.joinedDate && appSettings.enableJoinedDateAnniversaryReminders) {
       const joinedDate = parseISO(v.joinedDate);
-      const joinedDateAnniversaryYears =
-        appSettings.joinedDateAnniversaryYears;
+      const joinedDateAnniversaryYears = appSettings.joinedDateAnniversaryYears;
       for (const years of joinedDateAnniversaryYears) {
         const anniversaryDate = new Date(
           joinedDate.getFullYear() + years,

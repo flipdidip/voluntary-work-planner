@@ -208,8 +208,7 @@ export async function calculateUpcomingEvents(
       if (isEventInRange(daysUntil)) {
         const yearsOfService =
           nextAnniversary.getFullYear() - joinedDate.getFullYear();
-        const joinedDateAnniversaryYears =
-          settings.joinedDateAnniversaryYears;
+        const joinedDateAnniversaryYears = settings.joinedDateAnniversaryYears;
 
         if (
           yearsOfService > 0 &&
