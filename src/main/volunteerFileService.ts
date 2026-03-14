@@ -94,6 +94,9 @@ export class VolunteerFileService {
       firstName: volunteer.firstName,
       lastName: volunteer.lastName,
       dateOfBirth: volunteer.dateOfBirth,
+      phone: volunteer.phone,
+      mobile: volunteer.mobile,
+      email: volunteer.email,
       joinedDate: volunteer.joinedDate,
       status: volunteer.status,
       roles: volunteer.roles,
@@ -239,6 +242,7 @@ export class VolunteerFileService {
     success: boolean;
     filePath?: string;
     fileName?: string;
+    fileSize?: number;
     error?: string;
   } {
     try {
@@ -265,7 +269,12 @@ export class VolunteerFileService {
 
       // Return relative path from attachments root
       const relativePath = join(volunteerId, fileName);
-      return { success: true, filePath: relativePath, fileName: originalName };
+      return {
+        success: true,
+        filePath: relativePath,
+        fileName: originalName,
+        fileSize: source.byteLength,
+      };
     } catch (error) {
       return { success: false, error: String(error) };
     }

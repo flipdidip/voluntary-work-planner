@@ -177,6 +177,9 @@ export interface VolunteerIndexEntry {
   firstName: string;
   lastName: string;
   dateOfBirth?: string;
+  phone?: string;
+  mobile?: string;
+  email?: string;
   joinedDate?: string;
   status: VolunteerStatus;
   roles: string[];
@@ -188,6 +191,143 @@ export interface VolunteerIndex {
   _version: number;
   _updatedAt: string;
   volunteers: VolunteerIndexEntry[];
+}
+
+// ─────────────────────────────────────────────────
+// DSGVO processing activities (Art. 30)
+// ─────────────────────────────────────────────────
+
+export interface ProcessingActivityRecord {
+  id: string;
+  name: string;
+  controllerName: string;
+  controllerContact: string;
+  dataProtectionContact: string;
+  purposes: string;
+  categoriesOfSubjects: string[];
+  categoriesOfData: string[];
+  legalBases: string[];
+  recipients: string[];
+  processors: string[];
+  thirdCountryTransfers: string;
+  retentionPolicy: string;
+  technicalMeasures: string[];
+  organizationalMeasures: string[];
+  systems: string[];
+  notes: string;
+  lastReviewedAt?: string;
+}
+
+export interface ProcessingActivitiesDocument {
+  _version: number;
+  _updatedAt: string;
+  activities: ProcessingActivityRecord[];
+}
+
+export function createDefaultProcessingActivitiesDocument(): ProcessingActivitiesDocument {
+  return {
+    _version: 1,
+    _updatedAt: new Date().toISOString(),
+    activities: [
+      {
+        id: "volunteer-management",
+        name: "Verwaltung von Ehrenamtlichen",
+        controllerName: "",
+        controllerContact: "",
+        dataProtectionContact: "",
+        purposes:
+          "Verwaltung, Koordination, Kommunikation und Dokumentation ehrenamtlicher Taetigkeiten sowie Nachverfolgung von Qualifikationen und Terminen.",
+        categoriesOfSubjects: ["Ehrenamtliche", "Notfallkontakte"],
+        categoriesOfData: [
+          "Stammdaten (Name, Vorname)",
+          "Geburtsdatum",
+          "Kontaktdaten (Telefon, Mobiltelefon, E-Mail, Adresse)",
+          "Notfallkontakt",
+          "Rollen und Einsatzbereiche",
+          "Status- und Aktivitaetsverlauf",
+          "Notizen und Erinnerungen",
+          "Qualifikationen und Nachweise",
+          "Dateianhaenge",
+        ],
+        legalBases: [
+          "Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)",
+          "Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an ordnungsgemaesser Vereinsverwaltung)",
+        ],
+        recipients: [
+          "Interne Koordinatoren",
+          "Berechtigte Administratoren des Vereins",
+        ],
+        processors: [
+          "Optional: Microsoft fuer OneDrive/SharePoint-Synchronisation",
+        ],
+        thirdCountryTransfers:
+          "Abhaengig von eingesetztem Cloud-Anbieter, Tenant-Konfiguration und AVV. Bei rein lokaler Nutzung keine Uebermittlung in Drittländer durch die App.",
+        retentionPolicy:
+          "Nach Austritt oder Ende der ehrenamtlichen Taetigkeit nach den vereinsintern festgelegten Fristen loeschen oder archivieren. Fristen muessen organisatorisch festgelegt werden.",
+        technicalMeasures: [
+          "Verschluesselung ruhender Daten im Datenordner",
+          "Freigabeprozess fuer zusaetzliche Benutzer",
+          "Audit-Protokoll fuer Schluesselereignisse",
+          "Automatische Backups vor Aenderungen",
+          "Keine Telemetrie oder Drittanbieter-Analytics in der App",
+        ],
+        organizationalMeasures: [
+          "Freigabe neuer Benutzer nur durch autorisierte Personen",
+          "Regelmaessige Pruefung von Zugriffsrechten und Audit-Protokollen",
+          "Dokumentierte Bearbeitung von Betroffenenrechten",
+          "Endgeraete-Haertung, z.B. BitLocker und Betriebssystem-Kontoschutz",
+        ],
+        systems: [
+          "Voluntary Work Planner",
+          "Lokaler oder synchronisierter Datenordner",
+        ],
+        notes:
+          "Rechtsgrundlagen, Loeschfristen und AVV-Status muessen durch den Betreiber fachlich geprueft und ergaenzt werden.",
+        lastReviewedAt: undefined,
+      },
+      {
+        id: "key-access-management",
+        name: "Zugriffs- und Schluesselverwaltung fuer gemeinsame Datenordner",
+        controllerName: "",
+        controllerContact: "",
+        dataProtectionContact: "",
+        purposes:
+          "Steuerung, Freigabe und Nachvollziehbarkeit des Zugriffs auf gemeinsam genutzte verschluesselte Datenordner.",
+        categoriesOfSubjects: ["Berechtigte Nutzer der Anwendung"],
+        categoriesOfData: [
+          "Benutzername",
+          "Maschinenname",
+          "Schluesselfingerprint",
+          "Freigabe- und Ablehnungszeitpunkte",
+          "Audit-Eintraege zu Schluesselereignissen",
+        ],
+        legalBases: [
+          "Art. 6 Abs. 1 lit. f DSGVO (IT-Sicherheit und Zugriffskontrolle)",
+        ],
+        recipients: ["Autorisierte Administratoren des Vereins"],
+        processors: [
+          "Optional: Microsoft fuer OneDrive/SharePoint-Synchronisation",
+        ],
+        thirdCountryTransfers:
+          "Abhaengig von eingesetztem Cloud-Anbieter. Die Anwendung selbst uebermittelt diese Daten nicht an externe Server.",
+        retentionPolicy:
+          "Audit- und Freigabedaten nach intern definierter Sicherheits- und Nachweisfrist aufbewahren.",
+        technicalMeasures: [
+          "Benutzerspezifische Schluesselfreigabe",
+          "Audit-Protokoll fuer Zugriffsanfragen, Freigaben, Ablehnungen und Schluesselrotation",
+          "Verschluesselte Speicherung im Datenordner",
+        ],
+        organizationalMeasures: [
+          "Freigabeprozess fuer neue Benutzer dokumentieren",
+          "Regelmaessige Rezertifizierung von Berechtigungen",
+        ],
+        systems: ["Voluntary Work Planner", "Gemeinsam genutzter Datenordner"],
+        notes:
+          "Besonders relevant bei Nutzung von OneDrive- oder SharePoint-Synchronisation.",
+        lastReviewedAt: undefined,
+      },
+    ],
+  };
 }
 
 // ─────────────────────────────────────────────────
@@ -204,10 +344,16 @@ export const IPC = {
   GET_ENCRYPTION_STATUS: "get-encryption-status",
   GET_PENDING_ENROLLMENTS: "get-pending-enrollments",
   GET_ENCRYPTION_AUDIT_LOG: "get-encryption-audit-log",
+  GET_BUSINESS_AUDIT_LOG: "get-business-audit-log",
+  GET_PROCESSING_ACTIVITIES: "get-processing-activities",
   APPROVE_PENDING_ENROLLMENTS: "approve-pending-enrollments",
   APPROVE_ENROLLMENT: "approve-enrollment",
   REJECT_ENROLLMENT: "reject-enrollment",
   ROTATE_ENCRYPTION_KEY: "rotate-encryption-key",
+  SAVE_PROCESSING_ACTIVITIES: "save-processing-activities",
+  EXPORT_PROCESSING_ACTIVITIES_MARKDOWN:
+    "export-processing-activities-markdown",
+  EXPORT_BUSINESS_AUDIT_MARKDOWN: "export-business-audit-markdown",
 
   // Volunteers
   GET_VOLUNTEER_INDEX: "get-volunteer-index",
@@ -258,6 +404,32 @@ export interface EncryptionAuditEntry {
     | "access-rejected"
     | "key-rotated";
   target?: string;
+  details?: string;
+}
+
+export type BusinessAuditAction =
+  | "settings-saved"
+  | "volunteer-created"
+  | "volunteer-updated"
+  | "volunteer-deleted"
+  | "file-uploaded"
+  | "file-deleted"
+  | "file-opened"
+  | "processing-activities-saved"
+  | "processing-activities-exported";
+
+export type BusinessAuditSubjectType =
+  | "settings"
+  | "volunteer"
+  | "attachment"
+  | "processing-activities";
+
+export interface BusinessAuditEntry {
+  timestamp: string;
+  actor: string;
+  action: BusinessAuditAction;
+  subjectType: BusinessAuditSubjectType;
+  subjectId?: string;
   details?: string;
 }
 

@@ -17,10 +17,12 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Verschluesselung ruhender Daten fuer Index, Ehrenamtsakten, Backups und Anhaenge.
 - Mehrbenutzer-Freigabeworkflow fuer gemeinsame Ordner (Anfrage -> Freigabe/Ablehnung).
 - Audit-Protokoll fuer sicherheitsrelevante Schluesselereignisse (Anfrage, Freigabe, Ablehnung, Rotation).
+- Vollstaendiges Aktivitaetsprotokoll fuer betriebliche Aktionen (z.B. Ehrenamtliche anlegen/aktualisieren/loeschen, Dateiaktionen, Art.-30-Aenderungen).
 - Rotation des Datenschluessels mit automatischer Neuverschluesselung verwalteter Datendateien.
 - Erinnerungssystem fuer Geburtstage, Jubilaeen, benutzerdefinierte Termine und Qualifikationsablauf.
 - Windows-Benachrichtigungen bei faelligen Erinnerungen plus In-App-Erinnerungsoberflaeche.
 - Optimistisches Locking zur Reduzierung von Ueberschreibkonflikten bei synchronisierter Mehrbenutzernutzung.
+- In-App-Verwaltung des Verzeichnisses von Verarbeitungstaetigkeiten (Art. 30 DSGVO) inkl. Markdown-Export.
 
 ## DSGVO / GDPR
 
@@ -30,15 +32,26 @@ Die Anwendung beinhaltet:
 - Versionierte Datenschutzerklaerung (aktuelle In-App-Version: `1.1`).
 - Keine Telemetrie und keine Drittanbieter-Analytics in der App-Logik.
 - Verschluesselung ruhender Daten sowie Freigabe-/Audit-Mechanismen fuer gemeinsame Ordner.
+- Einstellungen -> Verzeichnis von Verarbeitungstaetigkeiten (Art. 30) mit Vorlagen, Bearbeitung und Markdown-Export.
+- Einstellungen -> Aktivitaetsprotokoll mit In-App-Ansicht und Markdown-Export.
 
 Weiterhin durch den Betreiber erforderlich:
 
-1. Verzeichnis von Verarbeitungstaetigkeiten (Art. 30 DSGVO).
+1. Verzeichnis von Verarbeitungstaetigkeiten (Art. 30 DSGVO) fachlich pruefen, vervollstaendigen und aktuell halten.
 2. TOM-Dokumentation und organisatorische Kontrollen.
 3. AVV mit dem Cloud-Anbieter bei Nutzung von OneDrive/SharePoint.
 4. Endgeraete-Haertung (z.B. BitLocker, Betriebssystem-Kontoschutz).
 5. Definierter Freigabeprozess fuer neue Ordnerbenutzer.
 6. Fristgerechte Bearbeitung von Betroffenenrechten.
+
+### DSGVO-Eintraege in den Einstellungen
+
+In den Einstellungen stehen jetzt folgende DSGVO-relevanten Bereiche zur Verfuegung:
+
+- Datenschutz (DSGVO): Datenschutzerklaerung und organisatorische Hinweise.
+- Verzeichnis von Verarbeitungstaetigkeiten: Pflege von Art.-30-Eintraegen, Versionierung, Export als Markdown.
+- Aktivitaetsprotokoll: Nachvollziehbare Historie operativer Aktionen (inkl. Export als Markdown).
+- Audit-Protokoll: Schluessel- und Freigabeereignisse fuer verschluesselte Datenordner.
 
 Wichtiger Betriebshinweis:
 
@@ -93,11 +106,13 @@ YourSharedFolder/
 │   ├── <uuid>.json
 │   └── ...
 ├── index.json
+├── processing-activities.json
 ├── backups/
 ├── attachments/
 └── .vwp-crypto/
 		├── manifest.json
 		├── audit.jsonl
+		├── business-audit.json
 		└── requests/
 				└── <fingerprint>.json
 ```
@@ -105,7 +120,7 @@ YourSharedFolder/
 Notes:
 
 - Business data files are encrypted at rest.
-- The crypto folder stores key management metadata and enrollment requests.
+- The crypto folder stores key management metadata, enrollment requests and audit files.
 
 ## Encryption and Multi-User Access
 

@@ -17,5 +17,5 @@
     }
   },
   "include": ["src/renderer/src/**/*", "src/shared/**/*"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "exclude": ["dist-electron", "release", "node_modules"]
 }

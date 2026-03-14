@@ -1,10 +1,22 @@
-import { useState, useEffect } from "react";
-import { FolderOpen, Save, Info, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
-  AppSettings,
+  Copy,
+  FileText,
+  FolderOpen,
+  Info,
+  Plus,
+  Save,
+  Shield,
+  Trash2,
+} from "lucide-react";
+import {
+  BusinessAuditEntry,
   EncryptionAuditEntry,
   EncryptionStatus,
   EnrollmentRequestSummary,
+  ProcessingActivitiesDocument,
+  ProcessingActivityRecord,
+  createDefaultProcessingActivitiesDocument,
 } from "@shared/types";
 import PrivacyPolicy from "../components/PrivacyPolicy";
 import "./Settings.css";
@@ -36,26 +48,89 @@ export default function Settings(): JSX.Element {
     EnrollmentRequestSummary[]
   >([]);
   const [auditEntries, setAuditEntries] = useState<EncryptionAuditEntry[]>([]);
+  const [businessAuditEntries, setBusinessAuditEntries] = useState<
+    BusinessAuditEntry[]
+  >([]);
   const [approving, setApproving] = useState(false);
   const [requestActionFingerprint, setRequestActionFingerprint] = useState<
     string | null
   >(null);
   const [rotating, setRotating] = useState(false);
+  const [processingDocument, setProcessingDocument] =
+    useState<ProcessingActivitiesDocument | null>(null);
+  const [selectedProcessingActivityId, setSelectedProcessingActivityId] =
+    useState("");
+  const [exportingProcessingActivities, setExportingProcessingActivities] =
+    useState(false);
+  const [exportingBusinessAudit, setExportingBusinessAudit] = useState(false);
 
   const refreshEncryptionStatus = async (): Promise<void> => {
-    try {
-      const [status, requests, audit] = await Promise.all([
+    const [statusResult, requestsResult, auditResult, businessAuditResult] =
+      await Promise.allSettled([
         window.api.getEncryptionStatus(),
         window.api.getPendingEnrollments(),
         window.api.getEncryptionAuditLog(),
+        window.api.getBusinessAuditLog(),
       ]);
-      setEncryptionStatus(status);
-      setPendingRequests(requests);
-      setAuditEntries(audit);
-    } catch {
+
+    if (statusResult.status === "fulfilled") {
+      setEncryptionStatus(statusResult.value);
+    } else {
       setEncryptionStatus(null);
+    }
+
+    if (requestsResult.status === "fulfilled") {
+      setPendingRequests(requestsResult.value);
+    } else {
       setPendingRequests([]);
+    }
+
+    if (auditResult.status === "fulfilled") {
+      setAuditEntries(auditResult.value);
+    } else {
       setAuditEntries([]);
+    }
+
+    if (businessAuditResult.status === "fulfilled") {
+      setBusinessAuditEntries(businessAuditResult.value);
+    } else {
+      setBusinessAuditEntries([]);
+    }
+  };
+
+  const handleExportBusinessAudit = async (): Promise<void> => {
+    if (!dataPath) {
+      alert("Bitte zuerst einen Datenordner auswaehlen.");
+      return;
+    }
+
+    setExportingBusinessAudit(true);
+    try {
+      const result = await window.api.exportBusinessAuditMarkdown();
+      if (!result.success) {
+        alert(result.error || "Export fehlgeschlagen.");
+        return;
+      }
+
+      if (!result.canceled && result.filePath) {
+        alert(`Export gespeichert: ${result.filePath}`);
+      }
+    } finally {
+      setExportingBusinessAudit(false);
+    }
+  };
+
+  const loadProcessingActivities = async (): Promise<void> => {
+    try {
+      const document = await window.api.getProcessingActivities();
+      const nextDocument =
+        document || createDefaultProcessingActivitiesDocument();
+      setProcessingDocument(nextDocument);
+      setSelectedProcessingActivityId(nextDocument.activities[0]?.id || "");
+    } catch {
+      const fallback = createDefaultProcessingActivitiesDocument();
+      setProcessingDocument(fallback);
+      setSelectedProcessingActivityId(fallback.activities[0]?.id || "");
     }
   };
 
@@ -67,10 +142,19 @@ export default function Settings(): JSX.Element {
     return `${fingerprint.slice(0, 12)}...${fingerprint.slice(-8)}`;
   };
 
+  const multilineToList = (value: string): string[] =>
+    value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+  const listToMultiline = (items: string[]): string => items.join("\n");
+
   useEffect(() => {
     window.api.getDataPath().then(setDataPath);
     window.api.getAppVersion().then(setAppVersion);
     refreshEncryptionStatus();
+    loadProcessingActivities();
     window.api.getSettings().then((settings) => {
       setInterval(settings.reminderCheckIntervalMinutes);
       setEnableYearlyBirthday(settings.enableYearlyBirthdayReminders);
@@ -88,11 +172,44 @@ export default function Settings(): JSX.Element {
     });
   }, []);
 
+  useEffect(() => {
+    if (!processingDocument) return;
+    const selectedExists = processingDocument.activities.some(
+      (activity) => activity.id === selectedProcessingActivityId,
+    );
+    if (!selectedExists) {
+      setSelectedProcessingActivityId(
+        processingDocument.activities[0]?.id || "",
+      );
+    }
+  }, [processingDocument, selectedProcessingActivityId]);
+
+  const activeProcessingActivity = processingDocument?.activities.find(
+    (activity) => activity.id === selectedProcessingActivityId,
+  );
+
+  const updateProcessingActivity = (
+    activityId: string,
+    updater: (activity: ProcessingActivityRecord) => ProcessingActivityRecord,
+  ): void => {
+    setProcessingDocument((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        activities: current.activities.map((activity) =>
+          activity.id === activityId ? updater(activity) : activity,
+        ),
+      };
+    });
+  };
+
   const handleSelectFolder = async (): Promise<void> => {
     const path = await window.api.selectDataFolder();
     if (path) {
       setDataPath(path);
       await refreshEncryptionStatus();
+      await loadProcessingActivities();
       window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
     }
   };
@@ -167,11 +284,127 @@ export default function Settings(): JSX.Element {
     }
   };
 
+  const handleAddProcessingActivity = (): void => {
+    const newActivity: ProcessingActivityRecord = {
+      id: `activity-${Date.now()}`,
+      name: "Neue Verarbeitungstaetigkeit",
+      controllerName: "",
+      controllerContact: "",
+      dataProtectionContact: "",
+      purposes: "",
+      categoriesOfSubjects: [],
+      categoriesOfData: [],
+      legalBases: [],
+      recipients: [],
+      processors: [],
+      thirdCountryTransfers: "",
+      retentionPolicy: "",
+      technicalMeasures: [],
+      organizationalMeasures: [],
+      systems: [],
+      notes: "",
+      lastReviewedAt: undefined,
+    };
+
+    setProcessingDocument((current) => {
+      const base = current || createDefaultProcessingActivitiesDocument();
+      return {
+        ...base,
+        activities: [...base.activities, newActivity],
+      };
+    });
+    setSelectedProcessingActivityId(newActivity.id);
+  };
+
+  const handleDuplicateProcessingActivity = (): void => {
+    if (!activeProcessingActivity) return;
+
+    const duplicate: ProcessingActivityRecord = {
+      ...activeProcessingActivity,
+      id: `activity-${Date.now()}`,
+      name: `${activeProcessingActivity.name} (Kopie)`,
+    };
+
+    setProcessingDocument((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        activities: [...current.activities, duplicate],
+      };
+    });
+    setSelectedProcessingActivityId(duplicate.id);
+  };
+
+  const handleDeleteProcessingActivity = (): void => {
+    if (!processingDocument || !activeProcessingActivity) return;
+
+    if (processingDocument.activities.length <= 1) {
+      alert(
+        "Mindestens eine Verarbeitungstaetigkeit sollte vorhanden bleiben.",
+      );
+      return;
+    }
+
+    const remaining = processingDocument.activities.filter(
+      (activity) => activity.id !== activeProcessingActivity.id,
+    );
+    setProcessingDocument({
+      ...processingDocument,
+      activities: remaining,
+    });
+    setSelectedProcessingActivityId(remaining[0]?.id || "");
+  };
+
+  const persistProcessingActivities = async (): Promise<boolean> => {
+    if (!dataPath || !processingDocument) {
+      return true;
+    }
+
+    const result =
+      await window.api.saveProcessingActivities(processingDocument);
+    if (!result.success || !result.document) {
+      alert(
+        result.error ||
+          "Das Verzeichnis von Verarbeitungstaetigkeiten konnte nicht gespeichert werden.",
+      );
+      return false;
+    }
+
+    setProcessingDocument(result.document);
+    return true;
+  };
+
+  const handleExportProcessingActivities = async (): Promise<void> => {
+    if (!dataPath) {
+      alert("Bitte zuerst einen Datenordner auswaehlen.");
+      return;
+    }
+
+    const savedSuccessfully = await persistProcessingActivities();
+    if (!savedSuccessfully) return;
+
+    setExportingProcessingActivities(true);
+    try {
+      const result = await window.api.exportProcessingActivitiesMarkdown();
+      if (!result.success) {
+        alert(result.error || "Export fehlgeschlagen.");
+        return;
+      }
+
+      if (!result.canceled && result.filePath) {
+        alert(`Export gespeichert: ${result.filePath}`);
+      }
+    } finally {
+      setExportingProcessingActivities(false);
+    }
+  };
+
   const handleSave = async (): Promise<void> => {
     if (dataPath) {
       await window.api.setDataPath(dataPath);
       window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
     }
+
     await window.api.saveSettings({
       reminderCheckIntervalMinutes: interval,
       enableYearlyBirthdayReminders: enableYearlyBirthday,
@@ -182,6 +415,10 @@ export default function Settings(): JSX.Element {
       enableActivityTimeAnniversaryReminders: enableActivityTimeAnniversary,
       activityTimeAnniversaryYears: activityTimeAnniversaryYears,
     });
+
+    const savedSuccessfully = await persistProcessingActivities();
+    if (!savedSuccessfully) return;
+
     await refreshEncryptionStatus();
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -461,7 +698,6 @@ export default function Settings(): JSX.Element {
         <div className="birthday-reminders anniversary-reminders">
           <h3 className="birthday-reminders-title">Jubiläumserinnerungen</h3>
 
-          {/* Joined Date Anniversaries */}
           <div className="anniversary-option">
             <label className="checkbox-label">
               <input
@@ -504,7 +740,6 @@ export default function Settings(): JSX.Element {
             </div>
           )}
 
-          {/* Activity Time Anniversaries */}
           <div className="anniversary-option anniversary-option-spaced">
             <label className="checkbox-label">
               <input
@@ -548,6 +783,76 @@ export default function Settings(): JSX.Element {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="settings-card card">
+        <div className="processing-header">
+          <div>
+            <h2>Aktivitaetsprotokoll</h2>
+            <p className="hint processing-header-hint">
+              Vollstaendiges Protokoll fuer betriebliche Aktionen wie Anlegen,
+              Aktualisieren und Loeschen von Ehrenamtlichen sowie Datei- und
+              Art.30-Aktivitaeten.
+            </p>
+          </div>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={handleExportBusinessAudit}
+            disabled={!dataPath || exportingBusinessAudit}
+          >
+            <FileText size={16} />
+            {exportingBusinessAudit
+              ? "Export laeuft..."
+              : "Aktivitaetslog exportieren"}
+          </button>
+        </div>
+
+        <details className="security-section audit-collapsible">
+          <summary className="audit-summary">
+            <span className="audit-summary-main">
+              <span className="security-section-header">
+                <h3>Aktivitaetseintraege</h3>
+                <span className="hint">
+                  Nachvollziehbarkeit fuer operative Datenaenderungen.
+                </span>
+              </span>
+              <span className="audit-summary-hint" aria-hidden="true">
+                Aufklappen
+              </span>
+            </span>
+          </summary>
+
+          <div className="audit-content">
+            {businessAuditEntries.length === 0 ? (
+              <p className="hint">Noch keine Aktivitaetseintraege vorhanden.</p>
+            ) : (
+              <div className="audit-list">
+                {businessAuditEntries.map((entry) => (
+                  <div
+                    key={`${entry.timestamp}-${entry.action}-${entry.subjectId || ""}`}
+                    className="audit-item"
+                  >
+                    <div className="audit-item-header">
+                      <strong>{entry.action}</strong>
+                      <span className="hint">
+                        {formatTimestamp(entry.timestamp)}
+                      </span>
+                    </div>
+                    <div className="hint">Akteur: {entry.actor}</div>
+                    <div className="hint">
+                      Objekt: {entry.subjectType}
+                      {entry.subjectId ? ` (${entry.subjectId})` : ""}
+                    </div>
+                    {entry.details && (
+                      <div className="hint">{entry.details}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </details>
       </div>
 
       <div className="settings-card card">
@@ -642,7 +947,7 @@ export default function Settings(): JSX.Element {
               Anbieter
             </li>
             <li>
-              Nutzen Sie zusätzlich <strong>Festplattenverschlüsselung</strong>
+              Nutzen Sie zusätzlich <strong>Festplattenverschlüsselung</strong>{" "}
               (z.B. BitLocker) und schützen Sie OneDrive-/SharePoint-Zugriffe
               organisatorisch
             </li>
@@ -656,6 +961,426 @@ export default function Settings(): JSX.Element {
             </li>
           </ul>
         </div>
+      </div>
+
+      <div className="settings-card card">
+        <div className="processing-header">
+          <div>
+            <h2>
+              <FileText
+                size={20}
+                style={{ verticalAlign: "middle", marginRight: "8px" }}
+              />
+              Verzeichnis von Verarbeitungstaetigkeiten
+            </h2>
+            <p className="hint processing-header-hint">
+              Art. 30 DSGVO: Pflegen Sie hier Ihre Verarbeitungstaetigkeiten und
+              exportieren Sie das Verzeichnis als Markdown für interne
+              Dokumentation oder weitere Abstimmung.
+            </p>
+          </div>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={handleExportProcessingActivities}
+            disabled={!dataPath || exportingProcessingActivities}
+          >
+            <FileText size={16} />
+            {exportingProcessingActivities
+              ? "Export laeuft..."
+              : "Markdown exportieren"}
+          </button>
+        </div>
+
+        {!dataPath ? (
+          <div className="processing-empty-state">
+            Bitte zuerst einen Datenordner auswaehlen. Das Verzeichnis wird
+            verschluesselt im Datenordner gespeichert.
+          </div>
+        ) : (
+          <>
+            <div className="processing-toolbar">
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={handleAddProcessingActivity}
+              >
+                <Plus size={16} /> Neue Taetigkeit
+              </button>
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={handleDuplicateProcessingActivity}
+                disabled={!activeProcessingActivity}
+              >
+                <Copy size={16} /> Duplizieren
+              </button>
+              <button
+                className="btn btn-danger"
+                type="button"
+                onClick={handleDeleteProcessingActivity}
+                disabled={!activeProcessingActivity}
+              >
+                <Trash2 size={16} /> Loeschen
+              </button>
+            </div>
+
+            <div className="processing-meta-grid">
+              <div>
+                <span className="hint">Version</span>
+                <strong>{processingDocument?._version || 1}</strong>
+              </div>
+              <div>
+                <span className="hint">Letzte Aktualisierung</span>
+                <strong>
+                  {processingDocument?._updatedAt
+                    ? formatTimestamp(processingDocument._updatedAt)
+                    : "Noch nicht gespeichert"}
+                </strong>
+              </div>
+            </div>
+
+            <div className="processing-layout">
+              <div className="processing-sidebar">
+                {(processingDocument?.activities || []).map((activity) => (
+                  <button
+                    key={activity.id}
+                    type="button"
+                    className={`processing-nav-item ${activity.id === selectedProcessingActivityId ? "active" : ""}`}
+                    onClick={() => setSelectedProcessingActivityId(activity.id)}
+                  >
+                    <strong>{activity.name || "Unbenannte Taetigkeit"}</strong>
+                    <span className="hint">
+                      {activity.legalBases[0] || "Rechtsgrundlage ergaenzen"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {activeProcessingActivity ? (
+                <div className="processing-editor">
+                  <div className="processing-form-grid">
+                    <label>
+                      Name der Verarbeitungstaetigkeit
+                      <input
+                        className="input"
+                        value={activeProcessingActivity.name}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              name: e.target.value,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Verantwortlicher
+                      <input
+                        className="input"
+                        value={activeProcessingActivity.controllerName}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              controllerName: e.target.value,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Kontakt Verantwortlicher
+                      <textarea
+                        className="textarea"
+                        value={activeProcessingActivity.controllerContact}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              controllerContact: e.target.value,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Datenschutzkontakt
+                      <textarea
+                        className="textarea"
+                        value={activeProcessingActivity.dataProtectionContact}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              dataProtectionContact: e.target.value,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label className="processing-field-full">
+                      Zwecke der Verarbeitung
+                      <textarea
+                        className="textarea"
+                        value={activeProcessingActivity.purposes}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              purposes: e.target.value,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Kategorien betroffener Personen
+                      <textarea
+                        className="textarea"
+                        value={listToMultiline(
+                          activeProcessingActivity.categoriesOfSubjects,
+                        )}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              categoriesOfSubjects: multilineToList(
+                                e.target.value,
+                              ),
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Kategorien personenbezogener Daten
+                      <textarea
+                        className="textarea"
+                        value={listToMultiline(
+                          activeProcessingActivity.categoriesOfData,
+                        )}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              categoriesOfData: multilineToList(e.target.value),
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Rechtsgrundlagen
+                      <textarea
+                        className="textarea"
+                        value={listToMultiline(
+                          activeProcessingActivity.legalBases,
+                        )}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              legalBases: multilineToList(e.target.value),
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Empfaenger
+                      <textarea
+                        className="textarea"
+                        value={listToMultiline(
+                          activeProcessingActivity.recipients,
+                        )}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              recipients: multilineToList(e.target.value),
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Auftragsverarbeiter
+                      <textarea
+                        className="textarea"
+                        value={listToMultiline(
+                          activeProcessingActivity.processors,
+                        )}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              processors: multilineToList(e.target.value),
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Systeme und Speicherorte
+                      <textarea
+                        className="textarea"
+                        value={listToMultiline(
+                          activeProcessingActivity.systems,
+                        )}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              systems: multilineToList(e.target.value),
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label className="processing-field-full">
+                      Drittlandtransfer
+                      <textarea
+                        className="textarea"
+                        value={activeProcessingActivity.thirdCountryTransfers}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              thirdCountryTransfers: e.target.value,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label className="processing-field-full">
+                      Speicherfristen und Loeschkonzept
+                      <textarea
+                        className="textarea"
+                        value={activeProcessingActivity.retentionPolicy}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              retentionPolicy: e.target.value,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Technische Massnahmen
+                      <textarea
+                        className="textarea"
+                        value={listToMultiline(
+                          activeProcessingActivity.technicalMeasures,
+                        )}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              technicalMeasures: multilineToList(
+                                e.target.value,
+                              ),
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Organisatorische Massnahmen
+                      <textarea
+                        className="textarea"
+                        value={listToMultiline(
+                          activeProcessingActivity.organizationalMeasures,
+                        )}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              organizationalMeasures: multilineToList(
+                                e.target.value,
+                              ),
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Letzte Pruefung
+                      <input
+                        className="input"
+                        type="date"
+                        value={activeProcessingActivity.lastReviewedAt || ""}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              lastReviewedAt: e.target.value || undefined,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label className="processing-field-full">
+                      Notizen
+                      <textarea
+                        className="textarea"
+                        value={activeProcessingActivity.notes}
+                        onChange={(e) =>
+                          updateProcessingActivity(
+                            activeProcessingActivity.id,
+                            (activity) => ({
+                              ...activity,
+                              notes: e.target.value,
+                            }),
+                          )
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <div className="processing-empty-state">
+                  Keine Verarbeitungstaetigkeit ausgewaehlt.
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="settings-actions">
