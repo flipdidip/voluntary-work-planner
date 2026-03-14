@@ -343,3 +343,120 @@
   margin-bottom: 0.5rem;
   line-height: 1.5;
 }
+
+.processing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.processing-header-hint {
+  margin: 8px 0 0;
+  max-width: 780px;
+}
+
+.processing-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.processing-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.processing-meta-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+}
+
+.processing-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.processing-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.processing-nav-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.processing-nav-item:hover {
+  border-color: var(--color-primary);
+}
+
+.processing-nav-item.active {
+  border-color: var(--color-primary);
+  background: var(--color-surface-2);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+}
+
+.processing-editor {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 16px;
+}
+
+.processing-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.processing-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.processing-field-full {
+  grid-column: 1 / -1;
+}
+
+.processing-empty-state {
+  padding: 14px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+}
+
+@media (max-width: 960px) {
+  .processing-header {
+    flex-direction: column;
+  }
+
+  .processing-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .processing-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

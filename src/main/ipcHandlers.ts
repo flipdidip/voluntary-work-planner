@@ -1,11 +1,19 @@
 import { IpcMain, dialog } from "electron";
 import { v4 as uuidv4 } from "uuid";
-import { IPC, Volunteer, SaveResult } from "@shared/types";
+import {
+  IPC,
+  Volunteer,
+  SaveResult,
+  ProcessingActivitiesDocument,
+  BusinessAuditEntry,
+} from "@shared/types";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
 import { DueReminder, getUpcomingReminders } from "./reminderScheduler";
 import { mkdirSync } from "fs";
 import { DataCryptoService } from "./dataCryptoService";
+import { ProcessingActivitiesService } from "./processingActivitiesService";
+import { BusinessAuditService } from "./businessAuditService";
 
 function getFileService(
   settings: SettingsService,
@@ -52,6 +60,57 @@ function bootstrapFolderEncryption(folderPath: string) {
   return cryptoService.getStatus(folderPath);
 }
 
+function getProcessingActivitiesService(
+  settings: SettingsService,
+): ProcessingActivitiesService | null {
+  const dataPath = settings.getDataFolderPath();
+  if (!dataPath) return null;
+
+  const cryptoService = DataCryptoService.getInstance();
+  const cryptoStatus = cryptoService.getStatus(dataPath);
+  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
+    throw new Error(
+      cryptoStatus.message ||
+        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
+    );
+  }
+
+  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
+  return new ProcessingActivitiesService(dataPath, cryptoService);
+}
+
+function getBusinessAuditService(
+  settings: SettingsService,
+): BusinessAuditService | null {
+  const dataPath = settings.getDataFolderPath();
+  if (!dataPath) return null;
+
+  const cryptoService = DataCryptoService.getInstance();
+  const cryptoStatus = cryptoService.getStatus(dataPath);
+  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
+    throw new Error(
+      cryptoStatus.message ||
+        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
+    );
+  }
+
+  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
+  return new BusinessAuditService(dataPath, cryptoService);
+}
+
+function appendBusinessAudit(
+  settings: SettingsService,
+  entry: Omit<BusinessAuditEntry, "timestamp" | "actor">,
+): void {
+  try {
+    const service = getBusinessAuditService(settings);
+    if (!service) return;
+    service.append(entry);
+  } catch {
+    // Audit logging is best-effort and must not block the main operation.
+  }
+}
+
 export function registerVolunteerHandlers(
   ipcMain: IpcMain,
   settings: SettingsService,
@@ -66,6 +125,11 @@ export function registerVolunteerHandlers(
     IPC.SAVE_SETTINGS,
     (_event, partial: Partial<import("@shared/types").AppSettings>) => {
       settings.set(partial);
+      appendBusinessAudit(settings, {
+        action: "settings-saved",
+        subjectType: "settings",
+        details: `Felder aktualisiert: ${Object.keys(partial).join(", ") || "(keine)"}`,
+      });
       return { success: true };
     },
   );
@@ -115,6 +179,28 @@ export function registerVolunteerHandlers(
       settings.getDataFolderPath(),
       100,
     );
+  });
+
+  ipcMain.handle(IPC.GET_BUSINESS_AUDIT_LOG, () => {
+    try {
+      const service = getBusinessAuditService(settings);
+      if (!service) return [];
+      return service.getEntries(300);
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle(IPC.GET_PROCESSING_ACTIVITIES, () => {
+    try {
+      const service = getProcessingActivitiesService(settings);
+      if (!service) {
+        return null;
+      }
+      return service.readDocument();
+    } catch {
+      return null;
+    }
   });
 
   ipcMain.handle(IPC.APPROVE_PENDING_ENROLLMENTS, () => {
@@ -230,6 +316,98 @@ export function registerVolunteerHandlers(
     }
   });
 
+  ipcMain.handle(
+    IPC.SAVE_PROCESSING_ACTIVITIES,
+    (_event, document: ProcessingActivitiesDocument) => {
+      try {
+        const service = getProcessingActivitiesService(settings);
+        if (!service) {
+          return { success: false, error: "Kein Datenordner konfiguriert." };
+        }
+
+        return {
+          success: true,
+          document: (() => {
+            const written = service.writeDocument(document);
+            appendBusinessAudit(settings, {
+              action: "processing-activities-saved",
+              subjectType: "processing-activities",
+              details: `${written.activities.length} Taetigkeit(en) gespeichert`,
+            });
+            return written;
+          })(),
+        };
+      } catch (error) {
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(IPC.EXPORT_PROCESSING_ACTIVITIES_MARKDOWN, async (event) => {
+    try {
+      const service = getProcessingActivitiesService(settings);
+      if (!service) {
+        return { success: false, error: "Kein Datenordner konfiguriert." };
+      }
+
+      const { BrowserWindow } =
+        require("electron") as typeof import("electron");
+      const win = BrowserWindow.fromWebContents(event.sender);
+      const defaultName = `verzeichnis-verarbeitungstaetigkeiten-${new Date()
+        .toISOString()
+        .slice(0, 10)}.md`;
+      const result = await dialog.showSaveDialog(win!, {
+        title: "Verzeichnis von Verarbeitungstaetigkeiten exportieren",
+        defaultPath: defaultName,
+        filters: [{ name: "Markdown", extensions: ["md"] }],
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: true, canceled: true };
+      }
+
+      service.exportMarkdown(result.filePath);
+      appendBusinessAudit(settings, {
+        action: "processing-activities-exported",
+        subjectType: "processing-activities",
+        details: `Exportiert nach ${result.filePath}`,
+      });
+      return { success: true, filePath: result.filePath };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle(IPC.EXPORT_BUSINESS_AUDIT_MARKDOWN, async (event) => {
+    try {
+      const service = getBusinessAuditService(settings);
+      if (!service) {
+        return { success: false, error: "Kein Datenordner konfiguriert." };
+      }
+
+      const { BrowserWindow } =
+        require("electron") as typeof import("electron");
+      const win = BrowserWindow.fromWebContents(event.sender);
+      const defaultName = `aktivitaetsprotokoll-${new Date()
+        .toISOString()
+        .slice(0, 10)}.md`;
+      const result = await dialog.showSaveDialog(win!, {
+        title: "Aktivitaetsprotokoll exportieren",
+        defaultPath: defaultName,
+        filters: [{ name: "Markdown", extensions: ["md"] }],
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: true, canceled: true };
+      }
+
+      service.exportMarkdown(result.filePath);
+      return { success: true, filePath: result.filePath };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  });
+
   // Volunteer CRUD
   ipcMain.handle(IPC.GET_VOLUNTEER_INDEX, () => {
     try {
@@ -277,6 +455,10 @@ export function registerVolunteerHandlers(
         };
       }
 
+      const existingBefore = volunteer.id
+        ? svc.readVolunteer(volunteer.id)
+        : null;
+
       if (!volunteer.id) {
         volunteer.id = uuidv4();
         volunteer._version = 0;
@@ -284,7 +466,17 @@ export function registerVolunteerHandlers(
         volunteer._updatedAt = new Date().toISOString();
       }
 
-      return svc.saveVolunteer(volunteer);
+      const result = svc.saveVolunteer(volunteer);
+      if (result.success) {
+        appendBusinessAudit(settings, {
+          action: existingBefore ? "volunteer-updated" : "volunteer-created",
+          subjectType: "volunteer",
+          subjectId: result.volunteer.id,
+          details: `${result.volunteer.firstName} ${result.volunteer.lastName}`,
+        });
+      }
+
+      return result;
     },
   );
 
@@ -292,7 +484,16 @@ export function registerVolunteerHandlers(
     try {
       const svc = getFileService(settings);
       if (!svc) return;
+      const existing = svc.readVolunteer(id);
       svc.deleteVolunteer(id);
+      appendBusinessAudit(settings, {
+        action: "volunteer-deleted",
+        subjectType: "volunteer",
+        subjectId: id,
+        details: existing
+          ? `${existing.firstName} ${existing.lastName}`
+          : "Datensatz geloescht",
+      });
     } catch {
       return;
     }
@@ -317,7 +518,16 @@ export function registerVolunteerHandlers(
         if (!svc) {
           return { success: false, error: "No data folder configured" };
         }
-        return svc.uploadFile(volunteerId, sourcePath);
+        const result = svc.uploadFile(volunteerId, sourcePath);
+        if (result.success) {
+          appendBusinessAudit(settings, {
+            action: "file-uploaded",
+            subjectType: "attachment",
+            subjectId: volunteerId,
+            details: `${result.fileName || "Datei"} -> ${result.filePath || ""}`,
+          });
+        }
+        return result;
       } catch (error) {
         return { success: false, error: String(error) };
       }
@@ -330,7 +540,16 @@ export function registerVolunteerHandlers(
       if (!svc) {
         return { success: false, error: "No data folder configured" };
       }
-      return svc.deleteFile(filePath);
+      const result = svc.deleteFile(filePath);
+      if (result.success) {
+        appendBusinessAudit(settings, {
+          action: "file-deleted",
+          subjectType: "attachment",
+          subjectId: filePath,
+          details: filePath,
+        });
+      }
+      return result;
     } catch (error) {
       return { success: false, error: String(error) };
     }
@@ -342,7 +561,16 @@ export function registerVolunteerHandlers(
       if (!svc) {
         return { success: false, error: "No data folder configured" };
       }
-      return svc.openFile(filePath);
+      const result = svc.openFile(filePath);
+      if (result.success) {
+        appendBusinessAudit(settings, {
+          action: "file-opened",
+          subjectType: "attachment",
+          subjectId: filePath,
+          details: filePath,
+        });
+      }
+      return result;
     } catch (error) {
       return { success: false, error: String(error) };
     }

@@ -5,8 +5,10 @@ import {
   Reminder,
   AppSettings,
   EncryptionAuditEntry,
+  BusinessAuditEntry,
   EncryptionStatus,
   EnrollmentRequestSummary,
+  ProcessingActivitiesDocument,
 } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
@@ -29,6 +31,12 @@ const api = {
 
   getEncryptionAuditLog: (): Promise<EncryptionAuditEntry[]> =>
     ipcRenderer.invoke(IPC.GET_ENCRYPTION_AUDIT_LOG),
+
+  getBusinessAuditLog: (): Promise<BusinessAuditEntry[]> =>
+    ipcRenderer.invoke(IPC.GET_BUSINESS_AUDIT_LOG),
+
+  getProcessingActivities: (): Promise<ProcessingActivitiesDocument> =>
+    ipcRenderer.invoke(IPC.GET_PROCESSING_ACTIVITIES),
 
   approvePendingEnrollments: (): Promise<{
     success: boolean;
@@ -61,6 +69,28 @@ const api = {
     error?: string;
   }> => ipcRenderer.invoke(IPC.ROTATE_ENCRYPTION_KEY),
 
+  saveProcessingActivities: (
+    document: ProcessingActivitiesDocument,
+  ): Promise<{
+    success: boolean;
+    document?: ProcessingActivitiesDocument;
+    error?: string;
+  }> => ipcRenderer.invoke(IPC.SAVE_PROCESSING_ACTIVITIES, document),
+
+  exportProcessingActivitiesMarkdown: (): Promise<{
+    success: boolean;
+    canceled?: boolean;
+    filePath?: string;
+    error?: string;
+  }> => ipcRenderer.invoke(IPC.EXPORT_PROCESSING_ACTIVITIES_MARKDOWN),
+
+  exportBusinessAuditMarkdown: (): Promise<{
+    success: boolean;
+    canceled?: boolean;
+    filePath?: string;
+    error?: string;
+  }> => ipcRenderer.invoke(IPC.EXPORT_BUSINESS_AUDIT_MARKDOWN),
+
   setDataPath: (folderPath: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke(IPC.SET_DATA_PATH, folderPath),
 
@@ -87,6 +117,7 @@ const api = {
     success: boolean;
     filePath?: string;
     fileName?: string;
+    fileSize?: number;
     error?: string;
   }> => ipcRenderer.invoke(IPC.UPLOAD_FILE, volunteerId, sourcePath),
 
