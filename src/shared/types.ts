@@ -201,6 +201,8 @@ export const IPC = {
   SELECT_DATA_FOLDER: "select-data-folder",
   GET_SETTINGS: "get-settings",
   SAVE_SETTINGS: "save-settings",
+  GET_ENCRYPTION_STATUS: "get-encryption-status",
+  APPROVE_PENDING_ENROLLMENTS: "approve-pending-enrollments",
 
   // Volunteers
   GET_VOLUNTEER_INDEX: "get-volunteer-index",
@@ -223,6 +225,16 @@ export const IPC = {
   // App info
   GET_APP_VERSION: "get-app-version",
 } as const;
+
+export interface EncryptionStatus {
+  enabled: boolean;
+  authorized: boolean;
+  hasManifest: boolean;
+  pendingRequestCount: number;
+  currentUser: string;
+  keyFingerprint: string;
+  message?: string;
+}
 
 // ─────────────────────────────────────────────────
 // App settings — stored in electron userData

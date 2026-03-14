@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { FolderOpen, Save, Info, Shield } from "lucide-react";
-import { AppSettings } from "@shared/types";
+import { AppSettings, EncryptionStatus } from "@shared/types";
 import PrivacyPolicy from "../components/PrivacyPolicy";
 import "./Settings.css";
 
@@ -23,10 +23,23 @@ export default function Settings(): JSX.Element {
     useState<number[]>([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [consentDate, setConsentDate] = useState<string | undefined>();
+  const [encryptionStatus, setEncryptionStatus] =
+    useState<EncryptionStatus | null>(null);
+  const [approving, setApproving] = useState(false);
+
+  const refreshEncryptionStatus = async (): Promise<void> => {
+    try {
+      const status = await window.api.getEncryptionStatus();
+      setEncryptionStatus(status);
+    } catch {
+      setEncryptionStatus(null);
+    }
+  };
 
   useEffect(() => {
     window.api.getDataPath().then(setDataPath);
     window.api.getAppVersion().then(setAppVersion);
+    refreshEncryptionStatus();
     window.api.getSettings().then((settings) => {
       setInterval(settings.reminderCheckIntervalMinutes);
       setEnableYearlyBirthday(settings.enableYearlyBirthdayReminders);
@@ -46,7 +59,25 @@ export default function Settings(): JSX.Element {
 
   const handleSelectFolder = async (): Promise<void> => {
     const path = await window.api.selectDataFolder();
-    if (path) setDataPath(path);
+    if (path) {
+      setDataPath(path);
+      await refreshEncryptionStatus();
+    }
+  };
+
+  const handleApproveEnrollments = async (): Promise<void> => {
+    setApproving(true);
+    try {
+      const result = await window.api.approvePendingEnrollments();
+      if (!result.success) {
+        alert(result.error || "Freigaben konnten nicht verarbeitet werden.");
+      } else if (result.approvedCount > 0) {
+        alert(`${result.approvedCount} Zugriffsanfrage(n) wurden freigegeben.`);
+      }
+      await refreshEncryptionStatus();
+    } finally {
+      setApproving(false);
+    }
   };
 
   const handleSave = async (): Promise<void> => {
@@ -63,6 +94,7 @@ export default function Settings(): JSX.Element {
       enableActivityTimeAnniversaryReminders: enableActivityTimeAnniversary,
       activityTimeAnniversaryYears: activityTimeAnniversaryYears,
     });
+    await refreshEncryptionStatus();
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -97,6 +129,47 @@ export default function Settings(): JSX.Element {
             <span>
               Daten werden gespeichert in: <code>{dataPath}</code>
             </span>
+          </div>
+        )}
+
+        {encryptionStatus && (
+          <div className="path-info" style={{ marginTop: "0.6rem" }}>
+            <Info size={14} />
+            <span>
+              <strong>Verschlüsselung:</strong>{" "}
+              {encryptionStatus.authorized
+                ? "aktiv und freigegeben"
+                : "aktiv, Freigabe ausstehend"}
+              {encryptionStatus.message ? ` (${encryptionStatus.message})` : ""}
+            </span>
+          </div>
+        )}
+
+        {encryptionStatus && (
+          <div className="path-info" style={{ marginTop: "0.5rem" }}>
+            <Info size={14} />
+            <span>
+              Aktueller Benutzer: <code>{encryptionStatus.currentUser}</code>
+            </span>
+          </div>
+        )}
+
+        {encryptionStatus && encryptionStatus.authorized && (
+          <div className="path-info" style={{ marginTop: "0.5rem" }}>
+            <Info size={14} />
+            <span>
+              Offene Zugriffsanfragen: {encryptionStatus.pendingRequestCount}
+            </span>
+            {encryptionStatus.pendingRequestCount > 0 && (
+              <button
+                className="btn btn-secondary"
+                style={{ marginLeft: "1rem" }}
+                onClick={handleApproveEnrollments}
+                disabled={approving}
+              >
+                {approving ? "Freigabe läuft..." : "Anfragen freigeben"}
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -16,6 +16,7 @@ import {
 import { VolunteerFileService } from "./volunteerFileService";
 import { SettingsService } from "./settingsService";
 import { mkdirSync } from "fs";
+import { DataCryptoService } from "./dataCryptoService";
 
 export interface DueReminder {
   volunteerId: string;
@@ -57,9 +58,12 @@ export class ReminderScheduler {
     try {
       mkdirSync(this.settings.getVolunteersPath(), { recursive: true });
       const fileService = new VolunteerFileService(
+        dataPath,
         this.settings.getVolunteersPath(),
         this.settings.getIndexPath(),
         this.settings.getBackupsPath(),
+        this.settings.getAttachmentsPath(),
+        DataCryptoService.getInstance(),
       );
 
       const index: VolunteerIndex = fileService.readIndex();

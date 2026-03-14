@@ -7,7 +7,7 @@ import {
   unlinkSync,
 } from "fs";
 import { join, basename } from "path";
-import { shell } from "electron";
+import { app, shell } from "electron";
 import {
   Volunteer,
   VolunteerIndex,
@@ -15,13 +15,16 @@ import {
   SaveResult,
   calculateRequirementsStatus,
 } from "@shared/types";
+import { DataCryptoService } from "./dataCryptoService";
 
 export class VolunteerFileService {
   constructor(
+    private dataPath: string,
     private volunteersPath: string,
     private indexPath: string,
     private backupsPath: string,
     private attachmentsPath: string,
+    private cryptoService: DataCryptoService,
   ) {
     mkdirSync(this.volunteersPath, { recursive: true });
     mkdirSync(this.backupsPath, { recursive: true });
@@ -32,6 +35,34 @@ export class VolunteerFileService {
   // Index
   // ────────────────────────────────────────────
 
+  private readJsonFile<T>(filePath: string): T {
+    const payload = readFileSync(filePath);
+    try {
+      const decrypted = this.cryptoService.decryptBytesForDataFolder(
+        this.dataPath,
+        payload,
+      );
+      return JSON.parse(decrypted.toString("utf-8")) as T;
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "NOT_ENCRYPTED") {
+        throw error;
+      }
+
+      const parsed = JSON.parse(payload.toString("utf-8")) as T;
+      this.writeJsonFile(filePath, parsed);
+      return parsed;
+    }
+  }
+
+  private writeJsonFile(filePath: string, data: unknown): void {
+    const plain = Buffer.from(JSON.stringify(data, null, 2), "utf-8");
+    const encrypted = this.cryptoService.encryptBytesForDataFolder(
+      this.dataPath,
+      plain,
+    );
+    writeFileSync(filePath, encrypted);
+  }
+
   readIndex(): VolunteerIndex {
     if (!existsSync(this.indexPath)) {
       return {
@@ -41,8 +72,7 @@ export class VolunteerFileService {
       };
     }
     try {
-      const raw = readFileSync(this.indexPath, "utf-8");
-      return JSON.parse(raw) as VolunteerIndex;
+      return this.readJsonFile<VolunteerIndex>(this.indexPath);
     } catch {
       return {
         _version: 0,
@@ -54,7 +84,7 @@ export class VolunteerFileService {
 
   private writeIndex(index: VolunteerIndex): void {
     index._updatedAt = new Date().toISOString();
-    writeFileSync(this.indexPath, JSON.stringify(index, null, 2), "utf-8");
+    this.writeJsonFile(this.indexPath, index);
   }
 
   private updateIndexEntry(volunteer: Volunteer): void {
@@ -101,8 +131,7 @@ export class VolunteerFileService {
     const filePath = this.volunteerFilePath(id);
     if (!existsSync(filePath)) return null;
     try {
-      const raw = readFileSync(filePath, "utf-8");
-      return JSON.parse(raw) as Volunteer;
+      return this.readJsonFile<Volunteer>(filePath);
     } catch {
       return null;
     }
@@ -152,7 +181,7 @@ export class VolunteerFileService {
         });
       }
 
-      writeFileSync(filePath, JSON.stringify(toWrite, null, 2), "utf-8");
+      this.writeJsonFile(filePath, toWrite);
       this.updateIndexEntry(toWrite);
       return { success: true, volunteer: toWrite };
     } catch (err) {
@@ -227,8 +256,12 @@ export class VolunteerFileService {
       const fileName = `${timestamp}_${originalName}`;
       const destPath = join(volunteerAttachmentsPath, fileName);
 
-      // Copy the file
-      copyFileSync(sourcePath, destPath);
+      const source = readFileSync(sourcePath);
+      const encrypted = this.cryptoService.encryptBytesForDataFolder(
+        this.dataPath,
+        source,
+      );
+      writeFileSync(destPath, encrypted);
 
       // Return relative path from attachments root
       const relativePath = join(volunteerId, fileName);
@@ -262,7 +295,31 @@ export class VolunteerFileService {
       if (!existsSync(fullPath)) {
         return { success: false, error: "File does not exist" };
       }
-      shell.openPath(fullPath);
+
+      const payload = readFileSync(fullPath);
+      let plain: Buffer;
+      try {
+        plain = this.cryptoService.decryptBytesForDataFolder(
+          this.dataPath,
+          payload,
+        );
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== "NOT_ENCRYPTED") {
+          throw error;
+        }
+        plain = payload;
+        const encrypted = this.cryptoService.encryptBytesForDataFolder(
+          this.dataPath,
+          plain,
+        );
+        writeFileSync(fullPath, encrypted);
+      }
+
+      const tempRoot = join(app.getPath("temp"), "vwp-decrypted");
+      mkdirSync(tempRoot, { recursive: true });
+      const tempFile = join(tempRoot, `${Date.now()}_${basename(filePath)}`);
+      writeFileSync(tempFile, plain);
+      shell.openPath(tempFile);
       return { success: true };
     } catch (error) {
       return { success: false, error: String(error) };

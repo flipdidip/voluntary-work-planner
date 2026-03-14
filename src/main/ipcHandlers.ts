@@ -1,25 +1,55 @@
 import { IpcMain, dialog } from "electron";
 import { v4 as uuidv4 } from "uuid";
-import { IPC, Volunteer, SaveResult, Reminder } from "@shared/types";
+import { IPC, Volunteer, SaveResult } from "@shared/types";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
 import { DueReminder, getUpcomingReminders } from "./reminderScheduler";
 import { mkdirSync } from "fs";
+import { DataCryptoService } from "./dataCryptoService";
 
 function getFileService(
   settings: SettingsService,
 ): VolunteerFileService | null {
   const dataPath = settings.getDataFolderPath();
   if (!dataPath) return null;
+
+  const cryptoService = DataCryptoService.getInstance();
+  const cryptoStatus = cryptoService.getStatus(dataPath);
+  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
+    throw new Error(
+      cryptoStatus.message ||
+        "Dieser Benutzer hat noch keinen Zugriff auf den verschlüsselten Datenordner.",
+    );
+  }
+
+  // Ensures the folder is initialized and this user can unwrap the DEK.
+  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
+
   mkdirSync(settings.getVolunteersPath(), { recursive: true });
   mkdirSync(settings.getBackupsPath(), { recursive: true });
   mkdirSync(settings.getAttachmentsPath(), { recursive: true });
+
   return new VolunteerFileService(
+    dataPath,
     settings.getVolunteersPath(),
     settings.getIndexPath(),
     settings.getBackupsPath(),
     settings.getAttachmentsPath(),
+    cryptoService,
   );
+}
+
+function bootstrapFolderEncryption(folderPath: string) {
+  const cryptoService = DataCryptoService.getInstance();
+  try {
+    cryptoService.encryptBytesForDataFolder(
+      folderPath,
+      Buffer.from("bootstrap"),
+    );
+  } catch {
+    // Status call below still returns whether access is pending or authorized.
+  }
+  return cryptoService.getStatus(folderPath);
 }
 
 export function registerVolunteerHandlers(
@@ -27,7 +57,7 @@ export function registerVolunteerHandlers(
   settings: SettingsService,
   onRemindersTriggered?: (reminders: DueReminder[]) => void,
 ): void {
-  // ── Settings ──────────────────────────────────────────
+  // Settings
   ipcMain.handle(IPC.GET_DATA_PATH, () => settings.getDataFolderPath());
 
   ipcMain.handle(IPC.GET_SETTINGS, () => settings.get());
@@ -44,7 +74,10 @@ export function registerVolunteerHandlers(
     settings.set({ dataFolderPath: folderPath });
     mkdirSync(settings.getVolunteersPath(), { recursive: true });
     mkdirSync(settings.getBackupsPath(), { recursive: true });
-    return { success: true };
+    mkdirSync(settings.getAttachmentsPath(), { recursive: true });
+
+    const status = bootstrapFolderEncryption(folderPath);
+    return { success: true, encryptionStatus: status };
   });
 
   ipcMain.handle(IPC.SELECT_DATA_FOLDER, async (event) => {
@@ -54,30 +87,91 @@ export function registerVolunteerHandlers(
       properties: ["openDirectory"],
     });
     if (result.canceled || result.filePaths.length === 0) return null;
+
     const folderPath = result.filePaths[0];
     settings.set({ dataFolderPath: folderPath });
     mkdirSync(settings.getVolunteersPath(), { recursive: true });
     mkdirSync(settings.getBackupsPath(), { recursive: true });
+    mkdirSync(settings.getAttachmentsPath(), { recursive: true });
+
+    bootstrapFolderEncryption(folderPath);
     return folderPath;
   });
 
-  // ── Volunteer CRUD ────────────────────────────────────
+  ipcMain.handle(IPC.GET_ENCRYPTION_STATUS, () => {
+    return DataCryptoService.getInstance().getStatus(
+      settings.getDataFolderPath(),
+    );
+  });
+
+  ipcMain.handle(IPC.APPROVE_PENDING_ENROLLMENTS, () => {
+    const dataPath = settings.getDataFolderPath();
+    if (!dataPath) {
+      return {
+        success: false,
+        approvedCount: 0,
+        pendingCount: 0,
+        error: "No data folder configured",
+      };
+    }
+
+    try {
+      const result =
+        DataCryptoService.getInstance().approvePendingEnrollments(dataPath);
+      return {
+        success: true,
+        approvedCount: result.approvedCount,
+        pendingCount: result.pendingCount,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        approvedCount: 0,
+        pendingCount: 0,
+        error: String(error),
+      };
+    }
+  });
+
+  // Volunteer CRUD
   ipcMain.handle(IPC.GET_VOLUNTEER_INDEX, () => {
-    const svc = getFileService(settings);
-    if (!svc) return null;
-    return svc.readIndex();
+    try {
+      const svc = getFileService(settings);
+      if (!svc) return null;
+      return svc.readIndex();
+    } catch {
+      return {
+        _version: 0,
+        _updatedAt: new Date().toISOString(),
+        volunteers: [],
+      };
+    }
   });
 
   ipcMain.handle(IPC.GET_VOLUNTEER, (_event, id: string) => {
-    const svc = getFileService(settings);
-    if (!svc) return null;
-    return svc.readVolunteer(id);
+    try {
+      const svc = getFileService(settings);
+      if (!svc) return null;
+      return svc.readVolunteer(id);
+    } catch {
+      return null;
+    }
   });
 
   ipcMain.handle(
     IPC.SAVE_VOLUNTEER,
     (_event, volunteer: Volunteer): SaveResult => {
-      const svc = getFileService(settings);
+      let svc: VolunteerFileService | null = null;
+      try {
+        svc = getFileService(settings);
+      } catch (error) {
+        return {
+          success: false,
+          reason: "io-error",
+          message: String(error),
+        };
+      }
+
       if (!svc) {
         return {
           success: false,
@@ -86,7 +180,6 @@ export function registerVolunteerHandlers(
         };
       }
 
-      // New volunteer — assign ID and timestamps
       if (!volunteer.id) {
         volunteer.id = uuidv4();
         volunteer._version = 0;
@@ -99,12 +192,16 @@ export function registerVolunteerHandlers(
   );
 
   ipcMain.handle(IPC.DELETE_VOLUNTEER, (_event, id: string) => {
-    const svc = getFileService(settings);
-    if (!svc) return;
-    svc.deleteVolunteer(id);
+    try {
+      const svc = getFileService(settings);
+      if (!svc) return;
+      svc.deleteVolunteer(id);
+    } catch {
+      return;
+    }
   });
 
-  // ── File Attachments ──────────────────────────────────
+  // File attachments
   ipcMain.handle(IPC.SELECT_FILE, async (event) => {
     const win = require("electron").BrowserWindow.fromWebContents(event.sender);
     const result = await dialog.showOpenDialog(win!, {
@@ -117,61 +214,81 @@ export function registerVolunteerHandlers(
 
   ipcMain.handle(
     IPC.UPLOAD_FILE,
-    async (event, volunteerId: string, sourcePath: string) => {
-      const svc = getFileService(settings);
-      if (!svc) {
-        return { success: false, error: "No data folder configured" };
+    async (_event, volunteerId: string, sourcePath: string) => {
+      try {
+        const svc = getFileService(settings);
+        if (!svc) {
+          return { success: false, error: "No data folder configured" };
+        }
+        return svc.uploadFile(volunteerId, sourcePath);
+      } catch (error) {
+        return { success: false, error: String(error) };
       }
-      return svc.uploadFile(volunteerId, sourcePath);
     },
   );
 
   ipcMain.handle(IPC.DELETE_FILE, (_event, filePath: string) => {
-    const svc = getFileService(settings);
-    if (!svc) {
-      return { success: false, error: "No data folder configured" };
+    try {
+      const svc = getFileService(settings);
+      if (!svc) {
+        return { success: false, error: "No data folder configured" };
+      }
+      return svc.deleteFile(filePath);
+    } catch (error) {
+      return { success: false, error: String(error) };
     }
-    return svc.deleteFile(filePath);
   });
 
   ipcMain.handle(IPC.OPEN_FILE, (_event, filePath: string) => {
-    const svc = getFileService(settings);
-    if (!svc) {
-      return { success: false, error: "No data folder configured" };
+    try {
+      const svc = getFileService(settings);
+      if (!svc) {
+        return { success: false, error: "No data folder configured" };
+      }
+      return svc.openFile(filePath);
+    } catch (error) {
+      return { success: false, error: String(error) };
     }
-    return svc.openFile(filePath);
   });
 
-  // ── Reminders ─────────────────────────────────────────
+  // Reminders
   ipcMain.handle(IPC.GET_DUE_REMINDERS, () => {
-    const svc = getFileService(settings);
-    if (!svc) return [];
+    try {
+      const svc = getFileService(settings);
+      if (!svc) return [];
 
-    const index = svc.readIndex();
-    const volunteers: Volunteer[] = [];
+      const index = svc.readIndex();
+      const volunteers: Volunteer[] = [];
 
-    for (const entry of index.volunteers) {
-      if (entry.status === "archived") continue;
-      const volunteer = svc.readVolunteer(entry.id);
-      if (!volunteer) continue;
-      volunteers.push(volunteer);
+      for (const entry of index.volunteers) {
+        if (entry.status === "archived") continue;
+        const volunteer = svc.readVolunteer(entry.id);
+        if (!volunteer) continue;
+        volunteers.push(volunteer);
+      }
+
+      return getUpcomingReminders(volunteers, settings.get(), 30);
+    } catch {
+      return [];
     }
-
-    return getUpcomingReminders(volunteers, settings.get(), 30);
   });
 
   ipcMain.handle(
     IPC.DISMISS_REMINDER,
     (_event, volunteerId: string, reminderId: string) => {
-      const svc = getFileService(settings);
-      if (!svc) return;
-      const volunteer = svc.readVolunteer(volunteerId);
-      if (!volunteer) return;
-      const reminder = volunteer.reminders.find((r) => r.id === reminderId);
-      if (!reminder) return;
-      reminder.dismissed = true;
-      reminder.dismissedAt = new Date().toISOString();
-      svc.saveVolunteer(volunteer);
+      try {
+        const svc = getFileService(settings);
+        if (!svc) return;
+        const volunteer = svc.readVolunteer(volunteerId);
+        if (!volunteer) return;
+        const reminder = volunteer.reminders.find((r) => r.id === reminderId);
+        if (!reminder) return;
+        reminder.dismissed = true;
+        reminder.dismissedAt = new Date().toISOString();
+        svc.saveVolunteer(volunteer);
+      } catch {
+        return;
+      }
     },
   );
 
@@ -184,7 +301,7 @@ export function registerVolunteerHandlers(
     return { success: true };
   });
 
-  // ── App Info ──────────────────────────────────────────
+  // App info
   ipcMain.handle(IPC.GET_APP_VERSION, () => {
     const { app } = require("electron") as typeof import("electron");
     return app.getVersion();
