@@ -1,5 +1,11 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import VolunteerList from "./pages/VolunteerList";
@@ -9,13 +15,30 @@ import Settings from "./pages/Settings";
 import UpcomingEvents from "./pages/UpcomingEvents";
 import ReminderToast from "./components/ReminderToast";
 import ConsentDialog from "./components/ConsentDialog";
+import AccessPendingOverlay from "./components/AccessPendingOverlay";
 import { DueReminder } from "./hooks/useReminders";
-import { PRIVACY_POLICY_VERSION } from "@shared/types";
+import { EncryptionStatus, PRIVACY_POLICY_VERSION } from "@shared/types";
+
+const DATA_FOLDER_CHANGED_EVENT = "vwp:data-folder-changed";
 
 export default function App(): JSX.Element {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [liveReminders, setLiveReminders] = useState<DueReminder[]>([]);
   const [consentGiven, setConsentGiven] = useState<boolean | null>(null);
+  const [encryptionStatus, setEncryptionStatus] =
+    useState<EncryptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshEncryptionStatus = useCallback(async (): Promise<void> => {
+    try {
+      const status = await window.api.getEncryptionStatus();
+      setEncryptionStatus(status);
+    } catch {
+      setEncryptionStatus(null);
+    }
+  }, []);
 
   useEffect(() => {
     // Check if consent has been given
@@ -27,11 +50,47 @@ export default function App(): JSX.Element {
       setLoading(false);
     });
 
+    refreshEncryptionStatus();
+
     window.api.onReminderTriggered((reminders) => {
       setLiveReminders((prev) => [...prev, ...(reminders as DueReminder[])]);
     });
     return () => window.api.removeReminderListener();
-  }, []);
+  }, [refreshEncryptionStatus]);
+
+  useEffect(() => {
+    if (consentGiven !== true) return;
+
+    refreshEncryptionStatus();
+
+    const intervalId = window.setInterval(() => {
+      refreshEncryptionStatus();
+    }, 10000);
+
+    const onFocus = () => {
+      refreshEncryptionStatus();
+    };
+    const onDataFolderChanged = () => {
+      refreshEncryptionStatus();
+    };
+    window.addEventListener("focus", onFocus);
+    window.addEventListener(DATA_FOLDER_CHANGED_EVENT, onDataFolderChanged);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener(
+        DATA_FOLDER_CHANGED_EVENT,
+        onDataFolderChanged,
+      );
+    };
+  }, [consentGiven, refreshEncryptionStatus]);
+
+  const showAccessPendingOverlay =
+    consentGiven === true &&
+    encryptionStatus?.hasManifest === true &&
+    encryptionStatus.authorized === false &&
+    location.pathname !== "/settings";
 
   const handleConsentAccept = async (): Promise<void> => {
     await window.api.saveSettings({
@@ -90,6 +149,16 @@ export default function App(): JSX.Element {
     <>
       {liveReminders.length > 0 && (
         <ReminderToast reminders={liveReminders} onDismiss={dismissLive} />
+      )}
+      {showAccessPendingOverlay && (
+        <AccessPendingOverlay
+          currentUser={encryptionStatus?.currentUser || ""}
+          message={encryptionStatus?.message}
+          onOpenSettings={() => navigate("/settings")}
+          onRetry={() => {
+            refreshEncryptionStatus();
+          }}
+        />
       )}
       <Layout>
         <Routes>

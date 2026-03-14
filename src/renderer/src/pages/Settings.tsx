@@ -9,6 +9,8 @@ import {
 import PrivacyPolicy from "../components/PrivacyPolicy";
 import "./Settings.css";
 
+const DATA_FOLDER_CHANGED_EVENT = "vwp:data-folder-changed";
+
 export default function Settings(): JSX.Element {
   const [dataPath, setDataPath] = useState("");
   const [interval, setInterval] = useState(60);
@@ -91,6 +93,7 @@ export default function Settings(): JSX.Element {
     if (path) {
       setDataPath(path);
       await refreshEncryptionStatus();
+      window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
     }
   };
 
@@ -167,6 +170,7 @@ export default function Settings(): JSX.Element {
   const handleSave = async (): Promise<void> => {
     if (dataPath) {
       await window.api.setDataPath(dataPath);
+      window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
     }
     await window.api.saveSettings({
       reminderCheckIntervalMinutes: interval,
