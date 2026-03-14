@@ -181,7 +181,7 @@ export interface VolunteerIndexEntry {
   status: VolunteerStatus;
   roles: string[];
   _updatedAt: string;
-  requirementsStatus?: RequirementStatusSummary;
+  requirementsStatus: RequirementStatusSummary;
 }
 
 export interface VolunteerIndex {
@@ -245,9 +245,6 @@ export interface AppSettings {
   // Requirement renewal reminders (for qualifications that need renewal)
   enableRequirementRenewalReminders: boolean;
   requirementRenewalDaysWarning: number; // How many days before expiry to show reminder
-  // Legacy: deprecated, kept for backwards compatibility
-  enableAnniversaryReminders?: boolean;
-  anniversaryYears?: number[];
   // DSGVO/GDPR compliance
   privacyConsentGiven: boolean;
   privacyConsentDate?: string; // ISO timestamp

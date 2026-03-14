@@ -28,7 +28,7 @@ export class SettingsService {
     if (existsSync(this.settingsPath)) {
       try {
         const raw = readFileSync(this.settingsPath, "utf-8");
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+        return JSON.parse(raw) as AppSettings;
       } catch {
         return { ...DEFAULT_SETTINGS };
       }

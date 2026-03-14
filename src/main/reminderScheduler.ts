@@ -96,9 +96,7 @@ export class ReminderScheduler {
           // Check round birthday reminder
           if (appSettings.enableRoundBirthdayReminders && isBirthday) {
             const age = getAgeAtDate(volunteer.dateOfBirth, now);
-            const roundYears = appSettings.roundBirthdayYears || [
-              50, 60, 70, 80, 90,
-            ];
+            const roundYears = appSettings.roundBirthdayYears;
             if (roundYears.includes(age)) {
               dueReminders.push({
                 volunteerId: volunteer.id,
@@ -129,9 +127,7 @@ export class ReminderScheduler {
           if (isAnniversaryToday) {
             const yearsOfService = getYearsOfService(volunteer.joinedDate, now);
             const joinedDateAnniversaryYears =
-              appSettings.joinedDateAnniversaryYears || [
-                5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-              ];
+              appSettings.joinedDateAnniversaryYears;
             if (
               yearsOfService > 0 &&
               joinedDateAnniversaryYears.includes(yearsOfService)
@@ -159,9 +155,7 @@ export class ReminderScheduler {
           const activityTimeMs = calculateActivityTime(volunteer);
           if (activityTimeMs > 0) {
             const activityTimeAnniversaryYears =
-              appSettings.activityTimeAnniversaryYears || [
-                5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-              ];
+              appSettings.activityTimeAnniversaryYears;
 
             // Check each milestone to see if we're reaching it today
             for (const milestoneYears of activityTimeAnniversaryYears) {
@@ -187,42 +181,6 @@ export class ReminderScheduler {
           }
         }
 
-        // Backwards compatibility: check legacy enableAnniversaryReminders only if new settings don't exist
-        if (
-          volunteer.joinedDate &&
-          appSettings.enableAnniversaryReminders &&
-          appSettings.enableJoinedDateAnniversaryReminders === undefined &&
-          appSettings.enableActivityTimeAnniversaryReminders === undefined
-        ) {
-          const isAnniversaryToday = isJoinedDateAnniversaryToday(
-            volunteer.joinedDate,
-            now,
-          );
-
-          if (isAnniversaryToday) {
-            const yearsOfService = getYearsOfService(volunteer.joinedDate, now);
-            const anniversaryYears = appSettings.anniversaryYears || [
-              5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-            ];
-            if (
-              yearsOfService > 0 &&
-              anniversaryYears.includes(yearsOfService)
-            ) {
-              dueReminders.push({
-                volunteerId: volunteer.id,
-                volunteerName: `${volunteer.firstName} ${volunteer.lastName}`,
-                reminder: {
-                  id: `anniversary-${volunteer.id}`,
-                  type: "custom",
-                  title: `Jubiläum: ${volunteer.firstName} ${volunteer.lastName}`,
-                  message: `${volunteer.firstName} ${volunteer.lastName} ist heute seit ${yearsOfService} Jahren aktiv!`,
-                  dismissed: false,
-                },
-              });
-            }
-          }
-        }
-
         // Check custom reminders for this volunteer
         for (const reminder of volunteer.reminders) {
           if (reminder.dismissed) continue;
@@ -242,7 +200,7 @@ export class ReminderScheduler {
           appSettings.enableRequirementRenewalReminders &&
           volunteer.requirements
         ) {
-          const warningDays = appSettings.requirementRenewalDaysWarning ?? 30;
+          const warningDays = appSettings.requirementRenewalDaysWarning;
 
           for (const requirement of volunteer.requirements) {
             const expiryDate = calculateRequirementExpiryDate(
@@ -390,9 +348,7 @@ export function getUpcomingReminders(
     if (v.joinedDate && appSettings.enableJoinedDateAnniversaryReminders) {
       const joinedDate = parseISO(v.joinedDate);
       const joinedDateAnniversaryYears =
-        appSettings.joinedDateAnniversaryYears || [
-          5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-        ];
+        appSettings.joinedDateAnniversaryYears;
       for (const years of joinedDateAnniversaryYears) {
         const anniversaryDate = new Date(
           joinedDate.getFullYear() + years,
@@ -424,9 +380,7 @@ export function getUpcomingReminders(
       const activityTimeMs = calculateActivityTime(v);
       if (activityTimeMs > 0 && v.statusLog && v.statusLog.length > 0) {
         const activityTimeAnniversaryYears =
-          appSettings.activityTimeAnniversaryYears || [
-            5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-          ];
+          appSettings.activityTimeAnniversaryYears;
 
         // For each milestone, check if we're approaching it
         for (const milestoneYears of activityTimeAnniversaryYears) {
@@ -456,40 +410,6 @@ export function getUpcomingReminders(
             // Only check the next upcoming milestone
             break;
           }
-        }
-      }
-    }
-
-    // Backwards compatibility: check legacy anniversaries only if new settings don't exist
-    if (
-      v.joinedDate &&
-      appSettings.enableAnniversaryReminders &&
-      appSettings.enableJoinedDateAnniversaryReminders === undefined &&
-      appSettings.enableActivityTimeAnniversaryReminders === undefined
-    ) {
-      const joinedDate = parseISO(v.joinedDate);
-      const anniversaryYears = appSettings.anniversaryYears || [
-        5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-      ];
-      for (const years of anniversaryYears) {
-        const anniversaryDate = new Date(
-          joinedDate.getFullYear() + years,
-          joinedDate.getMonth(),
-          joinedDate.getDate(),
-        );
-        const daysUntil = differenceInCalendarDays(anniversaryDate, today);
-        if (daysUntil >= 0 && daysUntil <= daysAhead) {
-          results.push({
-            volunteerId: v.id,
-            volunteerName: `${v.firstName} ${v.lastName}`,
-            reminder: {
-              id: `anniversary-${v.id}-${years}`,
-              type: "custom",
-              title: `${years}-jähriges Jubiläum: ${v.firstName} ${v.lastName}`,
-              message: `${v.firstName} ${v.lastName} - ${years} Jahre`,
-              dismissed: false,
-            },
-          });
         }
       }
     }

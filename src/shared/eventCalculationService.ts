@@ -166,7 +166,7 @@ export async function calculateUpcomingEvents(
         // Check if this is a round birthday
         const isRound =
           settings.enableRoundBirthdayReminders &&
-          settings.roundBirthdayYears?.includes(age);
+          settings.roundBirthdayYears.includes(age);
 
         // Show birthday if yearly reminders are enabled, or if it's a round birthday and round reminders are enabled
         if (
@@ -209,9 +209,7 @@ export async function calculateUpcomingEvents(
         const yearsOfService =
           nextAnniversary.getFullYear() - joinedDate.getFullYear();
         const joinedDateAnniversaryYears =
-          settings.joinedDateAnniversaryYears || [
-            5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-          ];
+          settings.joinedDateAnniversaryYears;
 
         if (
           yearsOfService > 0 &&
@@ -247,9 +245,7 @@ export async function calculateUpcomingEvents(
         const activityTimeMs = calculateActivityTime(v);
         if (activityTimeMs > 0) {
           const activityTimeAnniversaryYears =
-            settings.activityTimeAnniversaryYears || [
-              5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-            ];
+            settings.activityTimeAnniversaryYears;
 
           // For each milestone, check if we're approaching it
           for (const milestoneYears of activityTimeAnniversaryYears) {
@@ -282,48 +278,6 @@ export async function calculateUpcomingEvents(
       } catch {
         // Skip if volunteer cannot be loaded
         continue;
-      }
-    }
-  }
-
-  // ======== LEGACY ANNIVERSARY EVENTS (backwards compatibility) ========
-  if (
-    settings.enableAnniversaryReminders &&
-    settings.enableJoinedDateAnniversaryReminders === undefined &&
-    settings.enableActivityTimeAnniversaryReminders === undefined
-  ) {
-    for (const v of activeVolunteers) {
-      if (!v.joinedDate) continue;
-
-      const joinedDate = parseISO(v.joinedDate);
-      let nextAnniversary = new Date(
-        today.getFullYear(),
-        joinedDate.getMonth(),
-        joinedDate.getDate(),
-      );
-      if (differenceInCalendarDays(nextAnniversary, today) < 0) {
-        nextAnniversary.setFullYear(nextAnniversary.getFullYear() + 1);
-      }
-      const daysUntil = differenceInCalendarDays(nextAnniversary, today);
-
-      if (isEventInRange(daysUntil)) {
-        const yearsOfService =
-          nextAnniversary.getFullYear() - joinedDate.getFullYear();
-        const anniversaryYears = settings.anniversaryYears || [
-          5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-        ];
-
-        if (yearsOfService > 0 && anniversaryYears.includes(yearsOfService)) {
-          events.push({
-            volunteerId: v.id,
-            volunteerName: `${v.firstName} ${v.lastName}`,
-            eventType: "reminder",
-            kind: "anniversary-joined",
-            label: `${yearsOfService}-jähriges Jubiläum`,
-            daysUntil,
-            date: format(nextAnniversary, "yyyy-MM-dd"),
-          });
-        }
       }
     }
   }

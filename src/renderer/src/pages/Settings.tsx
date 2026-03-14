@@ -32,25 +32,15 @@ export default function Settings(): JSX.Element {
       setEnableYearlyBirthday(settings.enableYearlyBirthdayReminders);
       setConsentDate(settings.privacyConsentDate);
       setEnableRoundBirthday(settings.enableRoundBirthdayReminders);
-      setRoundYears(
-        settings.roundBirthdayYears || [50, 60, 70, 75, 80, 85, 90, 95, 100],
-      );
+      setRoundYears(settings.roundBirthdayYears);
       setEnableJoinedDateAnniversary(
-        settings.enableJoinedDateAnniversaryReminders ?? true,
+        settings.enableJoinedDateAnniversaryReminders,
       );
-      setJoinedDateAnniversaryYears(
-        settings.joinedDateAnniversaryYears || [
-          5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-        ],
-      );
+      setJoinedDateAnniversaryYears(settings.joinedDateAnniversaryYears);
       setEnableActivityTimeAnniversary(
-        settings.enableActivityTimeAnniversaryReminders ?? true,
+        settings.enableActivityTimeAnniversaryReminders,
       );
-      setActivityTimeAnniversaryYears(
-        settings.activityTimeAnniversaryYears || [
-          5, 10, 15, 20, 25, 30, 35, 40, 45, 50,
-        ],
-      );
+      setActivityTimeAnniversaryYears(settings.activityTimeAnniversaryYears);
     });
   }, []);
 

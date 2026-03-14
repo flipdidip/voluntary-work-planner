@@ -42,45 +42,7 @@ export class VolunteerFileService {
     }
     try {
       const raw = readFileSync(this.indexPath, "utf-8");
-      const index = JSON.parse(raw) as VolunteerIndex;
-
-      let changed = false;
-      const normalizedVolunteers = index.volunteers.map((entry) => {
-        let updated = { ...entry };
-        let entryChanged = false;
-
-        // Migrate joinedDate if missing
-        if (updated.joinedDate === undefined) {
-          const volunteer = this.readVolunteer(entry.id);
-          if (volunteer?.joinedDate) {
-            updated.joinedDate = volunteer.joinedDate;
-            entryChanged = true;
-          }
-        }
-
-        // Migrate requirementsStatus if missing
-        if (!updated.requirementsStatus) {
-          const volunteer = this.readVolunteer(entry.id);
-          if (volunteer) {
-            updated.requirementsStatus = calculateRequirementsStatus(volunteer);
-            entryChanged = true;
-          }
-        }
-
-        if (entryChanged) {
-          changed = true;
-          return updated;
-        }
-        return entry;
-      });
-
-      if (changed) {
-        index.volunteers = normalizedVolunteers;
-        index._version += 1;
-        this.writeIndex(index);
-      }
-
-      return index;
+      return JSON.parse(raw) as VolunteerIndex;
     } catch {
       return {
         _version: 0,
@@ -140,33 +102,7 @@ export class VolunteerFileService {
     if (!existsSync(filePath)) return null;
     try {
       const raw = readFileSync(filePath, "utf-8");
-      const volunteer = JSON.parse(raw) as Volunteer;
-
-      // Migrate old volunteers without statusLog
-      if (!volunteer.statusLog) {
-        volunteer.statusLog = [
-          {
-            timestamp:
-              volunteer.joinedDate ||
-              volunteer._createdAt ||
-              new Date().toISOString(),
-            from: null,
-            to: volunteer.status,
-          },
-        ];
-      }
-
-      // Migrate old volunteers without fileRecords
-      if (!volunteer.fileRecords) {
-        volunteer.fileRecords = [];
-      }
-
-      // Migrate old volunteers without requirements
-      if (!volunteer.requirements) {
-        volunteer.requirements = [];
-      }
-
-      return volunteer;
+      return JSON.parse(raw) as Volunteer;
     } catch {
       return null;
     }
@@ -196,11 +132,6 @@ export class VolunteerFileService {
         _version: incoming._version + 1,
         _updatedAt: new Date().toISOString(),
       };
-
-      // Initialize statusLog if it doesn't exist
-      if (!toWrite.statusLog) {
-        toWrite.statusLog = [];
-      }
 
       // Log status change if status has changed
       if (existing && existing.status !== toWrite.status) {
