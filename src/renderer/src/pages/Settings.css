@@ -224,6 +224,76 @@
   flex-wrap: wrap;
 }
 
+.audit-collapsible {
+  gap: 0;
+}
+
+.audit-summary {
+  cursor: pointer;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: 12px;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.audit-summary::-webkit-details-marker {
+  display: none;
+}
+
+.audit-summary:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-2);
+}
+
+.audit-summary-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.audit-summary-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.audit-summary-hint::before {
+  content: "▸";
+  font-size: 0.95rem;
+  transition: transform 0.15s ease;
+}
+
+.audit-collapsible[open] .audit-summary-hint {
+  color: var(--color-primary);
+}
+
+.audit-collapsible[open] .audit-summary-hint::before {
+  transform: rotate(90deg);
+}
+
+.audit-collapsible[open] .audit-summary-hint {
+  font-size: 0;
+}
+
+.audit-collapsible[open] .audit-summary-hint::after {
+  content: "Einklappen";
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.audit-content {
+  margin-top: 10px;
+}
+
 /* Privacy/DSGVO Section */
 .consent-info {
   background: var(--color-surface-2);

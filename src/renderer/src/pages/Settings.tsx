@@ -337,43 +337,52 @@ export default function Settings(): JSX.Element {
         )}
 
         {encryptionStatus && (
-          <div className="security-section">
-            <div className="security-section-header">
-              <h3>Audit-Protokoll</h3>
-              <span className="hint">
-                Nachvollziehbarkeit fuer Freigaben und Schluesselereignisse.
+          <details className="security-section audit-collapsible">
+            <summary className="audit-summary">
+              <span className="audit-summary-main">
+                <span className="security-section-header">
+                  <h3>Audit-Protokoll</h3>
+                  <span className="hint">
+                    Nachvollziehbarkeit fuer Freigaben und Schluesselereignisse.
+                  </span>
+                </span>
+                <span className="audit-summary-hint" aria-hidden="true">
+                  Aufklappen
+                </span>
               </span>
-            </div>
+            </summary>
 
-            {auditEntries.length === 0 ? (
-              <p className="hint">Noch keine Protokolleintraege vorhanden.</p>
-            ) : (
-              <div className="audit-list">
-                {auditEntries.map((entry) => (
-                  <div
-                    key={`${entry.timestamp}-${entry.action}-${entry.target || ""}`}
-                    className="audit-item"
-                  >
-                    <div className="audit-item-header">
-                      <strong>{entry.action}</strong>
-                      <span className="hint">
-                        {formatTimestamp(entry.timestamp)}
-                      </span>
-                    </div>
-                    <div className="hint">Akteur: {entry.actor}</div>
-                    {entry.target && (
-                      <div className="hint">
-                        Ziel: {shortFingerprint(entry.target)}
+            <div className="audit-content">
+              {auditEntries.length === 0 ? (
+                <p className="hint">Noch keine Protokolleintraege vorhanden.</p>
+              ) : (
+                <div className="audit-list">
+                  {auditEntries.map((entry) => (
+                    <div
+                      key={`${entry.timestamp}-${entry.action}-${entry.target || ""}`}
+                      className="audit-item"
+                    >
+                      <div className="audit-item-header">
+                        <strong>{entry.action}</strong>
+                        <span className="hint">
+                          {formatTimestamp(entry.timestamp)}
+                        </span>
                       </div>
-                    )}
-                    {entry.details && (
-                      <div className="hint">{entry.details}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                      <div className="hint">Akteur: {entry.actor}</div>
+                      {entry.target && (
+                        <div className="hint">
+                          Ziel: {shortFingerprint(entry.target)}
+                        </div>
+                      )}
+                      {entry.details && (
+                        <div className="hint">{entry.details}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </details>
         )}
       </div>
 
