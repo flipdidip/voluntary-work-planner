@@ -10,6 +10,7 @@ import UpcomingEvents from "./pages/UpcomingEvents";
 import ReminderToast from "./components/ReminderToast";
 import ConsentDialog from "./components/ConsentDialog";
 import { DueReminder } from "./hooks/useReminders";
+import { PRIVACY_POLICY_VERSION } from "@shared/types";
 
 export default function App(): JSX.Element {
   const [liveReminders, setLiveReminders] = useState<DueReminder[]>([]);
@@ -19,7 +20,10 @@ export default function App(): JSX.Element {
   useEffect(() => {
     // Check if consent has been given
     window.api.getSettings().then((settings) => {
-      setConsentGiven(settings.privacyConsentGiven);
+      setConsentGiven(
+        settings.privacyConsentGiven &&
+          settings.privacyConsentVersion === PRIVACY_POLICY_VERSION,
+      );
       setLoading(false);
     });
 
@@ -33,7 +37,7 @@ export default function App(): JSX.Element {
     await window.api.saveSettings({
       privacyConsentGiven: true,
       privacyConsentDate: new Date().toISOString(),
-      privacyConsentVersion: "1.0",
+      privacyConsentVersion: PRIVACY_POLICY_VERSION,
     });
     setConsentGiven(true);
   };

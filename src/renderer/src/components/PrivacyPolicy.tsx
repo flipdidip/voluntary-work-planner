@@ -1,4 +1,5 @@
 import "./PrivacyPolicy.css";
+import { PRIVACY_POLICY_VERSION } from "@shared/types";
 
 interface PrivacyPolicyProps {
   compact?: boolean;
@@ -13,8 +14,9 @@ export default function PrivacyPolicy({
         <h3>Datenschutz-Kurzinfo</h3>
         <p>
           Diese Anwendung speichert personenbezogene Daten von Ehrenamtlichen
-          lokal auf Ihrem Computer. Es werden keine Daten an externe Server
-          übertragen.
+          lokal im gewählten Datenordner und verschlüsselt diese bei der
+          Speicherung. Es werden keine Daten durch die Anwendung an externe
+          Server übertragen.
         </p>
       </div>
     );
@@ -23,7 +25,9 @@ export default function PrivacyPolicy({
   return (
     <div className="privacy-policy">
       <h2>Datenschutzerklärung</h2>
-      <p className="privacy-version">Version 1.0 – Stand: März 2025</p>
+      <p className="privacy-version">
+        Version {PRIVACY_POLICY_VERSION} – Stand: März 2026
+      </p>
 
       <section>
         <h3>1. Verantwortliche Stelle</h3>
@@ -81,9 +85,10 @@ export default function PrivacyPolicy({
           Microsoft und müssen dies in Ihrer Datenschutzerklärung dokumentieren.
         </p>
         <p>
-          Die Daten werden im <strong>JSON-Format ohne Verschlüsselung</strong>{" "}
-          gespeichert. Stellen Sie sicher, dass nur berechtigte Personen Zugriff
-          auf den Speicherort haben.
+          Personenbezogene Datensätze und Anhänge werden im gewählten
+          Datenordner <strong>verschlüsselt gespeichert</strong>. Bei gemeinsam
+          genutzten Ordnern erhalten weitere Benutzer erst nach ausdrücklicher
+          Freigabe Zugriff auf den Datenschlüssel.
         </p>
       </section>
 
@@ -92,7 +97,9 @@ export default function PrivacyPolicy({
         <p>
           Diese Software sendet <strong>keine Daten</strong> an externe Server,
           Analyse-Dienste oder den Hersteller. Es erfolgt kein Tracking, keine
-          Telemetrie, keine Verbindung zu externen Diensten.
+          Telemetrie, keine Verbindung zu externen Diensten. Falls Sie einen
+          Cloud-Sync-Dienst verwenden, erfolgt die Übertragung ausschließlich
+          durch diesen von Ihnen gewählten Anbieter.
         </p>
       </section>
 
@@ -126,9 +133,10 @@ export default function PrivacyPolicy({
           </li>
         </ul>
         <p>
-          <strong>Umsetzung:</strong> Die gespeicherten JSON-Dateien können
-          jederzeit eingesehen, exportiert, bearbeitet oder gelöscht werden.
-          Kontaktieren Sie dafür den Administrator Ihrer Organisation.
+          <strong>Umsetzung:</strong> Die gespeicherten Datensätze können durch
+          berechtigte Administratoren eingesehen, exportiert, berichtigt,
+          gelöscht oder archiviert werden. Kontaktieren Sie dafür den
+          Administrator Ihrer Organisation.
         </p>
       </section>
 
@@ -151,21 +159,32 @@ export default function PrivacyPolicy({
           <li>✅ Automatische Backups vor jeder Änderung</li>
           <li>✅ Versionskontrolle zur Vermeidung von Konflikten</li>
           <li>
-            ❌ <strong>KEINE Verschlüsselung der gespeicherten Daten</strong>
+            ✅ <strong>Verschlüsselung ruhender Daten</strong> für Datensätze,
+            Indexdateien, Backups und Anhänge
           </li>
           <li>
-            ❌ <strong>KEINE Zugriffskontrolle oder Authentifizierung</strong>
+            ✅ <strong>Benutzerfreigabe</strong> für gemeinsam genutzte
+            Datenordner mittels benutzerspezifischer Schlüsselfreigabe
           </li>
           <li>
-            ❌{" "}
-            <strong>KEINE Audit-Logs zur Nachverfolgung von Zugriffen</strong>
+            ✅ <strong>Audit-Protokoll</strong> für Freigaben, Freigabeanfragen
+            und Schlüsselrotationen
+          </li>
+          <li>
+            ⚠️ <strong>Kein zentrales Identitäts- oder KMS-System</strong>;
+            Freigaben werden innerhalb des gemeinsamen Datenordners verwaltet
+          </li>
+          <li>
+            ⚠️ Beim Öffnen verschlüsselter Anhänge kann die Datei vorübergehend
+            im lokalen Temp-Ordner des Betriebssystems entschlüsselt werden
           </li>
         </ul>
         <p>
           <strong>Empfehlung:</strong> Speichern Sie die Daten auf einem
           Laufwerk mit aktivierter Festplattenverschlüsselung (z.B. BitLocker)
-          und beschränken Sie die Dateisystem-Berechtigungen auf autorisierte
-          Benutzer.
+          und beschränken Sie die Dateisystem- und OneDrive-/SharePoint-
+          Berechtigungen auf autorisierte Benutzer. Dokumentieren Sie die
+          eingesetzten Schutzmaßnahmen in Ihren TOM.
         </p>
       </section>
 
@@ -184,6 +203,10 @@ export default function PrivacyPolicy({
           <li>Technisch-organisatorische Maßnahmen (TOM) zu dokumentieren</li>
           <li>
             Bei Cloud-Speicherung einen AVV mit dem Cloud-Anbieter abzuschließen
+          </li>
+          <li>
+            Freigabeprozesse für zusätzliche Benutzer organisatorisch
+            festzulegen und zu dokumentieren
           </li>
           <li>
             Anfragen zu Betroffenenrechten innerhalb von 30 Tagen zu beantworten

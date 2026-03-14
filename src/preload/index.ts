@@ -4,7 +4,9 @@ import {
   Volunteer,
   Reminder,
   AppSettings,
+  EncryptionAuditEntry,
   EncryptionStatus,
+  EnrollmentRequestSummary,
 } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
@@ -22,12 +24,42 @@ const api = {
   getEncryptionStatus: (): Promise<EncryptionStatus> =>
     ipcRenderer.invoke(IPC.GET_ENCRYPTION_STATUS),
 
+  getPendingEnrollments: (): Promise<EnrollmentRequestSummary[]> =>
+    ipcRenderer.invoke(IPC.GET_PENDING_ENROLLMENTS),
+
+  getEncryptionAuditLog: (): Promise<EncryptionAuditEntry[]> =>
+    ipcRenderer.invoke(IPC.GET_ENCRYPTION_AUDIT_LOG),
+
   approvePendingEnrollments: (): Promise<{
     success: boolean;
     approvedCount: number;
     pendingCount: number;
     error?: string;
   }> => ipcRenderer.invoke(IPC.APPROVE_PENDING_ENROLLMENTS),
+
+  approveEnrollment: (
+    keyFingerprint: string,
+  ): Promise<{
+    success: boolean;
+    approved?: boolean;
+    pendingCount: number;
+    error?: string;
+  }> => ipcRenderer.invoke(IPC.APPROVE_ENROLLMENT, keyFingerprint),
+
+  rejectEnrollment: (
+    keyFingerprint: string,
+  ): Promise<{
+    success: boolean;
+    rejected?: boolean;
+    pendingCount: number;
+    error?: string;
+  }> => ipcRenderer.invoke(IPC.REJECT_ENROLLMENT, keyFingerprint),
+
+  rotateEncryptionKey: (): Promise<{
+    success: boolean;
+    rotatedFileCount: number;
+    error?: string;
+  }> => ipcRenderer.invoke(IPC.ROTATE_ENCRYPTION_KEY),
 
   setDataPath: (folderPath: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke(IPC.SET_DATA_PATH, folderPath),

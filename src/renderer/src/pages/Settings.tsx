@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { FolderOpen, Save, Info, Shield } from "lucide-react";
-import { AppSettings, EncryptionStatus } from "@shared/types";
+import {
+  AppSettings,
+  EncryptionAuditEntry,
+  EncryptionStatus,
+  EnrollmentRequestSummary,
+} from "@shared/types";
 import PrivacyPolicy from "../components/PrivacyPolicy";
 import "./Settings.css";
 
@@ -25,15 +30,39 @@ export default function Settings(): JSX.Element {
   const [consentDate, setConsentDate] = useState<string | undefined>();
   const [encryptionStatus, setEncryptionStatus] =
     useState<EncryptionStatus | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<
+    EnrollmentRequestSummary[]
+  >([]);
+  const [auditEntries, setAuditEntries] = useState<EncryptionAuditEntry[]>([]);
   const [approving, setApproving] = useState(false);
+  const [requestActionFingerprint, setRequestActionFingerprint] = useState<
+    string | null
+  >(null);
+  const [rotating, setRotating] = useState(false);
 
   const refreshEncryptionStatus = async (): Promise<void> => {
     try {
-      const status = await window.api.getEncryptionStatus();
+      const [status, requests, audit] = await Promise.all([
+        window.api.getEncryptionStatus(),
+        window.api.getPendingEnrollments(),
+        window.api.getEncryptionAuditLog(),
+      ]);
       setEncryptionStatus(status);
+      setPendingRequests(requests);
+      setAuditEntries(audit);
     } catch {
       setEncryptionStatus(null);
+      setPendingRequests([]);
+      setAuditEntries([]);
     }
+  };
+
+  const formatTimestamp = (timestamp: string): string => {
+    return new Date(timestamp).toLocaleString("de-DE");
+  };
+
+  const shortFingerprint = (fingerprint: string): string => {
+    return `${fingerprint.slice(0, 12)}...${fingerprint.slice(-8)}`;
   };
 
   useEffect(() => {
@@ -77,6 +106,61 @@ export default function Settings(): JSX.Element {
       await refreshEncryptionStatus();
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleApproveEnrollment = async (
+    keyFingerprint: string,
+  ): Promise<void> => {
+    setRequestActionFingerprint(keyFingerprint);
+    try {
+      const result = await window.api.approveEnrollment(keyFingerprint);
+      if (!result.success) {
+        alert(result.error || "Freigabe konnte nicht durchgeführt werden.");
+      }
+      await refreshEncryptionStatus();
+    } finally {
+      setRequestActionFingerprint(null);
+    }
+  };
+
+  const handleRejectEnrollment = async (
+    keyFingerprint: string,
+  ): Promise<void> => {
+    setRequestActionFingerprint(keyFingerprint);
+    try {
+      const result = await window.api.rejectEnrollment(keyFingerprint);
+      if (!result.success) {
+        alert(result.error || "Ablehnung konnte nicht durchgeführt werden.");
+      }
+      await refreshEncryptionStatus();
+    } finally {
+      setRequestActionFingerprint(null);
+    }
+  };
+
+  const handleRotateEncryptionKey = async (): Promise<void> => {
+    if (
+      !window.confirm(
+        "Den Datenschlüssel jetzt rotieren? Alle gespeicherten Dateien werden dabei neu verschlüsselt.",
+      )
+    ) {
+      return;
+    }
+
+    setRotating(true);
+    try {
+      const result = await window.api.rotateEncryptionKey();
+      if (!result.success) {
+        alert(result.error || "Schlüsselrotation ist fehlgeschlagen.");
+      } else {
+        alert(
+          `${result.rotatedFileCount} Datei(en) wurden mit dem neuen Datenschlüssel neu verschlüsselt.`,
+        );
+      }
+      await refreshEncryptionStatus();
+    } finally {
+      setRotating(false);
     }
   };
 
@@ -169,6 +253,125 @@ export default function Settings(): JSX.Element {
               >
                 {approving ? "Freigabe läuft..." : "Anfragen freigeben"}
               </button>
+            )}
+          </div>
+        )}
+
+        {encryptionStatus?.authorized && (
+          <div className="security-section">
+            <div className="security-section-header">
+              <h3>Zugriffsanfragen</h3>
+              <span className="hint">
+                Neue Windows-Benutzer muessen einmalig freigegeben werden.
+              </span>
+            </div>
+
+            {pendingRequests.length === 0 ? (
+              <p className="hint">Keine offenen Anfragen.</p>
+            ) : (
+              <div className="request-list">
+                {pendingRequests.map((request) => {
+                  const isBusy =
+                    requestActionFingerprint === request.keyFingerprint;
+                  return (
+                    <div key={request.keyFingerprint} className="request-item">
+                      <div className="request-meta">
+                        <strong>
+                          {request.userName}@{request.machineName}
+                        </strong>
+                        <span className="hint">
+                          Angefragt am {formatTimestamp(request.requestedAt)}
+                        </span>
+                        <span className="hint">
+                          Fingerprint:{" "}
+                          {shortFingerprint(request.keyFingerprint)}
+                        </span>
+                      </div>
+                      <div className="request-actions">
+                        <button
+                          className="btn btn-primary"
+                          onClick={() =>
+                            handleApproveEnrollment(request.keyFingerprint)
+                          }
+                          disabled={isBusy}
+                        >
+                          {isBusy ? "Bitte warten..." : "Freigeben"}
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() =>
+                            handleRejectEnrollment(request.keyFingerprint)
+                          }
+                          disabled={isBusy}
+                        >
+                          Ablehnen
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {encryptionStatus?.authorized && (
+          <div className="security-section">
+            <div className="security-section-header">
+              <h3>Schluesselrotation</h3>
+              <span className="hint">
+                Erzeugt einen neuen Datenschluessel und verschluesselt alle
+                gespeicherten Dateien neu.
+              </span>
+            </div>
+            <button
+              className="btn btn-secondary"
+              onClick={handleRotateEncryptionKey}
+              disabled={rotating}
+            >
+              {rotating
+                ? "Schluessel wird rotiert..."
+                : "Datenschluessel rotieren"}
+            </button>
+          </div>
+        )}
+
+        {encryptionStatus && (
+          <div className="security-section">
+            <div className="security-section-header">
+              <h3>Audit-Protokoll</h3>
+              <span className="hint">
+                Nachvollziehbarkeit fuer Freigaben und Schluesselereignisse.
+              </span>
+            </div>
+
+            {auditEntries.length === 0 ? (
+              <p className="hint">Noch keine Protokolleintraege vorhanden.</p>
+            ) : (
+              <div className="audit-list">
+                {auditEntries.map((entry) => (
+                  <div
+                    key={`${entry.timestamp}-${entry.action}-${entry.target || ""}`}
+                    className="audit-item"
+                  >
+                    <div className="audit-item-header">
+                      <strong>{entry.action}</strong>
+                      <span className="hint">
+                        {formatTimestamp(entry.timestamp)}
+                      </span>
+                    </div>
+                    <div className="hint">Akteur: {entry.actor}</div>
+                    {entry.target && (
+                      <div className="hint">
+                        Ziel: {shortFingerprint(entry.target)}
+                      </div>
+                    )}
+                    {entry.details && (
+                      <div className="hint">{entry.details}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -372,6 +575,15 @@ export default function Settings(): JSX.Element {
           Daten
         </p>
 
+        <div className="consent-info">
+          <p>
+            ✅ Die Anwendung verschlüsselt Datensätze, Backups und Anhänge im
+            ausgewählten Datenordner. Bei gemeinsam genutzten Ordnern werden
+            zusätzliche Benutzer erst nach Freigabe durch einen bereits
+            autorisierten Benutzer zugelassen.
+          </p>
+        </div>
+
         {consentDate && (
           <div className="consent-info">
             <p>
@@ -400,7 +612,7 @@ export default function Settings(): JSX.Element {
         )}
 
         <div className="dsgvo-recommendations">
-          <h3>⚠️ Zusätzliche Empfehlungen für DSGVO-Konformität:</h3>
+          <h3>⚠️ Organisatorische Pflichten trotz App-Schutzmaßnahmen:</h3>
           <ul>
             <li>
               Führen Sie ein{" "}
@@ -417,11 +629,17 @@ export default function Settings(): JSX.Element {
               Anbieter
             </li>
             <li>
-              Nutzen Sie <strong>Festplattenverschlüsselung</strong> (z.B.
-              BitLocker)
+              Nutzen Sie zusätzlich <strong>Festplattenverschlüsselung</strong>
+              (z.B. BitLocker) und schützen Sie OneDrive-/SharePoint-Zugriffe
+              organisatorisch
             </li>
             <li>
-              Beschränken Sie Dateisystem-Zugriffe auf autorisierte Personen
+              Legen Sie fest, <strong>wer neue Benutzer freigeben darf</strong>,
+              und prüfen Sie das Audit-Protokoll regelmäßig
+            </li>
+            <li>
+              Berücksichtigen Sie, dass beim Öffnen verschlüsselter Anhänge
+              vorübergehend lokale Temp-Dateien entstehen können
             </li>
           </ul>
         </div>

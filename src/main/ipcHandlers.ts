@@ -104,6 +104,19 @@ export function registerVolunteerHandlers(
     );
   });
 
+  ipcMain.handle(IPC.GET_PENDING_ENROLLMENTS, () => {
+    return DataCryptoService.getInstance().getPendingEnrollmentRequests(
+      settings.getDataFolderPath(),
+    );
+  });
+
+  ipcMain.handle(IPC.GET_ENCRYPTION_AUDIT_LOG, () => {
+    return DataCryptoService.getInstance().getAuditLog(
+      settings.getDataFolderPath(),
+      100,
+    );
+  });
+
   ipcMain.handle(IPC.APPROVE_PENDING_ENROLLMENTS, () => {
     const dataPath = settings.getDataFolderPath();
     if (!dataPath) {
@@ -128,6 +141,90 @@ export function registerVolunteerHandlers(
         success: false,
         approvedCount: 0,
         pendingCount: 0,
+        error: String(error),
+      };
+    }
+  });
+
+  ipcMain.handle(IPC.APPROVE_ENROLLMENT, (_event, keyFingerprint: string) => {
+    const dataPath = settings.getDataFolderPath();
+    if (!dataPath) {
+      return {
+        success: false,
+        pendingCount: 0,
+        error: "No data folder configured",
+      };
+    }
+
+    try {
+      const result = DataCryptoService.getInstance().approveEnrollment(
+        dataPath,
+        keyFingerprint,
+      );
+      return {
+        success: true,
+        approved: result.approved,
+        pendingCount: result.pendingCount,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        pendingCount: 0,
+        error: String(error),
+      };
+    }
+  });
+
+  ipcMain.handle(IPC.REJECT_ENROLLMENT, (_event, keyFingerprint: string) => {
+    const dataPath = settings.getDataFolderPath();
+    if (!dataPath) {
+      return {
+        success: false,
+        pendingCount: 0,
+        error: "No data folder configured",
+      };
+    }
+
+    try {
+      const result = DataCryptoService.getInstance().rejectEnrollment(
+        dataPath,
+        keyFingerprint,
+      );
+      return {
+        success: true,
+        rejected: result.rejected,
+        pendingCount: result.pendingCount,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        pendingCount: 0,
+        error: String(error),
+      };
+    }
+  });
+
+  ipcMain.handle(IPC.ROTATE_ENCRYPTION_KEY, () => {
+    const dataPath = settings.getDataFolderPath();
+    if (!dataPath) {
+      return {
+        success: false,
+        rotatedFileCount: 0,
+        error: "No data folder configured",
+      };
+    }
+
+    try {
+      const result =
+        DataCryptoService.getInstance().rotateEncryptionKey(dataPath);
+      return {
+        success: true,
+        rotatedFileCount: result.rotatedFileCount,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        rotatedFileCount: 0,
         error: String(error),
       };
     }

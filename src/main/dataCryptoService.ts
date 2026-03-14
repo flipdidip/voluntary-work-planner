@@ -1,4 +1,6 @@
 import {
+  appendFileSync,
+  Dirent,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -19,12 +21,18 @@ import {
   randomBytes,
 } from "crypto";
 import { userInfo } from "os";
-import { EncryptionStatus } from "@shared/types";
+import {
+  EncryptionAuditEntry,
+  EncryptionStatus,
+  EnrollmentRequestSummary,
+} from "@shared/types";
 
 const CRYPTO_FOLDER = ".vwp-crypto";
 const MANIFEST_FILE = "manifest.json";
+const AUDIT_LOG_FILE = "audit.jsonl";
 const REQUESTS_FOLDER = "requests";
 const USER_KEY_FILE = "user-keypair.json";
+const DEV_ENV_FILE = ".env";
 const MAGIC = Buffer.from("VWP1", "ascii");
 const IV_SIZE = 12;
 const TAG_SIZE = 16;
@@ -50,6 +58,7 @@ interface WrappedDekEntry {
   userName: string;
   machineName: string;
   addedAt: string;
+  publicKeyPem?: string;
 }
 
 interface CryptoManifest {
@@ -89,12 +98,96 @@ export class DataCryptoService {
     return join(this.getCryptoFolderPath(dataPath), REQUESTS_FOLDER);
   }
 
-  private getLocalUserKeyPath(): string {
-    return join(app.getPath("userData"), USER_KEY_FILE);
+  private getAuditLogPath(dataPath: string): string {
+    return join(this.getCryptoFolderPath(dataPath), AUDIT_LOG_FILE);
+  }
+
+  private getLocalUserKeyPath(identitySuffix?: string): string {
+    if (!identitySuffix) {
+      return join(app.getPath("userData"), USER_KEY_FILE);
+    }
+
+    return join(app.getPath("userData"), `user-keypair.${identitySuffix}.json`);
   }
 
   private getRequestFilePath(dataPath: string, keyFingerprint: string): string {
     return join(this.getRequestsPath(dataPath), `${keyFingerprint}.json`);
+  }
+
+  private formatActor(identity: UserIdentity): string {
+    return `${identity.userName}@${identity.machineName}`;
+  }
+
+  private sanitizeIdentityForFileName(value: string): string {
+    return value.replace(/[^a-zA-Z0-9_-]+/g, "-");
+  }
+
+  private readDevOverrideEnv(): Record<string, string> {
+    if (app.isPackaged) {
+      return {};
+    }
+
+    const envPath = join(app.getAppPath(), DEV_ENV_FILE);
+    if (!existsSync(envPath)) {
+      return {};
+    }
+
+    const values: Record<string, string> = {};
+    const lines = readFileSync(envPath, "utf-8").split(/\r?\n/);
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+
+      const separatorIndex = trimmed.indexOf("=");
+      if (separatorIndex <= 0) {
+        continue;
+      }
+
+      const key = trimmed.slice(0, separatorIndex).trim();
+      let value = trimmed.slice(separatorIndex + 1).trim();
+
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+
+      values[key] = value;
+    }
+
+    return values;
+  }
+
+  private getEffectiveIdentityBase(): {
+    userName: string;
+    machineName: string;
+    keyFileSuffix?: string;
+  } {
+    const user = userInfo();
+    const envOverrides = this.readDevOverrideEnv();
+
+    const overrideUserName =
+      process.env.VWP_DEV_OVERRIDE_USER || envOverrides.VWP_DEV_OVERRIDE_USER;
+    const overrideMachineName =
+      process.env.VWP_DEV_OVERRIDE_MACHINE ||
+      envOverrides.VWP_DEV_OVERRIDE_MACHINE;
+
+    const userName = overrideUserName || user.username;
+    const machineName =
+      overrideMachineName || process.env.COMPUTERNAME || "unknown-machine";
+
+    const isUsingOverride = Boolean(overrideUserName || overrideMachineName);
+    return {
+      userName,
+      machineName,
+      keyFileSuffix: isUsingOverride
+        ? this.sanitizeIdentityForFileName(`${userName}@${machineName}`)
+        : undefined,
+    };
   }
 
   private ensureLocalUserIdentity(): UserIdentity {
@@ -104,10 +197,9 @@ export class DataCryptoService {
       );
     }
 
-    const user = userInfo();
-    const userName = user.username;
-    const machineName = process.env.COMPUTERNAME || "unknown-machine";
-    const keyPath = this.getLocalUserKeyPath();
+    const { userName, machineName, keyFileSuffix } =
+      this.getEffectiveIdentityBase();
+    const keyPath = this.getLocalUserKeyPath(keyFileSuffix);
 
     mkdirSync(app.getPath("userData"), { recursive: true });
 
@@ -176,6 +268,88 @@ export class DataCryptoService {
     );
   }
 
+  private appendAuditEntry(
+    dataPath: string,
+    entry: EncryptionAuditEntry,
+  ): void {
+    this.ensureCryptoFolders(dataPath);
+    appendFileSync(
+      this.getAuditLogPath(dataPath),
+      `${JSON.stringify(entry)}\n`,
+      "utf-8",
+    );
+  }
+
+  private encryptWithDek(dek: Buffer, plain: Buffer): Buffer {
+    const iv = randomBytes(IV_SIZE);
+    const cipher = createCipheriv("aes-256-gcm", dek, iv);
+    const ciphertext = Buffer.concat([cipher.update(plain), cipher.final()]);
+    const tag = cipher.getAuthTag();
+
+    return Buffer.concat([MAGIC, iv, tag, ciphertext]);
+  }
+
+  private decryptWithDek(dek: Buffer, payload: Buffer): Buffer {
+    if (
+      payload.length < MAGIC.length ||
+      !payload.subarray(0, MAGIC.length).equals(MAGIC)
+    ) {
+      throw new Error("NOT_ENCRYPTED");
+    }
+
+    if (payload.length < MAGIC.length + IV_SIZE + TAG_SIZE) {
+      throw new Error("Encrypted payload is invalid.");
+    }
+
+    const ivStart = MAGIC.length;
+    const tagStart = ivStart + IV_SIZE;
+    const dataStart = tagStart + TAG_SIZE;
+
+    const iv = payload.subarray(ivStart, tagStart);
+    const tag = payload.subarray(tagStart, dataStart);
+    const ciphertext = payload.subarray(dataStart);
+
+    const decipher = createDecipheriv("aes-256-gcm", dek, iv);
+    decipher.setAuthTag(tag);
+
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  }
+
+  private collectFilesRecursive(rootPath: string): string[] {
+    if (!existsSync(rootPath)) return [];
+
+    const entries = readdirSync(rootPath, { withFileTypes: true }) as Dirent[];
+    const files: string[] = [];
+
+    for (const entry of entries) {
+      const fullPath = join(rootPath, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...this.collectFilesRecursive(fullPath));
+        continue;
+      }
+
+      if (entry.isFile()) {
+        files.push(fullPath);
+      }
+    }
+
+    return files;
+  }
+
+  private listDatasetFiles(dataPath: string): string[] {
+    const files: string[] = [];
+    const indexPath = join(dataPath, "index.json");
+    if (existsSync(indexPath)) {
+      files.push(indexPath);
+    }
+
+    for (const folderName of ["volunteers", "backups", "attachments"]) {
+      files.push(...this.collectFilesRecursive(join(dataPath, folderName)));
+    }
+
+    return files;
+  }
+
   private wrapDekForUser(publicKeyPem: string, dek: Buffer): string {
     const wrapped = publicEncrypt(
       {
@@ -241,6 +415,13 @@ export class DataCryptoService {
     };
 
     writeFileSync(requestPath, JSON.stringify(request, null, 2), "utf-8");
+    this.appendAuditEntry(dataPath, {
+      timestamp: new Date().toISOString(),
+      actor: this.formatActor(identity),
+      action: "access-requested",
+      target: identity.keyFingerprint,
+      details: "Pending access request created.",
+    });
   }
 
   private initializeManifest(
@@ -258,11 +439,19 @@ export class DataCryptoService {
           userName: identity.userName,
           machineName: identity.machineName,
           addedAt: new Date().toISOString(),
+          publicKeyPem: identity.publicKeyPem,
         },
       ],
     };
 
     this.writeManifest(dataPath, manifest);
+    this.appendAuditEntry(dataPath, {
+      timestamp: new Date().toISOString(),
+      actor: this.formatActor(identity),
+      action: "manifest-created",
+      target: identity.keyFingerprint,
+      details: "Encrypted dataset initialized.",
+    });
     return manifest;
   }
 
@@ -288,6 +477,11 @@ export class DataCryptoService {
       throw new Error(
         "Dieser Benutzer ist noch nicht für den verschlüsselten Datenordner freigegeben.",
       );
+    }
+
+    if (!myWrappedDek.publicKeyPem) {
+      myWrappedDek.publicKeyPem = identity.publicKeyPem;
+      this.writeManifest(dataPath, manifest);
     }
 
     const dek = this.unwrapDekForUser(
@@ -348,49 +542,99 @@ export class DataCryptoService {
     };
   }
 
-  approvePendingEnrollments(dataPath: string): {
-    approvedCount: number;
-    pendingCount: number;
-  } {
-    const { dek, manifest } = this.getDekForCurrentUser(dataPath);
-    const requests = this.listEnrollmentRequests(dataPath);
+  getPendingEnrollmentRequests(dataPath: string): EnrollmentRequestSummary[] {
+    if (!dataPath) return [];
 
-    let approvedCount = 0;
-    for (const request of requests) {
-      const alreadyExists = manifest.wrappedDekEntries.some(
-        (entry) => entry.keyFingerprint === request.keyFingerprint,
-      );
-      if (alreadyExists) {
-        const requestPath = this.getRequestFilePath(
-          dataPath,
-          request.keyFingerprint,
-        );
-        if (existsSync(requestPath)) {
-          unlinkSync(requestPath);
-        }
-        continue;
-      }
+    return this.listEnrollmentRequests(dataPath)
+      .map((request) => ({
+        keyFingerprint: request.keyFingerprint,
+        userName: request.userName,
+        machineName: request.machineName,
+        requestedAt: request.requestedAt,
+      }))
+      .sort((left, right) => left.requestedAt.localeCompare(right.requestedAt));
+  }
 
+  getAuditLog(dataPath: string, limit = 100): EncryptionAuditEntry[] {
+    if (!dataPath) return [];
+
+    const auditPath = this.getAuditLogPath(dataPath);
+    if (!existsSync(auditPath)) return [];
+
+    return readFileSync(auditPath, "utf-8")
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as EncryptionAuditEntry)
+      .slice(-limit)
+      .reverse();
+  }
+
+  approveEnrollment(
+    dataPath: string,
+    keyFingerprint: string,
+  ): { approved: boolean; pendingCount: number } {
+    const { dek, identity, manifest } = this.getDekForCurrentUser(dataPath);
+    const request = this.listEnrollmentRequests(dataPath).find(
+      (entry) => entry.keyFingerprint === keyFingerprint,
+    );
+
+    if (!request) {
+      return {
+        approved: false,
+        pendingCount: this.listEnrollmentRequests(dataPath).length,
+      };
+    }
+
+    const alreadyExists = manifest.wrappedDekEntries.some(
+      (entry) => entry.keyFingerprint === request.keyFingerprint,
+    );
+
+    if (!alreadyExists) {
       manifest.wrappedDekEntries.push({
         keyFingerprint: request.keyFingerprint,
         wrappedDekB64: this.wrapDekForUser(request.publicKeyPem, dek),
         userName: request.userName,
         machineName: request.machineName,
         addedAt: new Date().toISOString(),
+        publicKeyPem: request.publicKeyPem,
       });
-
-      const requestPath = this.getRequestFilePath(
-        dataPath,
-        request.keyFingerprint,
-      );
-      if (existsSync(requestPath)) {
-        unlinkSync(requestPath);
-      }
-
-      approvedCount += 1;
+      this.writeManifest(dataPath, manifest);
+      this.appendAuditEntry(dataPath, {
+        timestamp: new Date().toISOString(),
+        actor: this.formatActor(identity),
+        action: "access-approved",
+        target: request.keyFingerprint,
+        details: `${request.userName}@${request.machineName} approved.`,
+      });
     }
 
-    this.writeManifest(dataPath, manifest);
+    const requestPath = this.getRequestFilePath(
+      dataPath,
+      request.keyFingerprint,
+    );
+    if (existsSync(requestPath)) {
+      unlinkSync(requestPath);
+    }
+
+    return {
+      approved: !alreadyExists,
+      pendingCount: this.listEnrollmentRequests(dataPath).length,
+    };
+  }
+
+  approvePendingEnrollments(dataPath: string): {
+    approvedCount: number;
+    pendingCount: number;
+  } {
+    const requests = this.listEnrollmentRequests(dataPath);
+
+    let approvedCount = 0;
+    for (const request of requests) {
+      const result = this.approveEnrollment(dataPath, request.keyFingerprint);
+      if (result.approved) {
+        approvedCount += 1;
+      }
+    }
 
     return {
       approvedCount,
@@ -398,40 +642,111 @@ export class DataCryptoService {
     };
   }
 
+  rejectEnrollment(
+    dataPath: string,
+    keyFingerprint: string,
+  ): { rejected: boolean; pendingCount: number } {
+    const { identity } = this.getDekForCurrentUser(dataPath);
+    const request = this.listEnrollmentRequests(dataPath).find(
+      (entry) => entry.keyFingerprint === keyFingerprint,
+    );
+
+    if (!request) {
+      return {
+        rejected: false,
+        pendingCount: this.listEnrollmentRequests(dataPath).length,
+      };
+    }
+
+    const requestPath = this.getRequestFilePath(
+      dataPath,
+      request.keyFingerprint,
+    );
+    if (existsSync(requestPath)) {
+      unlinkSync(requestPath);
+    }
+
+    this.appendAuditEntry(dataPath, {
+      timestamp: new Date().toISOString(),
+      actor: this.formatActor(identity),
+      action: "access-rejected",
+      target: request.keyFingerprint,
+      details: `${request.userName}@${request.machineName} rejected.`,
+    });
+
+    return {
+      rejected: true,
+      pendingCount: this.listEnrollmentRequests(dataPath).length,
+    };
+  }
+
+  rotateEncryptionKey(dataPath: string): { rotatedFileCount: number } {
+    const {
+      dek: currentDek,
+      identity,
+      manifest,
+    } = this.getDekForCurrentUser(dataPath);
+
+    const entriesMissingPublicKeys = manifest.wrappedDekEntries.filter(
+      (entry) => !entry.publicKeyPem,
+    );
+    if (entriesMissingPublicKeys.length > 0) {
+      const missingUsers = entriesMissingPublicKeys
+        .map((entry) => {
+          const userLabel =
+            entry.userName && entry.machineName
+              ? `${entry.userName}@${entry.machineName}`
+              : entry.keyFingerprint;
+          return `${userLabel} (${entry.keyFingerprint.slice(0, 12)}...)`;
+        })
+        .join(", ");
+
+      throw new Error(
+        `Schlüsselrotation ist noch nicht möglich. Diese freigegebenen Benutzer müssen den Datenordner einmal mit der aktuellen App-Version öffnen, damit ihr öffentlicher Schlüssel im Manifest ergänzt wird: ${missingUsers}`,
+      );
+    }
+
+    const newDek = randomBytes(32);
+    const datasetFiles = this.listDatasetFiles(dataPath);
+
+    for (const filePath of datasetFiles) {
+      const payload = readFileSync(filePath);
+      let plain: Buffer;
+      try {
+        plain = this.decryptWithDek(currentDek, payload);
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== "NOT_ENCRYPTED") {
+          throw error;
+        }
+        plain = payload;
+      }
+
+      writeFileSync(filePath, this.encryptWithDek(newDek, plain));
+    }
+
+    manifest.wrappedDekEntries = manifest.wrappedDekEntries.map((entry) => ({
+      ...entry,
+      wrappedDekB64: this.wrapDekForUser(entry.publicKeyPem!, newDek),
+    }));
+    this.writeManifest(dataPath, manifest);
+
+    this.appendAuditEntry(dataPath, {
+      timestamp: new Date().toISOString(),
+      actor: this.formatActor(identity),
+      action: "key-rotated",
+      details: `${datasetFiles.length} Datei(en) mit neuem DEK verschlüsselt.`,
+    });
+
+    return { rotatedFileCount: datasetFiles.length };
+  }
+
   encryptBytesForDataFolder(dataPath: string, plain: Buffer): Buffer {
     const { dek } = this.getDekForCurrentUser(dataPath);
-    const iv = randomBytes(IV_SIZE);
-    const cipher = createCipheriv("aes-256-gcm", dek, iv);
-    const ciphertext = Buffer.concat([cipher.update(plain), cipher.final()]);
-    const tag = cipher.getAuthTag();
-
-    return Buffer.concat([MAGIC, iv, tag, ciphertext]);
+    return this.encryptWithDek(dek, plain);
   }
 
   decryptBytesForDataFolder(dataPath: string, payload: Buffer): Buffer {
-    if (
-      payload.length < MAGIC.length ||
-      !payload.subarray(0, MAGIC.length).equals(MAGIC)
-    ) {
-      throw new Error("NOT_ENCRYPTED");
-    }
-
-    if (payload.length < MAGIC.length + IV_SIZE + TAG_SIZE) {
-      throw new Error("Encrypted payload is invalid.");
-    }
-
     const { dek } = this.getDekForCurrentUser(dataPath);
-    const ivStart = MAGIC.length;
-    const tagStart = ivStart + IV_SIZE;
-    const dataStart = tagStart + TAG_SIZE;
-
-    const iv = payload.subarray(ivStart, tagStart);
-    const tag = payload.subarray(tagStart, dataStart);
-    const ciphertext = payload.subarray(dataStart);
-
-    const decipher = createDecipheriv("aes-256-gcm", dek, iv);
-    decipher.setAuthTag(tag);
-
-    return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return this.decryptWithDek(dek, payload);
   }
 }

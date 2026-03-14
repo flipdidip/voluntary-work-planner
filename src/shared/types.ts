@@ -202,7 +202,12 @@ export const IPC = {
   GET_SETTINGS: "get-settings",
   SAVE_SETTINGS: "save-settings",
   GET_ENCRYPTION_STATUS: "get-encryption-status",
+  GET_PENDING_ENROLLMENTS: "get-pending-enrollments",
+  GET_ENCRYPTION_AUDIT_LOG: "get-encryption-audit-log",
   APPROVE_PENDING_ENROLLMENTS: "approve-pending-enrollments",
+  APPROVE_ENROLLMENT: "approve-enrollment",
+  REJECT_ENROLLMENT: "reject-enrollment",
+  ROTATE_ENCRYPTION_KEY: "rotate-encryption-key",
 
   // Volunteers
   GET_VOLUNTEER_INDEX: "get-volunteer-index",
@@ -236,6 +241,26 @@ export interface EncryptionStatus {
   message?: string;
 }
 
+export interface EnrollmentRequestSummary {
+  keyFingerprint: string;
+  userName: string;
+  machineName: string;
+  requestedAt: string;
+}
+
+export interface EncryptionAuditEntry {
+  timestamp: string;
+  actor: string;
+  action:
+    | "manifest-created"
+    | "access-requested"
+    | "access-approved"
+    | "access-rejected"
+    | "key-rotated";
+  target?: string;
+  details?: string;
+}
+
 // ─────────────────────────────────────────────────
 // App settings — stored in electron userData
 // ─────────────────────────────────────────────────
@@ -263,6 +288,8 @@ export interface AppSettings {
   privacyConsentVersion: string; // e.g. "1.0"
 }
 
+export const PRIVACY_POLICY_VERSION = "1.1";
+
 export const DEFAULT_SETTINGS: AppSettings = {
   dataFolderPath: "",
   reminderCheckIntervalMinutes: 60,
@@ -278,7 +305,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   requirementRenewalDaysWarning: 30,
   privacyConsentGiven: false,
   privacyConsentDate: undefined,
-  privacyConsentVersion: "1.0",
+  privacyConsentVersion: PRIVACY_POLICY_VERSION,
 };
 
 // ─────────────────────────────────────────────────

@@ -171,6 +171,59 @@
   font-weight: 600;
 }
 
+.security-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.security-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.security-section-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.request-list,
+.audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-item,
+.audit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.request-meta,
+.request-actions,
+.audit-item-header {
+  display: flex;
+  gap: 8px;
+}
+
+.request-meta,
+.audit-item-header {
+  flex-direction: column;
+}
+
+.request-actions {
+  flex-wrap: wrap;
+}
+
 /* Privacy/DSGVO Section */
 .consent-info {
   background: var(--color-surface-2);

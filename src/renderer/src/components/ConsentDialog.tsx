@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PrivacyPolicy from "./PrivacyPolicy";
+import { PRIVACY_POLICY_VERSION } from "@shared/types";
 import "./ConsentDialog.css";
 
 interface ConsentDialogProps {
@@ -46,9 +47,12 @@ export default function ConsentDialog({
                     Dritte
                   </li>
                   <li>
-                    ⚠️ Daten werden{" "}
-                    <strong>unverschlüsselt als JSON-Dateien</strong>{" "}
-                    gespeichert
+                    ✅ Daten werden <strong>verschlüsselt</strong> im gewählten
+                    Datenordner gespeichert
+                  </li>
+                  <li>
+                    ✅ Bei gemeinsam genutzten Ordnern werden neue Benutzer nur
+                    nach <strong>Freigabe</strong> zugelassen
                   </li>
                   <li>
                     ⚠️ Bei Cloud-Sync (OneDrive, etc.) gelten zusätzliche
@@ -87,7 +91,8 @@ export default function ConsentDialog({
                 className="consent-link-button"
                 onClick={() => setShowFullPolicy(true)}
               >
-                📄 Vollständige Datenschutzerklärung anzeigen
+                📄 Vollständige Datenschutzerklärung {PRIVACY_POLICY_VERSION}{" "}
+                anzeigen
               </button>
 
               <div className="consent-checkbox">
