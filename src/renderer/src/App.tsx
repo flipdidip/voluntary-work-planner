@@ -16,6 +16,7 @@ import UpcomingEvents from "./pages/UpcomingEvents";
 import ReminderToast from "./components/ReminderToast";
 import ConsentDialog from "./components/ConsentDialog";
 import AccessPendingOverlay from "./components/AccessPendingOverlay";
+import PendingRequestsNoticeModal from "./components/PendingRequestsNoticeModal";
 import { DueReminder } from "./hooks/useReminders";
 import { EncryptionStatus, PRIVACY_POLICY_VERSION } from "@shared/types";
 
@@ -29,6 +30,10 @@ export default function App(): JSX.Element {
   const [consentGiven, setConsentGiven] = useState<boolean | null>(null);
   const [encryptionStatus, setEncryptionStatus] =
     useState<EncryptionStatus | null>(null);
+  const [showPendingRequestsNotice, setShowPendingRequestsNotice] =
+    useState(false);
+  const [hasShownPendingRequestsNotice, setHasShownPendingRequestsNotice] =
+    useState(false);
   const [loading, setLoading] = useState(true);
 
   const refreshEncryptionStatus = useCallback(async (): Promise<void> => {
@@ -91,6 +96,19 @@ export default function App(): JSX.Element {
     encryptionStatus?.hasManifest === true &&
     encryptionStatus.authorized === false &&
     location.pathname !== "/settings";
+
+  useEffect(() => {
+    if (consentGiven !== true || hasShownPendingRequestsNotice) return;
+    if (!encryptionStatus) return;
+
+    if (
+      encryptionStatus.authorized &&
+      encryptionStatus.pendingRequestCount > 0
+    ) {
+      setShowPendingRequestsNotice(true);
+      setHasShownPendingRequestsNotice(true);
+    }
+  }, [consentGiven, encryptionStatus, hasShownPendingRequestsNotice]);
 
   const handleConsentAccept = async (): Promise<void> => {
     await window.api.saveSettings({
@@ -160,7 +178,17 @@ export default function App(): JSX.Element {
           }}
         />
       )}
-      <Layout>
+      {showPendingRequestsNotice && encryptionStatus?.authorized && (
+        <PendingRequestsNoticeModal
+          pendingCount={encryptionStatus.pendingRequestCount}
+          onOpenSettings={() => {
+            setShowPendingRequestsNotice(false);
+            navigate("/settings");
+          }}
+          onDismiss={() => setShowPendingRequestsNotice(false)}
+        />
+      )}
+      <Layout settingsBadgeCount={encryptionStatus?.pendingRequestCount || 0}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />

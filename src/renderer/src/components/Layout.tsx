@@ -5,6 +5,7 @@ import "./Layout.css";
 
 interface LayoutProps {
   children: ReactNode;
+  settingsBadgeCount?: number;
 }
 
 const navItems = [
@@ -14,7 +15,10 @@ const navItems = [
   { to: "/settings", label: "Einstellungen", icon: Settings },
 ];
 
-export default function Layout({ children }: LayoutProps): JSX.Element {
+export default function Layout({
+  children,
+  settingsBadgeCount = 0,
+}: LayoutProps): JSX.Element {
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -37,6 +41,14 @@ export default function Layout({ children }: LayoutProps): JSX.Element {
             >
               <Icon size={18} />
               <span>{label}</span>
+              {to === "/settings" && settingsBadgeCount > 0 && (
+                <span
+                  className="nav-badge"
+                  aria-label="Offene Zugriffsanfragen"
+                >
+                  {settingsBadgeCount > 99 ? "99+" : settingsBadgeCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
