@@ -255,6 +255,17 @@
 
 .request-actions {
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.role-select {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .audit-collapsible {

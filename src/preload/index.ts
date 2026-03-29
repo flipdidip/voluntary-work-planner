@@ -9,6 +9,7 @@ import {
   EncryptionStatus,
   EnrollmentRequestSummary,
   ProcessingActivitiesDocument,
+  UserRole,
 } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
@@ -47,12 +48,13 @@ const api = {
 
   approveEnrollment: (
     keyFingerprint: string,
+    role?: UserRole,
   ): Promise<{
     success: boolean;
     approved?: boolean;
     pendingCount: number;
     error?: string;
-  }> => ipcRenderer.invoke(IPC.APPROVE_ENROLLMENT, keyFingerprint),
+  }> => ipcRenderer.invoke(IPC.APPROVE_ENROLLMENT, keyFingerprint, role),
 
   rejectEnrollment: (
     keyFingerprint: string,

@@ -19,6 +19,7 @@ import {
   EnrollmentRequestSummary,
   ProcessingActivitiesDocument,
   ProcessingActivityRecord,
+  UserRole,
   createDefaultProcessingActivitiesDocument,
 } from "@shared/types";
 import PrivacyPolicy from "../components/PrivacyPolicy";
@@ -60,6 +61,10 @@ export default function Settings(): JSX.Element {
   const [requestActionFingerprint, setRequestActionFingerprint] = useState<
     string | null
   >(null);
+  /** Tracks per-request role selection. Default is "primary". */
+  const [requestRoles, setRequestRoles] = useState<Record<string, UserRole>>(
+    {},
+  );
   const [rotating, setRotating] = useState(false);
   const [processingDocument, setProcessingDocument] =
     useState<ProcessingActivitiesDocument | null>(null);
@@ -239,7 +244,8 @@ export default function Settings(): JSX.Element {
   ): Promise<void> => {
     setRequestActionFingerprint(keyFingerprint);
     try {
-      const result = await window.api.approveEnrollment(keyFingerprint);
+      const role = requestRoles[keyFingerprint] || "primary";
+      const result = await window.api.approveEnrollment(keyFingerprint, role);
       if (!result.success) {
         alert(result.error || "Freigabe konnte nicht durchgeführt werden.");
       }
@@ -534,6 +540,25 @@ export default function Settings(): JSX.Element {
                         </span>
                       </div>
                       <div className="request-actions">
+                        <select
+                          className="role-select"
+                          value={
+                            requestRoles[request.keyFingerprint] || "primary"
+                          }
+                          onChange={(e) =>
+                            setRequestRoles((prev) => ({
+                              ...prev,
+                              [request.keyFingerprint]: e.target
+                                .value as UserRole,
+                            }))
+                          }
+                          disabled={isBusy}
+                        >
+                          <option value="primary">Vollzugriff</option>
+                          <option value="partner-only">
+                            Nur Kooperationspartner
+                          </option>
+                        </select>
                         <button
                           className="btn btn-primary"
                           onClick={() =>

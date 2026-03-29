@@ -7,25 +7,48 @@ import {
   Handshake,
 } from "lucide-react";
 import { ReactNode } from "react";
+import { UserRole } from "@shared/types";
 import "./Layout.css";
 
 interface LayoutProps {
   children: ReactNode;
   settingsBadgeCount?: number;
+  /** Current user’s authorization role. Defaults to "primary" (full access). */
+  userRole?: UserRole;
 }
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/events", label: "Ereignisse", icon: Calendar },
-  { to: "/volunteers", label: "Ehrenamtliche", icon: Users },
-  { to: "/partners", label: "Kooperationspartner", icon: Handshake },
-  { to: "/settings", label: "Einstellungen", icon: Settings },
+  {
+    to: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    primaryOnly: true,
+  },
+  { to: "/events", label: "Ereignisse", icon: Calendar, primaryOnly: true },
+  { to: "/volunteers", label: "Ehrenamtliche", icon: Users, primaryOnly: true },
+  {
+    to: "/partners",
+    label: "Kooperationspartner",
+    icon: Handshake,
+    primaryOnly: false,
+  },
+  {
+    to: "/settings",
+    label: "Einstellungen",
+    icon: Settings,
+    primaryOnly: false,
+  },
 ];
 
 export default function Layout({
   children,
   settingsBadgeCount = 0,
+  userRole = "primary",
 }: LayoutProps): JSX.Element {
+  const visibleNavItems =
+    userRole === "partner-only"
+      ? navItems.filter((item) => !item.primaryOnly)
+      : navItems;
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -44,7 +67,7 @@ export default function Layout({
           </span>
         </div>
         <nav className="sidebar-nav">
-          {navItems.map(({ to, label, icon: Icon }) => (
+          {visibleNavItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
