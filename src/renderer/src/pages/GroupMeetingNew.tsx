@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, X, Copy, Mail, Check, Globe } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
@@ -19,6 +19,7 @@ type ParticipantTab = "volunteer" | "partner";
 export default function GroupMeetingNew(): JSX.Element {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const isEdit = !!id && id !== "new";
 
   const { index: volunteerIndex } = useVolunteerIndex();
@@ -26,7 +27,9 @@ export default function GroupMeetingNew(): JSX.Element {
   const { index: meetingsIndex } = useGroupMeetings();
 
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(
+    searchParams.get("date") || new Date().toISOString().split("T")[0],
+  );
   const [notes, setNotes] = useState("");
   const [participants, setParticipants] = useState<GroupMeetingParticipant[]>(
     [],
