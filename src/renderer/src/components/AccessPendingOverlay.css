@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 1200;
-  background: rgba(15, 23, 42, 0.58);
+  background: var(--color-overlay-bg-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,8 +29,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #92400e;
-  background: #fef3c7;
+  color: var(--color-access-pending-icon-fg);
+  background: var(--color-access-pending-icon-bg);
 }
 
 .access-pending-subtitle {

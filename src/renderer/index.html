@@ -6,6 +6,15 @@
     <title>Kleiner Stern</title>
   </head>
   <body>
+    <script>
+      // Prevent flash: set theme before first paint
+      (function () {
+        var theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

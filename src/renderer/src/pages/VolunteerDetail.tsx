@@ -412,9 +412,9 @@ export default function VolunteerDetail(): JSX.Element {
               style={{
                 marginTop: "1rem",
                 padding: "0.75rem",
-                backgroundColor: "var(--color-bg-secondary, #f5f5f5)",
+                backgroundColor: "var(--color-surface-2)",
                 borderRadius: "6px",
-                borderLeft: "3px solid var(--color-primary, #4f46e5)",
+                borderLeft: "3px solid var(--color-primary)",
               }}
             >
               <strong>Aktive Zeit:</strong> {activityTimeFormatted}

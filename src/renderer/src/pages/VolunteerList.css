@@ -117,14 +117,14 @@
 }
 
 .filter-chip.exclude {
-  background: #fee2e2;
-  color: #991b1b;
-  border-color: #fecaca;
+  background: var(--color-chip-exclude-bg);
+  color: var(--color-chip-exclude-fg);
+  border-color: var(--color-chip-exclude-border);
 }
 
 .filter-chip.exclude:hover {
-  background: #fecaca;
-  border-color: #fca5a5;
+  background: var(--color-chip-exclude-hover-bg);
+  border-color: var(--color-chip-exclude-hover-border);
 }
 
 .volunteer-table {
@@ -154,7 +154,7 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #dbeafe, #ede9fe);
+  background: var(--color-avatar-bg);
   color: var(--color-primary);
   font-weight: 700;
   font-size: 0.85rem;
@@ -242,21 +242,21 @@
 }
 
 .requirement-chip--complete {
-  background: #d1fae5;
-  color: #065f46;
-  border-color: #6ee7b7;
+  background: var(--color-req-complete-bg);
+  color: var(--color-req-complete-fg);
+  border-color: var(--color-req-complete-border);
 }
 
 .requirement-chip--expired {
-  background: #fee2e2;
-  color: #991b1b;
-  border-color: #fca5a5;
+  background: var(--color-req-expired-bg);
+  color: var(--color-req-expired-fg);
+  border-color: var(--color-req-expired-border);
 }
 
 .requirement-chip--missing {
-  background: #f3f4f6;
-  color: #6b7280;
-  border-color: #d1d5db;
+  background: var(--color-req-missing-bg);
+  color: var(--color-req-missing-fg);
+  border-color: var(--color-req-missing-border);
 }
 
 .empty-hint {

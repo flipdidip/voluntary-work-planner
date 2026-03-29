@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 1180;
-  background: rgba(15, 23, 42, 0.44);
+  background: var(--color-overlay-bg-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,8 +28,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #1d4ed8;
-  background: #dbeafe;
+  color: var(--color-pending-requests-icon-fg);
+  background: var(--color-pending-requests-icon-bg);
 }
 
 .pending-requests-subtitle {

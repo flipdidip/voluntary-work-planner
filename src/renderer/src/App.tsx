@@ -145,7 +145,7 @@ export default function App(): JSX.Element {
           justifyContent: "center",
           height: "100vh",
           fontSize: "1.2rem",
-          color: "#666",
+          color: "var(--color-text-muted)",
         }}
       >
         Wird geladen...

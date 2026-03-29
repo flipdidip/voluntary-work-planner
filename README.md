@@ -21,6 +21,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Rotation des Datenschluessels mit automatischer Neuverschluesselung verwalteter Datendateien.
 - Erinnerungssystem fuer Geburtstage, Jubilaeen, benutzerdefinierte Termine und Qualifikationsablauf.
 - Windows-Benachrichtigungen bei faelligen Erinnerungen plus In-App-Erinnerungsoberflaeche.
+- Hell-/Dunkel-Modus mit automatischer Uebernahme der Systemeinstellung (konfigurierbar in den Einstellungen).
 - Optimistisches Locking zur Reduzierung von Ueberschreibkonflikten bei synchronisierter Mehrbenutzernutzung.
 - In-App-Verwaltung des Verzeichnisses von Verarbeitungstaetigkeiten (Art. 30 DSGVO) inkl. Markdown-Export.
 
