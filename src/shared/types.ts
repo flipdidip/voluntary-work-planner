@@ -4,6 +4,16 @@
 
 export type VolunteerStatus = "active" | "inactive" | "archived";
 
+/**
+ * Authorization role assigned to each user in the encrypted data folder.
+ * - "primary"      → Full access to all features (volunteers, partners, settings, etc.)
+ * - "partner-only" → Restricted view: can only see the Kooperationspartner pages
+ *
+ * The initial creator of the folder always receives the "primary" role.
+ * Every subsequent user is assigned a role at approval time.
+ */
+export type UserRole = "primary" | "partner-only";
+
 export type ReminderType = "birthday-round" | "birthday-every-year" | "custom";
 
 export interface Reminder {
@@ -390,6 +400,8 @@ export interface EncryptionStatus {
   pendingRequestCount: number;
   currentUser: string;
   keyFingerprint: string;
+  /** The authorization role of the current user (only set when authorized). */
+  userRole?: UserRole;
   message?: string;
 }
 
@@ -407,6 +419,7 @@ export interface EncryptionAuditEntry {
     | "manifest-created"
     | "access-requested"
     | "access-approved"
+    | "access-approved-partner-only"
     | "access-rejected"
     | "key-rotated";
   target?: string;

@@ -25,6 +25,7 @@ import {
   EncryptionAuditEntry,
   EncryptionStatus,
   EnrollmentRequestSummary,
+  UserRole,
 } from "@shared/types";
 
 const CRYPTO_FOLDER = ".vwp-crypto";
@@ -59,6 +60,8 @@ interface WrappedDekEntry {
   machineName: string;
   addedAt: string;
   publicKeyPem?: string;
+  /** Authorization role. Omitted in legacy entries → treated as "primary". */
+  role?: UserRole;
 }
 
 interface CryptoManifest {
@@ -440,6 +443,7 @@ export class DataCryptoService {
           machineName: identity.machineName,
           addedAt: new Date().toISOString(),
           publicKeyPem: identity.publicKeyPem,
+          role: "primary",
         },
       ],
     };
@@ -525,9 +529,13 @@ export class DataCryptoService {
     }
 
     const manifest = this.readManifest(dataPath);
-    const authorized = manifest.wrappedDekEntries.some(
+    const myEntry = manifest.wrappedDekEntries.find(
       (entry) => entry.keyFingerprint === identity.keyFingerprint,
     );
+    const authorized = !!myEntry;
+    const userRole: UserRole | undefined = authorized
+      ? myEntry.role || "primary"
+      : undefined;
 
     return {
       enabled: true,
@@ -536,6 +544,7 @@ export class DataCryptoService {
       pendingRequestCount,
       currentUser: `${identity.userName}@${identity.machineName}`,
       keyFingerprint: identity.keyFingerprint,
+      userRole,
       message: authorized
         ? "Verschlüsselung ist aktiv und dieser Benutzer ist freigegeben."
         : "Freigabe ausstehend. Es wurde eine Zugriffsanfrage für diesen Benutzer erstellt.",
@@ -572,6 +581,7 @@ export class DataCryptoService {
   approveEnrollment(
     dataPath: string,
     keyFingerprint: string,
+    role: UserRole = "primary",
   ): { approved: boolean; pendingCount: number } {
     const { dek, identity, manifest } = this.getDekForCurrentUser(dataPath);
     const request = this.listEnrollmentRequests(dataPath).find(
@@ -597,14 +607,18 @@ export class DataCryptoService {
         machineName: request.machineName,
         addedAt: new Date().toISOString(),
         publicKeyPem: request.publicKeyPem,
+        role,
       });
       this.writeManifest(dataPath, manifest);
       this.appendAuditEntry(dataPath, {
         timestamp: new Date().toISOString(),
         actor: this.formatActor(identity),
-        action: "access-approved",
+        action:
+          role === "partner-only"
+            ? "access-approved-partner-only"
+            : "access-approved",
         target: request.keyFingerprint,
-        details: `${request.userName}@${request.machineName} approved.`,
+        details: `${request.userName}@${request.machineName} approved with role "${role}".`,
       });
     }
 

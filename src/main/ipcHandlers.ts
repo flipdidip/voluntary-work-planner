@@ -6,6 +6,7 @@ import {
   SaveResult,
   ProcessingActivitiesDocument,
   BusinessAuditEntry,
+  UserRole,
 } from "@shared/types";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
@@ -269,34 +270,38 @@ export function registerVolunteerHandlers(
     }
   });
 
-  ipcMain.handle(IPC.APPROVE_ENROLLMENT, (_event, keyFingerprint: string) => {
-    const dataPath = settings.getDataFolderPath();
-    if (!dataPath) {
-      return {
-        success: false,
-        pendingCount: 0,
-        error: "No data folder configured",
-      };
-    }
+  ipcMain.handle(
+    IPC.APPROVE_ENROLLMENT,
+    (_event, keyFingerprint: string, role?: UserRole) => {
+      const dataPath = settings.getDataFolderPath();
+      if (!dataPath) {
+        return {
+          success: false,
+          pendingCount: 0,
+          error: "No data folder configured",
+        };
+      }
 
-    try {
-      const result = DataCryptoService.getInstance().approveEnrollment(
-        dataPath,
-        keyFingerprint,
-      );
-      return {
-        success: true,
-        approved: result.approved,
-        pendingCount: result.pendingCount,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        pendingCount: 0,
-        error: String(error),
-      };
-    }
-  });
+      try {
+        const result = DataCryptoService.getInstance().approveEnrollment(
+          dataPath,
+          keyFingerprint,
+          role || "primary",
+        );
+        return {
+          success: true,
+          approved: result.approved,
+          pendingCount: result.pendingCount,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          pendingCount: 0,
+          error: String(error),
+        };
+      }
+    },
+  );
 
   ipcMain.handle(IPC.REJECT_ENROLLMENT, (_event, keyFingerprint: string) => {
     const dataPath = settings.getDataFolderPath();

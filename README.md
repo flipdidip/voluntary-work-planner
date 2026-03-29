@@ -17,6 +17,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Dateibasierte Speicherung in einem frei waehlbaren Ordner (lokal, OneDrive, SharePoint-Sync).
 - Verschluesselung ruhender Daten fuer Index, Ehrenamtsakten, Backups und Anhaenge.
 - Mehrbenutzer-Freigabeworkflow fuer gemeinsame Ordner (Anfrage -> Freigabe/Ablehnung).
+- Rollenbasierte Zugriffskontrolle: Vollzugriff (primary) oder eingeschraenkt auf Kooperationspartner (partner-only).
 - Audit-Protokoll fuer sicherheitsrelevante Schluesselereignisse (Anfrage, Freigabe, Ablehnung, Rotation).
 - Vollstaendiges Aktivitaetsprotokoll fuer betriebliche Aktionen (z.B. Ehrenamtliche anlegen/aktualisieren/loeschen, Dateiaktionen, Art.-30-Aenderungen).
 - Rotation des Datenschluessels mit automatischer Neuverschluesselung verwalteter Datendateien.
@@ -140,10 +141,23 @@ Notes:
 
 ### Shared Folder Workflow
 
-1. First authorized user selects a new folder: crypto manifest is initialized.
+1. First authorized user selects a new folder: crypto manifest is initialized. This user automatically receives the **primary** role (full access).
 2. Additional user selects the same folder: app creates a pending access request.
-3. Authorized user approves request in Settings -> request gets a wrapped DEK.
-4. Newly approved user can access encrypted records.
+3. Authorized user approves request in Settings and selects a role:
+   - **Vollzugriff (primary)** — full access to all features.
+   - **Nur Kooperationspartner (partner-only)** — restricted to the Kooperationspartner pages only.
+4. Newly approved user can access encrypted records according to their assigned role.
+
+### User Roles
+
+| Role           | Sidebar Navigation                                                       | Accessible Pages                                                |
+| -------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `primary`      | Dashboard, Ereignisse, Ehrenamtliche, Kooperationspartner, Einstellungen | All pages                                                       |
+| `partner-only` | Kooperationspartner, Einstellungen                                       | Kooperationspartner (Liste, Detail, Neu) and Einstellungen only |
+
+- The initial creator of a data folder always receives the `primary` role.
+- Every subsequent user is assigned a role by the approver at approval time.
+- Legacy manifest entries without an explicit role are treated as `primary`.
 
 ### User-Facing Signals
 

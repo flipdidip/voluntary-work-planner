@@ -21,7 +21,11 @@ import ConsentDialog from "./components/ConsentDialog";
 import AccessPendingOverlay from "./components/AccessPendingOverlay";
 import PendingRequestsNoticeModal from "./components/PendingRequestsNoticeModal";
 import { DueReminder } from "./hooks/useReminders";
-import { EncryptionStatus, PRIVACY_POLICY_VERSION } from "@shared/types";
+import {
+  EncryptionStatus,
+  PRIVACY_POLICY_VERSION,
+  UserRole,
+} from "@shared/types";
 
 const DATA_FOLDER_CHANGED_EVENT = "vwp:data-folder-changed";
 
@@ -93,6 +97,11 @@ export default function App(): JSX.Element {
       );
     };
   }, [consentGiven, refreshEncryptionStatus]);
+
+  const userRole: UserRole =
+    encryptionStatus?.authorized && encryptionStatus.userRole
+      ? encryptionStatus.userRole
+      : "primary";
 
   const showAccessPendingOverlay =
     consentGiven === true &&
@@ -191,18 +200,35 @@ export default function App(): JSX.Element {
           onDismiss={() => setShowPendingRequestsNotice(false)}
         />
       )}
-      <Layout settingsBadgeCount={encryptionStatus?.pendingRequestCount || 0}>
+      <Layout
+        settingsBadgeCount={encryptionStatus?.pendingRequestCount || 0}
+        userRole={userRole}
+      >
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/volunteers" element={<VolunteerList />} />
-          <Route path="/volunteers/new" element={<VolunteerNew />} />
-          <Route path="/volunteers/:id" element={<VolunteerDetail />} />
-          <Route path="/partners" element={<PartnerList />} />
-          <Route path="/partners/new" element={<PartnerNew />} />
-          <Route path="/partners/:id" element={<PartnerDetail />} />
-          <Route path="/events" element={<UpcomingEvents />} />
-          <Route path="/settings" element={<Settings />} />
+          {userRole === "partner-only" ? (
+            <>
+              <Route path="/" element={<Navigate to="/partners" replace />} />
+              <Route path="/partners" element={<PartnerList />} />
+              <Route path="/partners/new" element={<PartnerNew />} />
+              <Route path="/partners/:id" element={<PartnerDetail />} />
+              <Route path="/settings" element={<Settings />} />
+              {/* Redirect any disallowed route to /partners */}
+              <Route path="*" element={<Navigate to="/partners" replace />} />
+            </>
+          ) : (
+            <>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/volunteers" element={<VolunteerList />} />
+              <Route path="/volunteers/new" element={<VolunteerNew />} />
+              <Route path="/volunteers/:id" element={<VolunteerDetail />} />
+              <Route path="/partners" element={<PartnerList />} />
+              <Route path="/partners/new" element={<PartnerNew />} />
+              <Route path="/partners/:id" element={<PartnerDetail />} />
+              <Route path="/events" element={<UpcomingEvents />} />
+              <Route path="/settings" element={<Settings />} />
+            </>
+          )}
         </Routes>
       </Layout>
     </>
