@@ -148,3 +148,124 @@
 .participant-chip-remove:hover {
   opacity: 1;
 }
+
+/* ── E-Mail Actions Section ── */
+.email-actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.email-actions-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.email-participant-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.email-select-all {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.email-select-all:hover {
+  background: var(--color-surface-2, #f4f4f5);
+}
+
+.email-participant-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.email-participant-item:hover {
+  background: var(--color-surface-2, #f4f4f5);
+}
+
+.email-participant-item.no-email {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.email-participant-item input[type="checkbox"],
+.email-select-all input[type="checkbox"] {
+  accent-color: var(--color-primary, #4f46e5);
+}
+
+.email-participant-name {
+  font-weight: 500;
+  color: var(--color-text);
+  min-width: 120px;
+}
+
+.email-participant-email {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.email-action-buttons .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.email-action-buttons .btn-outlook {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #0078d4;
+  background: #0078d4;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.email-action-buttons .btn-outlook:hover {
+  background: #106ebe;
+  border-color: #106ebe;
+}
+
+.email-action-buttons .btn-outlook:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

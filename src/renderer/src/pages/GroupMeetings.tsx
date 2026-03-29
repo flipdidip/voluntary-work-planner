@@ -1,13 +1,18 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Users2 } from "lucide-react";
+import { Plus, Trash2, Users2, Mail, Globe } from "lucide-react";
 import { format, parseISO, isSameDay, isBefore, startOfDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
+import { useVolunteerIndex } from "../hooks/useVolunteers";
+import { usePartnerIndex } from "../hooks/usePartners";
+import { GroupMeeting } from "@shared/types";
 import "./GroupMeetings.css";
 
 export default function GroupMeetings(): JSX.Element {
   const { index, loading, refresh } = useGroupMeetings();
+  const { index: volunteerIndex } = useVolunteerIndex();
+  const { index: partnerIndex } = usePartnerIndex();
   const navigate = useNavigate();
 
   const meetings = useMemo(() => {
@@ -28,6 +33,55 @@ export default function GroupMeetings(): JSX.Element {
     if (!confirm("Dieses Gruppentreffen wirklich löschen?")) return;
     await window.api.deleteGroupMeeting(meetingId);
     refresh();
+  };
+
+  const handleMailAll = (e: React.MouseEvent, meeting: GroupMeeting): void => {
+    e.stopPropagation();
+    const emails: string[] = [];
+    for (const p of meeting.participants) {
+      const source =
+        p.type === "volunteer"
+          ? volunteerIndex?.volunteers
+          : partnerIndex?.volunteers;
+      const entry = source?.find((v) => v.id === p.id);
+      if (entry?.email?.trim()) emails.push(entry.email.trim());
+    }
+    if (emails.length === 0) {
+      alert("Keine E-Mail-Adressen bei den Teilnehmern hinterlegt.");
+      return;
+    }
+    const formattedDate = format(parseISO(meeting.date), "dd.MM.yyyy", {
+      locale: de,
+    });
+    const subject = encodeURIComponent(`${meeting.title} – ${formattedDate}`);
+    const mailto = `mailto:${emails.map((e) => encodeURIComponent(e)).join(",")}?subject=${subject}`;
+    window.api.openExternalUrl(mailto);
+  };
+
+  const handleOutlookWebAll = (
+    e: React.MouseEvent,
+    meeting: GroupMeeting,
+  ): void => {
+    e.stopPropagation();
+    const emails: string[] = [];
+    for (const p of meeting.participants) {
+      const source =
+        p.type === "volunteer"
+          ? volunteerIndex?.volunteers
+          : partnerIndex?.volunteers;
+      const entry = source?.find((v) => v.id === p.id);
+      if (entry?.email?.trim()) emails.push(entry.email.trim());
+    }
+    if (emails.length === 0) {
+      alert("Keine E-Mail-Adressen bei den Teilnehmern hinterlegt.");
+      return;
+    }
+    const to = emails.join(";");
+    const fmtDate = format(parseISO(meeting.date), "dd.MM.yyyy", {
+      locale: de,
+    });
+    const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(`${meeting.title} – ${fmtDate}`)}`;
+    window.api.openExternalUrl(url);
   };
 
   return (
@@ -89,6 +143,20 @@ export default function GroupMeetings(): JSX.Element {
                 )}
               </div>
               <div className="meeting-actions">
+                <button
+                  className="btn-icon-mail"
+                  title="E-Mail an alle Teilnehmer"
+                  onClick={(e) => handleMailAll(e, m)}
+                >
+                  <Mail size={14} />
+                </button>
+                <button
+                  className="btn-icon-mail"
+                  title="Outlook Web öffnen"
+                  onClick={(e) => handleOutlookWebAll(e, m)}
+                >
+                  <Globe size={14} />
+                </button>
                 <button
                   className="btn-icon-danger"
                   title="Löschen"

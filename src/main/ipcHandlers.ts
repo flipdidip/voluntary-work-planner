@@ -839,6 +839,12 @@ export function registerVolunteerHandlers(
     return { success: true };
   });
 
+  // Utilities
+  ipcMain.handle(IPC.OPEN_EXTERNAL_URL, async (_event, url: string) => {
+    const { shell } = require("electron") as typeof import("electron");
+    await shell.openExternal(url);
+  });
+
   // App info
   ipcMain.handle(IPC.GET_APP_VERSION, () => {
     const { app } = require("electron") as typeof import("electron");

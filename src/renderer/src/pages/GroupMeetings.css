@@ -86,6 +86,26 @@
   background: rgba(229, 57, 53, 0.06);
 }
 
+.group-meetings-page .btn-icon-mail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.group-meetings-page .btn-icon-mail:hover {
+  color: var(--color-primary, #4f46e5);
+  border-color: var(--color-primary, #4f46e5);
+  background: rgba(79, 70, 229, 0.06);
+}
+
 .group-meetings-page .empty-hint {
   text-align: center;
   padding: 40px 0;

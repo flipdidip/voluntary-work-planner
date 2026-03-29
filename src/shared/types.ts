@@ -436,6 +436,9 @@ export const IPC = {
   SIMULATE_REMINDER: "simulate-reminder",
   REMINDER_TRIGGERED: "reminder-triggered", // main → renderer push event
 
+  // Utilities
+  OPEN_EXTERNAL_URL: "open-external-url",
+
   // App info
   GET_APP_VERSION: "get-app-version",
 } as const;

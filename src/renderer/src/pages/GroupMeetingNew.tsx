@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, Copy, Mail, Check, Globe } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { de } from "date-fns/locale";
 import { v4 as uuidv4 } from "uuid";
 import {
   GroupMeeting,
@@ -31,6 +33,8 @@ export default function GroupMeetingNew(): JSX.Element {
   );
   const [activeTab, setActiveTab] = useState<ParticipantTab>("volunteer");
   const [saving, setSaving] = useState(false);
+  const [emailSelection, setEmailSelection] = useState<Set<string>>(new Set());
+  const [emailCopied, setEmailCopied] = useState(false);
 
   // If editing, load existing meeting
   useEffect(() => {
@@ -57,6 +61,75 @@ export default function GroupMeetingNew(): JSX.Element {
   );
 
   const currentList = activeTab === "volunteer" ? volunteers : partners;
+
+  // ── E-Mail helpers ──
+  const participantEmails = useMemo(() => {
+    const emailMap: Record<string, string | undefined> = {};
+    for (const p of participants) {
+      const source = p.type === "volunteer" ? volunteers : partners;
+      const entry = source.find((e) => e.id === p.id);
+      emailMap[p.id] = entry?.email;
+    }
+    return emailMap;
+  }, [participants, volunteers, partners]);
+
+  const participantsWithEmail = useMemo(
+    () => participants.filter((p) => participantEmails[p.id]?.trim()),
+    [participants, participantEmails],
+  );
+
+  const selectedEmails = useMemo(
+    () =>
+      [...emailSelection]
+        .map((id) => participantEmails[id])
+        .filter((e): e is string => !!e && e.trim() !== ""),
+    [emailSelection, participantEmails],
+  );
+
+  const toggleEmailSelection = (id: string): void => {
+    setEmailSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllEmails = (): void => {
+    setEmailSelection(new Set(participantsWithEmail.map((p) => p.id)));
+  };
+
+  const deselectAllEmails = (): void => {
+    setEmailSelection(new Set());
+  };
+
+  const copyEmailsToClipboard = async (): Promise<void> => {
+    if (selectedEmails.length === 0) return;
+    await navigator.clipboard.writeText(selectedEmails.join("; "));
+    setEmailCopied(true);
+    setTimeout(() => setEmailCopied(false), 2000);
+  };
+
+  const openMailto = (): void => {
+    if (selectedEmails.length === 0) return;
+    const formattedDate = date
+      ? format(parseISO(date), "dd.MM.yyyy", { locale: de })
+      : "";
+    const subject = encodeURIComponent(`${title.trim()} – ${formattedDate}`);
+    const mailto = `mailto:${selectedEmails.map((e) => encodeURIComponent(e)).join(",")}?subject=${subject}`;
+    window.api.openExternalUrl(mailto);
+  };
+
+  const openOutlookWeb = (): void => {
+    if (selectedEmails.length === 0) return;
+    const to = selectedEmails.join(";");
+    const formattedDate = date
+      ? format(parseISO(date), "dd.MM.yyyy", { locale: de })
+      : "";
+    const subject = `${title.trim()} – ${formattedDate}`;
+    const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}`;
+    window.api.openExternalUrl(url);
+  };
 
   const isParticipantSelected = (entryId: string): boolean =>
     participants.some((p) => p.id === entryId);
@@ -239,6 +312,93 @@ export default function GroupMeetingNew(): JSX.Element {
             ))}
           </div>
         </div>
+
+        {/* ── E-Mail Actions ── */}
+        {participants.length > 0 && (
+          <div className="email-actions-section">
+            <h3>
+              <Mail size={16} /> E-Mail Aktionen
+            </h3>
+
+            <div className="email-participant-list">
+              <label className="email-select-all">
+                <input
+                  type="checkbox"
+                  checked={
+                    emailSelection.size === participantsWithEmail.length &&
+                    participantsWithEmail.length > 0
+                  }
+                  onChange={() =>
+                    emailSelection.size === participantsWithEmail.length
+                      ? deselectAllEmails()
+                      : selectAllEmails()
+                  }
+                  disabled={participantsWithEmail.length === 0}
+                />
+                Alle auswählen ({participantsWithEmail.length} mit E-Mail)
+              </label>
+
+              {participants.map((p) => {
+                const email = participantEmails[p.id];
+                const hasEmail = !!email?.trim();
+                return (
+                  <label
+                    key={p.id}
+                    className={`email-participant-item${hasEmail ? "" : " no-email"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={emailSelection.has(p.id)}
+                      onChange={() => toggleEmailSelection(p.id)}
+                      disabled={!hasEmail}
+                    />
+                    <span className="email-participant-name">{p.name}</span>
+                    <span className="email-participant-email">
+                      {hasEmail ? email : "Keine E-Mail hinterlegt"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="email-action-buttons">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={selectedEmails.length === 0}
+                onClick={copyEmailsToClipboard}
+              >
+                {emailCopied ? (
+                  <>
+                    <Check size={14} /> Kopiert!
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} /> E-Mails kopieren ({selectedEmails.length}
+                    )
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={selectedEmails.length === 0}
+                onClick={openMailto}
+              >
+                <Mail size={14} /> E-Mail Programm öffnen (
+                {selectedEmails.length})
+              </button>
+              <button
+                type="button"
+                className="btn btn-outlook"
+                disabled={selectedEmails.length === 0}
+                onClick={openOutlookWeb}
+              >
+                <Globe size={14} /> Outlook Web ({selectedEmails.length})
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="new-form-actions">
           <button

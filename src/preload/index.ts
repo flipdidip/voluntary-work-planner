@@ -177,6 +177,10 @@ const api = {
     ipcRenderer.removeAllListeners(IPC.REMINDER_TRIGGERED);
   },
 
+  // Utilities
+  openExternalUrl: (url: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.OPEN_EXTERNAL_URL, url),
+
   // App
   getAppVersion: (): Promise<string> => ipcRenderer.invoke(IPC.GET_APP_VERSION),
 };
