@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, Settings, Bell, Calendar } from "lucide-react";
+import { LayoutDashboard, Users, Settings, Calendar } from "lucide-react";
 import { ReactNode } from "react";
 import "./Layout.css";
 
@@ -23,7 +23,7 @@ export default function Layout({
     <div className="layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <Bell size={22} className="logo-icon" />
+          <img src="/app-icon.ico" alt="App Icon" width={22} height={22} className="logo-icon" />
           <span>
             Ehrenamt
             <br />
