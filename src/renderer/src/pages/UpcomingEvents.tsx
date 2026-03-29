@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Users2,
+  Plus,
 } from "lucide-react";
 import {
   format,
@@ -212,7 +213,19 @@ export default function UpcomingEvents(): JSX.Element {
                   key={dateKey}
                   className={`cal-day${isCurrentMonth ? "" : " cal-day--other"}${isToday ? " cal-day--today" : ""}${dayEvents.length > 0 ? " cal-day--has-events" : ""}`}
                 >
-                  <span className="cal-day-number">{format(day, "d")}</span>
+                  <div className="cal-day-header">
+                    <span className="cal-day-number">{format(day, "d")}</span>
+                    <button
+                      className="cal-day-add-btn"
+                      title="Gruppentreffen erstellen"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/meetings/new?date=${dateKey}`);
+                      }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
                   {dayEvents.length > 0 && (
                     <div className="cal-day-events">
                       {dayEvents.map((ev) => {
