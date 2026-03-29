@@ -1,0 +1,100 @@
+.group-meetings-page .page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.group-meetings-page .meeting-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group-meetings-page .meeting-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.group-meetings-page .meeting-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.group-meetings-page .meeting-date {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+.group-meetings-page .meeting-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  flex: 1;
+}
+
+.group-meetings-page .meeting-participants {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.group-meetings-page .participant-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.group-meetings-page .participant-badge.type-volunteer {
+  background: var(--color-badge-blue-bg);
+  color: var(--color-badge-blue-fg);
+}
+
+.group-meetings-page .participant-badge.type-partner {
+  background: var(--color-badge-teal-bg);
+  color: var(--color-badge-teal-fg);
+}
+
+.group-meetings-page .meeting-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.group-meetings-page .btn-icon-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.group-meetings-page .btn-icon-danger:hover {
+  color: var(--color-danger, #e53935);
+  border-color: var(--color-danger, #e53935);
+  background: rgba(229, 57, 53, 0.06);
+}
+
+.group-meetings-page .empty-hint {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.group-meetings-page .meeting-past {
+  opacity: 0.6;
+}
+
+.group-meetings-page .meeting-today {
+  border-left: 3px solid var(--color-primary, #4f46e5);
+}

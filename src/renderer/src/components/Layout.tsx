@@ -5,6 +5,7 @@ import {
   Settings,
   Calendar,
   Handshake,
+  Users2,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { UserRole } from "@shared/types";
@@ -26,6 +27,12 @@ const navItems = [
   },
   { to: "/events", label: "Ereignisse", icon: Calendar, primaryOnly: true },
   { to: "/volunteers", label: "Ehrenamtliche", icon: Users, primaryOnly: true },
+  {
+    to: "/meetings",
+    label: "Gruppen Treffen",
+    icon: Users2,
+    primaryOnly: true,
+  },
   {
     to: "/partners",
     label: "Kooperationspartner",

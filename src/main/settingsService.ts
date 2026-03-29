@@ -85,4 +85,9 @@ export class SettingsService {
   getPartnerAttachmentsPath(): string {
     return join(this.settings.dataFolderPath, "partner-attachments");
   }
+
+  // Group meetings paths
+  getMeetingsPath(): string {
+    return join(this.settings.dataFolderPath, "meetings.json");
+  }
 }

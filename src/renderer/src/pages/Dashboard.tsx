@@ -10,6 +10,7 @@ import {
   Clock,
   Award,
   CheckCircle,
+  Users2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
@@ -56,6 +57,11 @@ function getEventKindInfo(kind: UpcomingEvent["kind"]) {
       label: "Erinnerung",
       color: "badge-purple",
     },
+    "group-meeting": {
+      icon: <Users2 size={14} />,
+      label: "Gruppentreffen",
+      color: "badge-teal",
+    },
   };
   return info[kind];
 }
@@ -78,11 +84,13 @@ export default function Dashboard(): JSX.Element {
     const loadUpcoming = async (): Promise<void> => {
       try {
         const settings = await window.api.getSettings();
+        const meetingsIdx = await window.api.getGroupMeetings();
         const events = await calculateUpcomingEvents(
           index,
           settings,
           (id) => window.api.getVolunteer(id),
           { daysLimit: 30 },
+          meetingsIdx,
         );
 
         if (!cancelled) {
@@ -191,7 +199,11 @@ export default function Dashboard(): JSX.Element {
               <div
                 key={`${ev.volunteerId}-${ev.date}`}
                 className="upcoming-item card"
-                onClick={() => navigate(`/volunteers/${ev.volunteerId}`)}
+                onClick={() =>
+                  ev.meetingId
+                    ? navigate(`/meetings/${ev.meetingId}`)
+                    : navigate(`/volunteers/${ev.volunteerId}`)
+                }
               >
                 <div
                   className={`upcoming-badge ${ev.daysUntil === 0 ? "badge-green" : "badge-purple"} badge`}
