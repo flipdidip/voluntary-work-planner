@@ -366,6 +366,11 @@ h3 {
 .btn-primary:hover {
   background: var(--color-primary-hover);
 }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
 .btn-secondary {
   background: var(--color-surface-2);
   color: var(--color-text);
@@ -373,6 +378,11 @@ h3 {
 }
 .btn-secondary:hover {
   background: var(--color-border);
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
 }
 .btn-danger {
   background: var(--color-danger);
@@ -388,6 +398,11 @@ h3 {
 .btn-ghost:hover {
   background: var(--color-surface-2);
   color: var(--color-text);
+}
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
 }
 
 /* Form inputs */

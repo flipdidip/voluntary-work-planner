@@ -6,7 +6,16 @@ import {
   type SetStateAction,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { UserPlus, Search, Mail, Phone, X } from "lucide-react";
+import {
+  UserPlus,
+  Search,
+  Mail,
+  Phone,
+  X,
+  Copy,
+  Check,
+  Globe,
+} from "lucide-react";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
 import {
   VolunteerStatus,
@@ -73,6 +82,8 @@ export default function VolunteerList(): JSX.Element {
     expired: "off",
     missing: "off",
   });
+  const [emailSelection, setEmailSelection] = useState<Set<string>>(new Set());
+  const [emailCopied, setEmailCopied] = useState(false);
 
   const statusFromQuery = searchParams.get("status");
 
@@ -386,6 +397,58 @@ export default function VolunteerList(): JSX.Element {
     (joinedFilter !== null && joinedFilterMode !== "off") ||
     Object.values(requirementStatusFilters).some((mode) => mode !== "off");
 
+  // ── E-Mail helpers ──
+  const filteredWithEmail = useMemo(
+    () => filtered.filter((v) => v.email?.trim()),
+    [filtered],
+  );
+
+  const selectedEmails = useMemo(
+    () =>
+      [...emailSelection]
+        .map((id) => filtered.find((v) => v.id === id)?.email)
+        .filter((e): e is string => !!e?.trim()),
+    [emailSelection, filtered],
+  );
+
+  const toggleEmailSelect = (id: string, e: React.MouseEvent): void => {
+    e.stopPropagation();
+    setEmailSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllEmails = (): void => {
+    setEmailSelection(new Set(filteredWithEmail.map((v) => v.id)));
+  };
+
+  const deselectAllEmails = (): void => {
+    setEmailSelection(new Set());
+  };
+
+  const copyEmailsToClipboard = async (): Promise<void> => {
+    if (selectedEmails.length === 0) return;
+    await navigator.clipboard.writeText(selectedEmails.join("; "));
+    setEmailCopied(true);
+    setTimeout(() => setEmailCopied(false), 2000);
+  };
+
+  const openMailto = (): void => {
+    if (selectedEmails.length === 0) return;
+    const mailto = `mailto:${selectedEmails.map((e) => encodeURIComponent(e)).join(",")}`;
+    window.api.openExternalUrl(mailto);
+  };
+
+  const openOutlookWeb = (): void => {
+    if (selectedEmails.length === 0) return;
+    const to = selectedEmails.join(";");
+    const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}`;
+    window.api.openExternalUrl(url);
+  };
+
   return (
     <div className="volunteer-list-page">
       <div className="page-header-row">
@@ -518,6 +581,68 @@ export default function VolunteerList(): JSX.Element {
 
       {loading && <p className="text-muted">Lade...</p>}
 
+      {/* E-Mail selection bar */}
+      {filteredWithEmail.length > 0 && (
+        <div className="email-bar">
+          <label className="email-bar-select-all">
+            <input
+              type="checkbox"
+              checked={
+                emailSelection.size === filteredWithEmail.length &&
+                filteredWithEmail.length > 0
+              }
+              onChange={() =>
+                emailSelection.size === filteredWithEmail.length
+                  ? deselectAllEmails()
+                  : selectAllEmails()
+              }
+            />
+            {emailSelection.size > 0
+              ? `${emailSelection.size} von ${filteredWithEmail.length} ausgewählt`
+              : `Alle mit E-Mail auswählen (${filteredWithEmail.length})`}
+          </label>
+          <div className="email-bar-actions">
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={selectedEmails.length === 0}
+              onClick={copyEmailsToClipboard}
+            >
+              {emailCopied ? (
+                <>
+                  <Check size={14} /> Kopiert!
+                </>
+              ) : (
+                <>
+                  <Copy size={14} /> Kopieren
+                </>
+              )}
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              disabled={selectedEmails.length === 0}
+              onClick={openMailto}
+            >
+              <Mail size={14} /> E-Mail
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={selectedEmails.length === 0}
+              onClick={openOutlookWeb}
+            >
+              <Globe size={14} /> Outlook Web
+            </button>
+            {emailSelection.size > 0 && (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={deselectAllEmails}
+              >
+                <X size={14} /> Auswahl aufheben
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="volunteer-table card">
         {filtered.length === 0 && !loading && (
           <p className="empty-hint">Keine Einträge gefunden.</p>
@@ -529,9 +654,24 @@ export default function VolunteerList(): JSX.Element {
           return (
             <div
               key={v.id}
-              className="volunteer-row"
+              className={`volunteer-row${emailSelection.has(v.id) ? " email-selected" : ""}`}
               onClick={() => navigate(`/volunteers/${v.id}`)}
             >
+              {filteredWithEmail.length > 0 && (
+                <div
+                  className="vol-email-check"
+                  onClick={(e) => {
+                    if (v.email?.trim()) toggleEmailSelect(v.id, e);
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={emailSelection.has(v.id)}
+                    disabled={!v.email?.trim()}
+                    readOnly
+                  />
+                </div>
+              )}
               <div className="vol-avatar">
                 {v.firstName[0]}
                 {v.lastName[0]}

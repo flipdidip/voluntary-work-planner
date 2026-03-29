@@ -390,7 +390,7 @@ export default function GroupMeetingNew(): JSX.Element {
               </button>
               <button
                 type="button"
-                className="btn btn-outlook"
+                className="btn btn-secondary"
                 disabled={selectedEmails.length === 0}
                 onClick={openOutlookWeb}
               >
