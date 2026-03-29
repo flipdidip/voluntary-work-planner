@@ -7,6 +7,7 @@ import {
   ProcessingActivitiesDocument,
   BusinessAuditEntry,
   UserRole,
+  GroupMeeting,
 } from "@shared/types";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
@@ -15,6 +16,7 @@ import { mkdirSync } from "fs";
 import { DataCryptoService } from "./dataCryptoService";
 import { ProcessingActivitiesService } from "./processingActivitiesService";
 import { BusinessAuditService } from "./businessAuditService";
+import { GroupMeetingService } from "./groupMeetingService";
 
 function getFileService(
   settings: SettingsService,
@@ -128,6 +130,29 @@ function getBusinessAuditService(
 
   cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
   return new BusinessAuditService(dataPath, cryptoService);
+}
+
+function getGroupMeetingService(
+  settings: SettingsService,
+): GroupMeetingService | null {
+  const dataPath = settings.getDataFolderPath();
+  if (!dataPath) return null;
+
+  const cryptoService = DataCryptoService.getInstance();
+  const cryptoStatus = cryptoService.getStatus(dataPath);
+  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
+    throw new Error(
+      cryptoStatus.message ||
+        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
+    );
+  }
+
+  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
+  return new GroupMeetingService(
+    dataPath,
+    settings.getMeetingsPath(),
+    cryptoService,
+  );
 }
 
 function appendBusinessAudit(
@@ -621,6 +646,66 @@ export function registerVolunteerHandlers(
         details: existing
           ? `${existing.firstName} ${existing.lastName}`
           : "Datensatz geloescht",
+      });
+    } catch {
+      return;
+    }
+  });
+
+  // Group meetings (Gruppen Treffen) CRUD
+  ipcMain.handle(IPC.GET_GROUP_MEETINGS, () => {
+    try {
+      const svc = getGroupMeetingService(settings);
+      if (!svc)
+        return {
+          _version: 0,
+          _updatedAt: new Date().toISOString(),
+          meetings: [],
+        };
+      return svc.readAll();
+    } catch {
+      return {
+        _version: 0,
+        _updatedAt: new Date().toISOString(),
+        meetings: [],
+      };
+    }
+  });
+
+  ipcMain.handle(IPC.SAVE_GROUP_MEETING, (_event, meeting: GroupMeeting) => {
+    try {
+      const svc = getGroupMeetingService(settings);
+      if (!svc) {
+        return { success: false, error: "Kein Datenordner konfiguriert." };
+      }
+
+      const isNew = !meeting._createdAt;
+      if (!meeting.id) {
+        meeting.id = uuidv4();
+      }
+
+      const saved = svc.save(meeting);
+      appendBusinessAudit(settings, {
+        action: isNew ? "group-meeting-created" : "group-meeting-updated",
+        subjectType: "group-meeting",
+        subjectId: saved.id,
+        details: `${saved.title} (${saved.date})`,
+      });
+      return { success: true, meeting: saved };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle(IPC.DELETE_GROUP_MEETING, (_event, meetingId: string) => {
+    try {
+      const svc = getGroupMeetingService(settings);
+      if (!svc) return;
+      svc.delete(meetingId);
+      appendBusinessAudit(settings, {
+        action: "group-meeting-deleted",
+        subjectType: "group-meeting",
+        subjectId: meetingId,
       });
     } catch {
       return;

@@ -9,6 +9,7 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
+  Users2,
 } from "lucide-react";
 import {
   format,
@@ -68,6 +69,11 @@ function getEventKindInfo(kind: UpcomingEvent["kind"]) {
       label: "Erinnerung",
       color: "badge-purple",
     },
+    "group-meeting": {
+      icon: <Users2 size={12} />,
+      label: "Gruppentreffen",
+      color: "badge-teal",
+    },
   };
   return info[kind];
 }
@@ -93,8 +99,13 @@ export default function UpcomingEvents(): JSX.Element {
       try {
         setEventsLoading(true);
         const settings = await globalThis.api.getSettings();
-        const result = await calculateUpcomingEvents(index, settings, (id) =>
-          globalThis.api.getVolunteer(id),
+        const meetingsIdx = await globalThis.api.getGroupMeetings();
+        const result = await calculateUpcomingEvents(
+          index,
+          settings,
+          (id) => globalThis.api.getVolunteer(id),
+          undefined,
+          meetingsIdx,
         );
 
         if (!cancelled) {
@@ -212,7 +223,9 @@ export default function UpcomingEvents(): JSX.Element {
                             className={`cal-event-pill ${kindInfo.color}`}
                             title={`${ev.volunteerName} – ${ev.label}`}
                             onClick={() =>
-                              navigate(`/volunteers/${ev.volunteerId}`)
+                              ev.meetingId
+                                ? navigate(`/meetings/${ev.meetingId}`)
+                                : navigate(`/volunteers/${ev.volunteerId}`)
                             }
                           >
                             <span className="cal-event-icon">

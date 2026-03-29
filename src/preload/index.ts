@@ -10,6 +10,8 @@ import {
   EnrollmentRequestSummary,
   ProcessingActivitiesDocument,
   UserRole,
+  GroupMeeting,
+  GroupMeetingIndex,
 } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
@@ -118,6 +120,18 @@ const api = {
     ipcRenderer.invoke(IPC.SAVE_PARTNER, partner),
 
   deletePartner: (id: string) => ipcRenderer.invoke(IPC.DELETE_PARTNER, id),
+
+  // Group meetings (Gruppen Treffen)
+  getGroupMeetings: (): Promise<GroupMeetingIndex> =>
+    ipcRenderer.invoke(IPC.GET_GROUP_MEETINGS),
+
+  saveGroupMeeting: (
+    meeting: GroupMeeting,
+  ): Promise<{ success: boolean; meeting?: GroupMeeting; error?: string }> =>
+    ipcRenderer.invoke(IPC.SAVE_GROUP_MEETING, meeting),
+
+  deleteGroupMeeting: (meetingId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.DELETE_GROUP_MEETING, meetingId),
 
   // File attachments
   selectFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.SELECT_FILE),

@@ -1,0 +1,150 @@
+.group-meeting-new .page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.group-meeting-new .new-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.group-meeting-new .new-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.group-meeting-new .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.group-meeting-new .new-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Participant picker */
+.participant-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.participant-section h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.participant-type-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.participant-type-tab {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.participant-type-tab:hover {
+  background: var(--color-surface-2);
+}
+
+.participant-type-tab.active {
+  background: var(--color-primary, #4f46e5);
+  color: #fff;
+  border-color: var(--color-primary, #4f46e5);
+}
+
+.participant-picker-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.participant-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  font-size: 0.85rem;
+}
+
+.participant-pick-item:hover {
+  background: var(--color-surface-2, #f4f4f5);
+}
+
+.participant-pick-item input[type="checkbox"] {
+  accent-color: var(--color-primary, #4f46e5);
+}
+
+.selected-participants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 32px;
+}
+
+.selected-participant-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.selected-participant-chip:hover {
+  opacity: 0.7;
+}
+
+.selected-participant-chip.type-volunteer {
+  background: var(--color-badge-blue-bg);
+  color: var(--color-badge-blue-fg);
+}
+
+.selected-participant-chip.type-partner {
+  background: var(--color-badge-teal-bg);
+  color: var(--color-badge-teal-fg);
+}
+
+.participant-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.participant-chip-remove:hover {
+  opacity: 1;
+}

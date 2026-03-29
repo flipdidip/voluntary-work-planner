@@ -355,6 +355,34 @@ export function createDefaultProcessingActivitiesDocument(): ProcessingActivitie
 }
 
 // ─────────────────────────────────────────────────
+// Group meetings (Gruppen Treffen)
+// ─────────────────────────────────────────────────
+
+export type GroupMeetingParticipantType = "volunteer" | "partner";
+
+export interface GroupMeetingParticipant {
+  id: string; // volunteer or partner ID
+  name: string; // display name (cached for index)
+  type: GroupMeetingParticipantType;
+}
+
+export interface GroupMeeting {
+  id: string;
+  title: string;
+  date: string; // ISO date (YYYY-MM-DD)
+  participants: GroupMeetingParticipant[];
+  notes?: string;
+  _createdAt: string;
+  _updatedAt: string;
+}
+
+export interface GroupMeetingIndex {
+  _version: number;
+  _updatedAt: string;
+  meetings: GroupMeeting[];
+}
+
+// ─────────────────────────────────────────────────
 // IPC channel names (type-safe)
 // ─────────────────────────────────────────────────
 
@@ -396,6 +424,11 @@ export const IPC = {
   DELETE_FILE: "delete-file",
   OPEN_FILE: "open-file",
   SELECT_FILE: "select-file",
+
+  // Group meetings (Gruppen Treffen)
+  GET_GROUP_MEETINGS: "get-group-meetings",
+  SAVE_GROUP_MEETING: "save-group-meeting",
+  DELETE_GROUP_MEETING: "delete-group-meeting",
 
   // Reminders
   GET_DUE_REMINDERS: "get-due-reminders",
@@ -452,14 +485,18 @@ export type BusinessAuditAction =
   | "file-deleted"
   | "file-opened"
   | "processing-activities-saved"
-  | "processing-activities-exported";
+  | "processing-activities-exported"
+  | "group-meeting-created"
+  | "group-meeting-updated"
+  | "group-meeting-deleted";
 
 export type BusinessAuditSubjectType =
   | "settings"
   | "volunteer"
   | "partner"
   | "attachment"
-  | "processing-activities";
+  | "processing-activities"
+  | "group-meeting";
 
 export interface BusinessAuditEntry {
   timestamp: string;

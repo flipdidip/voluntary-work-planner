@@ -14,6 +14,7 @@ import {
   calculateActivityTime,
   calculateRequirementExpiryDate,
   REQUIREMENT_DEFINITIONS,
+  GroupMeetingIndex,
 } from "./types";
 
 export interface UpcomingEvent {
@@ -28,6 +29,7 @@ export interface UpcomingEvent {
    * - anniversary-activity: Activity time anniversary
    * - requirement-renewal: Requirement/qualification renewal
    * - custom: Custom reminder
+   * - group-meeting: Group meeting appointment
    */
   kind:
     | "birthday"
@@ -35,10 +37,13 @@ export interface UpcomingEvent {
     | "anniversary-joined"
     | "anniversary-activity"
     | "requirement-renewal"
-    | "custom";
+    | "custom"
+    | "group-meeting";
   label: string;
   daysUntil: number;
   date: string;
+  /** For group-meeting kind: the meeting ID for navigation */
+  meetingId?: string;
 }
 
 /**
@@ -127,6 +132,7 @@ export async function calculateUpcomingEvents(
   settings: AppSettings,
   getVolunteerFull?: (id: string) => Promise<Volunteer | null>,
   options: EventCalculationOptions = {},
+  meetingsIndex?: GroupMeetingIndex | null,
 ): Promise<UpcomingEvent[]> {
   const today = startOfDay(new Date());
   const events: UpcomingEvent[] = [];
@@ -363,6 +369,31 @@ export async function calculateUpcomingEvents(
       } catch {
         // Skip if volunteer cannot be loaded
         continue;
+      }
+    }
+  }
+
+  // ======== GROUP MEETING EVENTS ========
+  if (meetingsIndex) {
+    for (const meeting of meetingsIndex.meetings) {
+      const meetingDate = parseISO(meeting.date);
+      const daysUntil = differenceInCalendarDays(meetingDate, today);
+
+      if (isEventInRange(daysUntil)) {
+        const participantCount = meeting.participants.length;
+        const participantSuffix =
+          participantCount > 0 ? ` (${participantCount} Teilnehmer)` : "";
+
+        events.push({
+          volunteerId: meeting.id, // reuse field for the meeting ID
+          volunteerName: meeting.title,
+          eventType: "reminder",
+          kind: "group-meeting",
+          label: `Gruppentreffen${participantSuffix}`,
+          daysUntil,
+          date: format(meetingDate, "yyyy-MM-dd"),
+          meetingId: meeting.id,
+        });
       }
     }
   }
