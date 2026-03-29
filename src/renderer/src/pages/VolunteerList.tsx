@@ -571,41 +571,59 @@ export default function VolunteerList(): JSX.Element {
                 </span>
                 {v.requirementsStatus && (
                   <div className="vol-requirements">
-                    {(
-                      Object.keys(REQUIREMENT_DEFINITIONS) as RequirementType[]
-                    ).map((reqType) => {
-                      const status = v.requirementsStatus?.[reqType];
-                      const def = REQUIREMENT_DEFINITIONS[reqType];
-                      const shortLabel = def.label
-                        .split(" ")[0]
-                        .substring(0, 3)
-                        .toUpperCase();
+                    {(() => {
+                      const allTypes = Object.keys(
+                        REQUIREMENT_DEFINITIONS,
+                      ) as RequirementType[];
+                      const allComplete = allTypes.every(
+                        (t) => v.requirementsStatus?.[t] === "complete",
+                      );
 
-                      let className = "requirement-chip";
-                      if (status === "complete") {
-                        className += " requirement-chip--complete";
-                      } else if (status === "expired") {
-                        className += " requirement-chip--expired";
-                      } else {
-                        className += " requirement-chip--missing";
+                      if (allComplete) {
+                        return (
+                          <span
+                            className="requirement-chip requirement-chip--complete"
+                            title="Alle Qualifikationen vollständig"
+                          >
+                            ✓ QUALIFIZIERT
+                          </span>
+                        );
                       }
 
-                      return (
-                        <span
-                          key={reqType}
-                          className={className}
-                          title={`${def.label}: ${
-                            status === "complete"
-                              ? "Vollständig"
-                              : status === "expired"
-                                ? "Abgelaufen"
-                                : "Fehlend"
-                          }`}
-                        >
-                          {shortLabel}
-                        </span>
-                      );
-                    })}
+                      return allTypes.map((reqType) => {
+                        const status = v.requirementsStatus?.[reqType];
+                        const def = REQUIREMENT_DEFINITIONS[reqType];
+                        const shortLabel = def.label
+                          .split(" ")[0]
+                          .substring(0, 3)
+                          .toUpperCase();
+
+                        let className = "requirement-chip";
+                        if (status === "complete") {
+                          className += " requirement-chip--complete";
+                        } else if (status === "expired") {
+                          className += " requirement-chip--expired";
+                        } else {
+                          className += " requirement-chip--missing";
+                        }
+
+                        return (
+                          <span
+                            key={reqType}
+                            className={className}
+                            title={`${def.label}: ${
+                              status === "complete"
+                                ? "Vollständig"
+                                : status === "expired"
+                                  ? "Abgelaufen"
+                                  : "Fehlend"
+                            }`}
+                          >
+                            {shortLabel}
+                          </span>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>
