@@ -1,5 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, Settings, Calendar } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  Calendar,
+  Handshake,
+} from "lucide-react";
 import { ReactNode } from "react";
 import "./Layout.css";
 
@@ -12,6 +18,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/events", label: "Ereignisse", icon: Calendar },
   { to: "/volunteers", label: "Ehrenamtliche", icon: Users },
+  { to: "/partners", label: "Kooperationspartner", icon: Handshake },
   { to: "/settings", label: "Einstellungen", icon: Settings },
 ];
 

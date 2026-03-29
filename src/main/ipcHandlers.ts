@@ -47,6 +47,37 @@ function getFileService(
   );
 }
 
+function getPartnerFileService(
+  settings: SettingsService,
+): VolunteerFileService | null {
+  const dataPath = settings.getDataFolderPath();
+  if (!dataPath) return null;
+
+  const cryptoService = DataCryptoService.getInstance();
+  const cryptoStatus = cryptoService.getStatus(dataPath);
+  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
+    throw new Error(
+      cryptoStatus.message ||
+        "Dieser Benutzer hat noch keinen Zugriff auf den verschlüsselten Datenordner.",
+    );
+  }
+
+  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
+
+  mkdirSync(settings.getPartnersPath(), { recursive: true });
+  mkdirSync(settings.getPartnerBackupsPath(), { recursive: true });
+  mkdirSync(settings.getPartnerAttachmentsPath(), { recursive: true });
+
+  return new VolunteerFileService(
+    dataPath,
+    settings.getPartnersPath(),
+    settings.getPartnerIndexPath(),
+    settings.getPartnerBackupsPath(),
+    settings.getPartnerAttachmentsPath(),
+    cryptoService,
+  );
+}
+
 function bootstrapFolderEncryption(folderPath: string) {
   const cryptoService = DataCryptoService.getInstance();
   try {
@@ -139,6 +170,9 @@ export function registerVolunteerHandlers(
     mkdirSync(settings.getVolunteersPath(), { recursive: true });
     mkdirSync(settings.getBackupsPath(), { recursive: true });
     mkdirSync(settings.getAttachmentsPath(), { recursive: true });
+    mkdirSync(settings.getPartnersPath(), { recursive: true });
+    mkdirSync(settings.getPartnerBackupsPath(), { recursive: true });
+    mkdirSync(settings.getPartnerAttachmentsPath(), { recursive: true });
 
     const status = bootstrapFolderEncryption(folderPath);
     return { success: true, encryptionStatus: status };
@@ -157,6 +191,9 @@ export function registerVolunteerHandlers(
     mkdirSync(settings.getVolunteersPath(), { recursive: true });
     mkdirSync(settings.getBackupsPath(), { recursive: true });
     mkdirSync(settings.getAttachmentsPath(), { recursive: true });
+    mkdirSync(settings.getPartnersPath(), { recursive: true });
+    mkdirSync(settings.getPartnerBackupsPath(), { recursive: true });
+    mkdirSync(settings.getPartnerAttachmentsPath(), { recursive: true });
 
     bootstrapFolderEncryption(folderPath);
     return folderPath;
@@ -489,6 +526,92 @@ export function registerVolunteerHandlers(
       appendBusinessAudit(settings, {
         action: "volunteer-deleted",
         subjectType: "volunteer",
+        subjectId: id,
+        details: existing
+          ? `${existing.firstName} ${existing.lastName}`
+          : "Datensatz geloescht",
+      });
+    } catch {
+      return;
+    }
+  });
+
+  // Partner (Kooperationspartner) CRUD
+  ipcMain.handle(IPC.GET_PARTNER_INDEX, () => {
+    try {
+      const svc = getPartnerFileService(settings);
+      if (!svc) return null;
+      return svc.readIndex();
+    } catch {
+      return {
+        _version: 0,
+        _updatedAt: new Date().toISOString(),
+        volunteers: [],
+      };
+    }
+  });
+
+  ipcMain.handle(IPC.GET_PARTNER, (_event, id: string) => {
+    try {
+      const svc = getPartnerFileService(settings);
+      if (!svc) return null;
+      return svc.readVolunteer(id);
+    } catch {
+      return null;
+    }
+  });
+
+  ipcMain.handle(IPC.SAVE_PARTNER, (_event, partner: Volunteer): SaveResult => {
+    let svc: VolunteerFileService | null = null;
+    try {
+      svc = getPartnerFileService(settings);
+    } catch (error) {
+      return {
+        success: false,
+        reason: "io-error",
+        message: String(error),
+      };
+    }
+
+    if (!svc) {
+      return {
+        success: false,
+        reason: "io-error",
+        message: "Kein Datenordner konfiguriert.",
+      };
+    }
+
+    const existingBefore = partner.id ? svc.readVolunteer(partner.id) : null;
+
+    if (!partner.id) {
+      partner.id = uuidv4();
+      partner._version = 0;
+      partner._createdAt = new Date().toISOString();
+      partner._updatedAt = new Date().toISOString();
+    }
+
+    const result = svc.saveVolunteer(partner);
+    if (result.success) {
+      appendBusinessAudit(settings, {
+        action: existingBefore ? "partner-updated" : "partner-created",
+        subjectType: "partner",
+        subjectId: result.volunteer.id,
+        details: `${result.volunteer.firstName} ${result.volunteer.lastName}`,
+      });
+    }
+
+    return result;
+  });
+
+  ipcMain.handle(IPC.DELETE_PARTNER, (_event, id: string) => {
+    try {
+      const svc = getPartnerFileService(settings);
+      if (!svc) return;
+      const existing = svc.readVolunteer(id);
+      svc.deleteVolunteer(id);
+      appendBusinessAudit(settings, {
+        action: "partner-deleted",
+        subjectType: "partner",
         subjectId: id,
         details: existing
           ? `${existing.firstName} ${existing.lastName}`

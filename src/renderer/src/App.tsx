@@ -11,6 +11,9 @@ import Dashboard from "./pages/Dashboard";
 import VolunteerList from "./pages/VolunteerList";
 import VolunteerDetail from "./pages/VolunteerDetail";
 import VolunteerNew from "./pages/VolunteerNew";
+import PartnerList from "./pages/PartnerList";
+import PartnerDetail from "./pages/PartnerDetail";
+import PartnerNew from "./pages/PartnerNew";
 import Settings from "./pages/Settings";
 import UpcomingEvents from "./pages/UpcomingEvents";
 import ReminderToast from "./components/ReminderToast";
@@ -195,6 +198,9 @@ export default function App(): JSX.Element {
           <Route path="/volunteers" element={<VolunteerList />} />
           <Route path="/volunteers/new" element={<VolunteerNew />} />
           <Route path="/volunteers/:id" element={<VolunteerDetail />} />
+          <Route path="/partners" element={<PartnerList />} />
+          <Route path="/partners/new" element={<PartnerNew />} />
+          <Route path="/partners/:id" element={<PartnerDetail />} />
           <Route path="/events" element={<UpcomingEvents />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>

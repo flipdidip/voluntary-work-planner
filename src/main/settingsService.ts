@@ -68,4 +68,21 @@ export class SettingsService {
   getAttachmentsPath(): string {
     return join(this.settings.dataFolderPath, "attachments");
   }
+
+  // Partner paths
+  getPartnersPath(): string {
+    return join(this.settings.dataFolderPath, "partners");
+  }
+
+  getPartnerIndexPath(): string {
+    return join(this.settings.dataFolderPath, "partners-index.json");
+  }
+
+  getPartnerBackupsPath(): string {
+    return join(this.settings.dataFolderPath, "partner-backups");
+  }
+
+  getPartnerAttachmentsPath(): string {
+    return join(this.settings.dataFolderPath, "partner-attachments");
+  }
 }
