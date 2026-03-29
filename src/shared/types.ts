@@ -437,10 +437,13 @@ export interface BusinessAuditEntry {
 // App settings — stored in electron userData
 // ─────────────────────────────────────────────────
 
+export type ThemeMode = "system" | "light" | "dark";
+
 export interface AppSettings {
   dataFolderPath: string;
   reminderCheckIntervalMinutes: number;
   language: "de" | "en";
+  themeMode: ThemeMode;
   // Global birthday reminder settings
   enableYearlyBirthdayReminders: boolean;
   enableRoundBirthdayReminders: boolean;
@@ -466,6 +469,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dataFolderPath: "",
   reminderCheckIntervalMinutes: 60,
   language: "de",
+  themeMode: "system",
   enableYearlyBirthdayReminders: true,
   enableRoundBirthdayReminders: true,
   roundBirthdayYears: [50, 60, 70, 75, 80, 85, 90, 95, 100],

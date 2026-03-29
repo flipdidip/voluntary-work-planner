@@ -4,9 +4,12 @@ import {
   FileText,
   FolderOpen,
   Info,
+  Monitor,
+  Moon,
   Plus,
   Save,
   Shield,
+  Sun,
   Trash2,
 } from "lucide-react";
 import {
@@ -19,11 +22,13 @@ import {
   createDefaultProcessingActivitiesDocument,
 } from "@shared/types";
 import PrivacyPolicy from "../components/PrivacyPolicy";
+import { useTheme } from "../hooks/useTheme";
 import "./Settings.css";
 
 const DATA_FOLDER_CHANGED_EVENT = "vwp:data-folder-changed";
 
 export default function Settings(): JSX.Element {
+  const { themeMode, setThemeMode } = useTheme();
   const [dataPath, setDataPath] = useState("");
   const [interval, setInterval] = useState(60);
   const [saved, setSaved] = useState(false);
@@ -625,6 +630,37 @@ export default function Settings(): JSX.Element {
             </div>
           </details>
         )}
+      </div>
+
+      <div className="settings-card card">
+        <h2>Darstellung</h2>
+        <p className="hint">
+          Wähle das Farbschema der Anwendung. Standardmäßig wird die
+          Systemeinstellung übernommen.
+        </p>
+        <div className="theme-toggle-group">
+          <button
+            className={`theme-toggle-btn ${themeMode === "system" ? "theme-toggle-btn--active" : ""}`}
+            onClick={() => setThemeMode("system")}
+          >
+            <Monitor size={16} />
+            <span>System</span>
+          </button>
+          <button
+            className={`theme-toggle-btn ${themeMode === "light" ? "theme-toggle-btn--active" : ""}`}
+            onClick={() => setThemeMode("light")}
+          >
+            <Sun size={16} />
+            <span>Hell</span>
+          </button>
+          <button
+            className={`theme-toggle-btn ${themeMode === "dark" ? "theme-toggle-btn--active" : ""}`}
+            onClick={() => setThemeMode("dark")}
+          >
+            <Moon size={16} />
+            <span>Dunkel</span>
+          </button>
+        </div>
       </div>
 
       <div className="settings-card card">

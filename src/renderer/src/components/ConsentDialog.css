@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--color-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,7 +13,7 @@
 }
 
 .consent-dialog {
-  background: white;
+  background: var(--color-consent-surface);
   border-radius: 12px;
   max-width: 700px;
   width: 100%;
@@ -25,20 +25,20 @@
 
 .consent-header {
   padding: 2rem 2rem 1rem;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--color-consent-header-border);
   text-align: center;
 }
 
 .consent-header h2 {
   margin: 0 0 0.5rem;
   font-size: 1.8rem;
-  color: #2c3e50;
+  color: var(--color-consent-heading);
 }
 
 .consent-subtitle {
   margin: 0;
   font-size: 1rem;
-  color: #7f8c8d;
+  color: var(--color-consent-muted);
 }
 
 .consent-body {
@@ -53,7 +53,7 @@
 
 .consent-intro h3 {
   font-size: 1.3rem;
-  color: #2c3e50;
+  color: var(--color-consent-heading);
   margin-bottom: 0.5rem;
 }
 
@@ -61,11 +61,11 @@
 .consent-data-types,
 .consent-purpose,
 .consent-rights {
-  background: #f8f9fa;
+  background: var(--color-consent-section-bg);
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--color-consent-section-border);
 }
 
 .consent-highlights h4,
@@ -74,7 +74,7 @@
 .consent-rights h4 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
-  color: #2c3e50;
+  color: var(--color-consent-heading);
 }
 
 .consent-highlights ul {
@@ -92,7 +92,7 @@
   display: block;
   width: 100%;
   padding: 0.8rem;
-  background: #3498db;
+  background: var(--color-consent-link-btn);
   color: white;
   border: none;
   border-radius: 6px;
@@ -103,15 +103,15 @@
 }
 
 .consent-link-button:hover {
-  background: #2980b9;
+  background: var(--color-consent-link-btn-hover);
 }
 
 .consent-checkbox {
   margin: 1.5rem 0 1rem;
   padding: 1rem;
-  background: #fff3cd;
+  background: var(--color-consent-checkbox-bg);
   border-radius: 8px;
-  border: 2px solid #ffc107;
+  border: 2px solid var(--color-consent-checkbox-border);
 }
 
 .consent-checkbox label {
@@ -132,7 +132,7 @@
 .consent-checkbox span {
   flex: 1;
   line-height: 1.5;
-  color: #333;
+  color: var(--color-consent-checkbox-text);
 }
 
 .consent-full-policy {
@@ -144,7 +144,7 @@
   display: block;
   width: 100%;
   padding: 0.8rem;
-  background: #95a5a6;
+  background: var(--color-consent-back-btn);
   color: white;
   border: none;
   border-radius: 6px;
@@ -155,15 +155,15 @@
 }
 
 .consent-back-button:hover {
-  background: #7f8c8d;
+  background: var(--color-consent-back-btn-hover);
 }
 
 .consent-actions {
   display: flex;
   gap: 1rem;
   padding: 1.5rem 2rem;
-  border-top: 2px solid #e0e0e0;
-  background: #f8f9fa;
+  border-top: 2px solid var(--color-consent-header-border);
+  background: var(--color-consent-actions-bg);
 }
 
 .consent-button {
@@ -178,27 +178,27 @@
 }
 
 .consent-decline {
-  background: #e0e0e0;
-  color: #555;
+  background: var(--color-consent-decline-bg);
+  color: var(--color-consent-decline-fg);
 }
 
 .consent-decline:hover {
-  background: #bdc3c7;
+  background: var(--color-consent-decline-hover);
 }
 
 .consent-accept {
-  background: #27ae60;
+  background: var(--color-consent-accept-bg);
   color: white;
 }
 
 .consent-accept:hover:not(:disabled) {
-  background: #229954;
+  background: var(--color-consent-accept-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
 }
 
 .consent-accept:disabled {
-  background: #95a5a6;
+  background: var(--color-consent-disabled-bg);
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -208,6 +208,6 @@
   padding: 0 2rem 1.5rem;
   margin: 0;
   font-size: 0.85rem;
-  color: #7f8c8d;
+  color: var(--color-consent-note);
   font-style: italic;
 }

@@ -38,19 +38,19 @@
   justify-content: center;
 }
 .stat-icon--blue {
-  background: #dbeafe;
+  background: var(--color-stat-blue-bg);
   color: var(--color-primary);
 }
 .stat-icon--green {
-  background: #dcfce7;
+  background: var(--color-stat-green-bg);
   color: var(--color-success);
 }
 .stat-icon--gray {
-  background: #f1f5f9;
+  background: var(--color-stat-gray-bg);
   color: var(--color-secondary);
 }
 .stat-icon--purple {
-  background: #ede9fe;
+  background: var(--color-stat-purple-bg);
   color: var(--color-reminder);
 }
 
