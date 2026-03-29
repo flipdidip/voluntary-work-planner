@@ -1,55 +1,202 @@
-.events-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.event-row {
+/* ── Calendar navigation ── */
+.cal-nav {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  cursor: pointer;
-  transition: box-shadow 0.12s;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 12px;
 }
 
-.event-row:hover {
-  box-shadow: var(--shadow-md);
+.cal-nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
-.event-kind-badge {
-  display: flex;
+.cal-nav-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    box-shadow 0.12s;
 }
 
-.event-main {
-  flex: 1;
+.cal-nav-btn:hover {
+  background: var(--color-surface-2);
+  box-shadow: var(--shadow-sm);
+}
+
+.cal-nav-today {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.cal-nav-today:hover {
+  background: var(--color-primary-alpha);
+}
+
+/* ── Calendar grid ── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ── Day cells ── */
+.cal-day {
+  min-height: 90px;
+  padding: 4px 6px;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--color-surface);
+  transition: background 0.1s;
+}
+
+.cal-day:nth-child(7n + 7 + 7) {
+  /* last column: remove right border */
+  border-right: none;
+}
+
+.cal-day:hover {
+  background: var(--color-surface-2);
+}
+
+.cal-day--other {
+  background: var(--color-surface-2);
+  opacity: 0.5;
+}
+
+.cal-day--other:hover {
+  opacity: 0.7;
+}
+
+.cal-day--today {
+  background: var(--color-primary-alpha);
+}
+
+.cal-day--today .cal-day-number {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-day-number {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 24px;
+  margin-bottom: 2px;
+}
+
+/* ── Events inside day cells ── */
+.cal-day-events {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  overflow-y: auto;
+  max-height: 72px;
 }
 
-.event-name {
-  font-weight: 600;
-  font-size: 0.9rem;
+.cal-event-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: filter 0.12s;
 }
 
-.event-label {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
+.cal-event-pill:hover {
+  filter: brightness(0.92);
 }
 
-.event-date {
+.cal-event-icon {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-  font-weight: 500;
+}
+
+.cal-event-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Badge colors reused for pills */
+.cal-event-pill.badge-blue {
+  background: var(--color-badge-blue-bg);
+  color: var(--color-badge-blue-fg);
+}
+
+.cal-event-pill.badge-gold {
+  background: var(--color-badge-gold-bg);
+  color: var(--color-badge-gold-fg);
+}
+
+.cal-event-pill.badge-green {
+  background: var(--color-badge-green-bg);
+  color: var(--color-badge-green-fg);
+}
+
+.cal-event-pill.badge-teal {
+  background: var(--color-badge-teal-bg);
+  color: var(--color-badge-teal-fg);
+}
+
+.cal-event-pill.badge-orange {
+  background: var(--color-badge-orange-bg);
+  color: var(--color-badge-orange-fg);
+}
+
+.cal-event-pill.badge-purple {
+  background: var(--color-badge-purple-bg);
+  color: var(--color-badge-purple-fg);
 }
