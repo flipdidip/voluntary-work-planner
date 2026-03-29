@@ -361,6 +361,12 @@ export const IPC = {
   SAVE_VOLUNTEER: "save-volunteer",
   DELETE_VOLUNTEER: "delete-volunteer",
 
+  // Partners (Kooperationspartner)
+  GET_PARTNER_INDEX: "get-partner-index",
+  GET_PARTNER: "get-partner",
+  SAVE_PARTNER: "save-partner",
+  DELETE_PARTNER: "delete-partner",
+
   // File attachments
   UPLOAD_FILE: "upload-file",
   DELETE_FILE: "delete-file",
@@ -412,6 +418,9 @@ export type BusinessAuditAction =
   | "volunteer-created"
   | "volunteer-updated"
   | "volunteer-deleted"
+  | "partner-created"
+  | "partner-updated"
+  | "partner-deleted"
   | "file-uploaded"
   | "file-deleted"
   | "file-opened"
@@ -421,6 +430,7 @@ export type BusinessAuditAction =
 export type BusinessAuditSubjectType =
   | "settings"
   | "volunteer"
+  | "partner"
   | "attachment"
   | "processing-activities";
 

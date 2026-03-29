@@ -13,6 +13,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 ## Funktionen
 
 - Ehrenamtsregister mit detaillierten Personen-, Kontakt- und Qualifikationsdaten.
+- Kooperationspartner-Verwaltung mit eigener Seite (gleiche Stammdaten, ohne Qualifikationsbereich).
 - Dateibasierte Speicherung in einem frei waehlbaren Ordner (lokal, OneDrive, SharePoint-Sync).
 - Verschluesselung ruhender Daten fuer Index, Ehrenamtsakten, Backups und Anhaenge.
 - Mehrbenutzer-Freigabeworkflow fuer gemeinsame Ordner (Anfrage -> Freigabe/Ablehnung).
@@ -106,10 +107,16 @@ YourSharedFolder/
 ├── volunteers/
 │   ├── <uuid>.json
 │   └── ...
+├── partners/
+│   ├── <uuid>.json
+│   └── ...
 ├── index.json
+├── partners-index.json
 ├── processing-activities.json
 ├── backups/
+├── partner-backups/
 ├── attachments/
+├── partner-attachments/
 └── .vwp-crypto/
 		├── manifest.json
 		├── audit.jsonl

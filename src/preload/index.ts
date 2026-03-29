@@ -107,6 +107,16 @@ const api = {
 
   deleteVolunteer: (id: string) => ipcRenderer.invoke(IPC.DELETE_VOLUNTEER, id),
 
+  // Partners (Kooperationspartner)
+  getPartnerIndex: () => ipcRenderer.invoke(IPC.GET_PARTNER_INDEX),
+
+  getPartner: (id: string) => ipcRenderer.invoke(IPC.GET_PARTNER, id),
+
+  savePartner: (partner: Volunteer) =>
+    ipcRenderer.invoke(IPC.SAVE_PARTNER, partner),
+
+  deletePartner: (id: string) => ipcRenderer.invoke(IPC.DELETE_PARTNER, id),
+
   // File attachments
   selectFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.SELECT_FILE),
 
