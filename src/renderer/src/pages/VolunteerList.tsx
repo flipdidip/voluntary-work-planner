@@ -6,16 +6,8 @@ import {
   type SetStateAction,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  UserPlus,
-  Search,
-  Mail,
-  Phone,
-  X,
-  Copy,
-  Check,
-  Globe,
-} from "lucide-react";
+import { UserPlus, Search, Mail, Phone, X } from "lucide-react";
+import MailDialog from "../components/MailDialog";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
 import {
   VolunteerStatus,
@@ -82,8 +74,10 @@ export default function VolunteerList(): JSX.Element {
     expired: "off",
     missing: "off",
   });
-  const [emailSelection, setEmailSelection] = useState<Set<string>>(new Set());
-  const [emailCopied, setEmailCopied] = useState(false);
+  const [showMailDialog, setShowMailDialog] = useState(false);
+  const [mailDialogMode, setMailDialogMode] = useState<"default" | "filtered">(
+    "default",
+  );
 
   const statusFromQuery = searchParams.get("status");
 
@@ -397,57 +391,10 @@ export default function VolunteerList(): JSX.Element {
     (joinedFilter !== null && joinedFilterMode !== "off") ||
     Object.values(requirementStatusFilters).some((mode) => mode !== "off");
 
-  // ── E-Mail helpers ──
-  const filteredWithEmail = useMemo(
-    () => filtered.filter((v) => v.email?.trim()),
-    [filtered],
+  const hasAnyEmail = useMemo(
+    () => index?.volunteers.some((v) => v.email?.trim()) ?? false,
+    [index],
   );
-
-  const selectedEmails = useMemo(
-    () =>
-      [...emailSelection]
-        .map((id) => filtered.find((v) => v.id === id)?.email)
-        .filter((e): e is string => !!e?.trim()),
-    [emailSelection, filtered],
-  );
-
-  const toggleEmailSelect = (id: string, e: React.MouseEvent): void => {
-    e.stopPropagation();
-    setEmailSelection((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const selectAllEmails = (): void => {
-    setEmailSelection(new Set(filteredWithEmail.map((v) => v.id)));
-  };
-
-  const deselectAllEmails = (): void => {
-    setEmailSelection(new Set());
-  };
-
-  const copyEmailsToClipboard = async (): Promise<void> => {
-    if (selectedEmails.length === 0) return;
-    await navigator.clipboard.writeText(selectedEmails.join("; "));
-    setEmailCopied(true);
-    setTimeout(() => setEmailCopied(false), 2000);
-  };
-
-  const openMailto = (): void => {
-    if (selectedEmails.length === 0) return;
-    const mailto = `mailto:${selectedEmails.map((e) => encodeURIComponent(e)).join(",")}`;
-    window.api.openExternalUrl(mailto);
-  };
-
-  const openOutlookWeb = (): void => {
-    if (selectedEmails.length === 0) return;
-    const to = selectedEmails.join(";");
-    const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}`;
-    window.api.openExternalUrl(url);
-  };
 
   return (
     <div className="volunteer-list-page">
@@ -456,13 +403,39 @@ export default function VolunteerList(): JSX.Element {
           <h1>Ehrenamtliche</h1>
           <p className="text-muted">{filtered.length} Einträge</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => navigate("/volunteers/new")}
-        >
-          <UserPlus size={16} />
-          Neu anlegen
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {hasAnyEmail && (
+            <>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setMailDialogMode("default");
+                  setShowMailDialog(true);
+                }}
+              >
+                <Mail size={16} />
+                Neue E-Mail
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setMailDialogMode("filtered");
+                  setShowMailDialog(true);
+                }}
+              >
+                <Mail size={16} />
+                E-Mail an Auswahl
+              </button>
+            </>
+          )}
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate("/volunteers/new")}
+          >
+            <UserPlus size={16} />
+            Neu anlegen
+          </button>
+        </div>
       </div>
 
       <div className="search-bar">
@@ -581,66 +554,21 @@ export default function VolunteerList(): JSX.Element {
 
       {loading && <p className="text-muted">Lade...</p>}
 
-      {/* E-Mail selection bar */}
-      {filteredWithEmail.length > 0 && (
-        <div className="email-bar">
-          <label className="email-bar-select-all">
-            <input
-              type="checkbox"
-              checked={
-                emailSelection.size === filteredWithEmail.length &&
-                filteredWithEmail.length > 0
-              }
-              onChange={() =>
-                emailSelection.size === filteredWithEmail.length
-                  ? deselectAllEmails()
-                  : selectAllEmails()
-              }
-            />
-            {emailSelection.size > 0
-              ? `${emailSelection.size} von ${filteredWithEmail.length} ausgewählt`
-              : `Alle mit E-Mail auswählen (${filteredWithEmail.length})`}
-          </label>
-          <div className="email-bar-actions">
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={selectedEmails.length === 0}
-              onClick={copyEmailsToClipboard}
-            >
-              {emailCopied ? (
-                <>
-                  <Check size={14} /> Kopiert!
-                </>
-              ) : (
-                <>
-                  <Copy size={14} /> Kopieren
-                </>
-              )}
-            </button>
-            <button
-              className="btn btn-primary btn-sm"
-              disabled={selectedEmails.length === 0}
-              onClick={openMailto}
-            >
-              <Mail size={14} /> E-Mail
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={selectedEmails.length === 0}
-              onClick={openOutlookWeb}
-            >
-              <Globe size={14} /> Outlook Web
-            </button>
-            {emailSelection.size > 0 && (
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={deselectAllEmails}
-              >
-                <X size={14} /> Auswahl aufheben
-              </button>
-            )}
-          </div>
-        </div>
+      {showMailDialog && (
+        <MailDialog
+          key={mailDialogMode}
+          participants={index?.volunteers ?? []}
+          onClose={() => setShowMailDialog(false)}
+          onOpenExternalUrl={(url) => window.api.openExternalUrl(url)}
+          initialQualifiedOnly={mailDialogMode === "default"}
+          initialSelected={
+            mailDialogMode === "filtered"
+              ? new Set(
+                  filtered.filter((v) => v.email?.trim()).map((v) => v.id),
+                )
+              : undefined
+          }
+        />
       )}
 
       <div className="volunteer-table card">
@@ -654,24 +582,9 @@ export default function VolunteerList(): JSX.Element {
           return (
             <div
               key={v.id}
-              className={`volunteer-row${emailSelection.has(v.id) ? " email-selected" : ""}`}
+              className="volunteer-row"
               onClick={() => navigate(`/volunteers/${v.id}`)}
             >
-              {filteredWithEmail.length > 0 && (
-                <div
-                  className="vol-email-check"
-                  onClick={(e) => {
-                    if (v.email?.trim()) toggleEmailSelect(v.id, e);
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={emailSelection.has(v.id)}
-                    disabled={!v.email?.trim()}
-                    readOnly
-                  />
-                </div>
-              )}
               <div className="vol-avatar">
                 {v.firstName[0]}
                 {v.lastName[0]}
