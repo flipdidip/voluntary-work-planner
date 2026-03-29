@@ -66,7 +66,9 @@ export type RequirementType =
   | "verhaltenskodex" // Code of conduct - one-time, PDF required
   | "verschwiegenheitsklausel" // Confidentiality agreement - one-time, PDF required
   | "fuehrungszeugnis" // Background check - renewal every 5 years, no upload
-  | "hygieneschulung"; // Hygiene training - renewal every year, PDF required
+  | "hygieneschulung" // Hygiene training - renewal every year, PDF required
+  | "kameraueberwachung" // Camera surveillance consent - one-time, PDF required
+  | "bildundton"; // Image & sound consent - one-time, no document
 
 export interface RequirementMetadata {
   id: RequirementType;
@@ -108,6 +110,18 @@ export const REQUIREMENT_DEFINITIONS: Record<
     label: "Hygiene Schulung teilgenommen",
     requiresDocument: true,
     renewalMonths: 12, // every year
+  },
+  kameraueberwachung: {
+    id: "kameraueberwachung",
+    label: "Einverständnis Kameraüberwachung",
+    requiresDocument: true,
+    renewalMonths: null, // one-time only
+  },
+  bildundton: {
+    id: "bildundton",
+    label: "Einverständnis Bild und Ton",
+    requiresDocument: false,
+    renewalMonths: null, // one-time only
   },
 };
 
