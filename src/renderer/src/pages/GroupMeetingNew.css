@@ -258,27 +258,3 @@
   gap: 6px;
   font-size: 0.82rem;
 }
-
-.email-action-buttons .btn-outlook {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: 1px solid #0078d4;
-  background: #0078d4;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.email-action-buttons .btn-outlook:hover {
-  background: #106ebe;
-  border-color: #106ebe;
-}
-
-.email-action-buttons .btn-outlook:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
