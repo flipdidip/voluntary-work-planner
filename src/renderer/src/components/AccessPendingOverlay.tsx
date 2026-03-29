@@ -20,27 +20,38 @@ export default function AccessPendingOverlay({
         <div className="access-pending-icon">
           <ShieldAlert size={28} />
         </div>
-        <h2>Zugriff wartet auf Freigabe</h2>
+        <h2>Freigabe durch eine andere Person erforderlich</h2>
         <p className="access-pending-subtitle">
-          Dieser Benutzer ist fuer den aktuell gewaehlten Datenordner noch nicht
-          freigegeben.
+          Ihr Zugriff auf den Datenordner wurde angefragt, aber{" "}
+          <strong>
+            eine andere Person, die bereits freigegeben ist, muss Ihre Anfrage
+            bestaetigen
+          </strong>
+          . Sie selbst koennen die Freigabe nicht durchfuehren.
         </p>
 
         <div className="access-pending-details">
           <div>
-            <strong>Benutzer:</strong> {currentUser || "unbekannt"}
+            <strong>Ihr Benutzer:</strong> {currentUser || "unbekannt"}
           </div>
           {message && <div>{message}</div>}
         </div>
 
         <ol className="access-pending-steps">
           <li>
-            Ein bereits freigegebener Benutzer muss die Anfrage bestaetigen.
+            <strong>
+              Kontaktieren Sie eine Person, die bereits Zugriff hat
+            </strong>
+            , und bitten Sie diese, Ihre Anfrage freizugeben.
           </li>
           <li>
-            Die Freigabe erfolgt in den Einstellungen unter "Zugriffsanfragen".
+            Die andere Person findet Ihre Anfrage in ihren Einstellungen unter
+            &quot;Zugriffsanfragen&quot;.
           </li>
-          <li>Danach hier auf "Erneut pruefen" klicken.</li>
+          <li>
+            Sobald die Freigabe erteilt wurde, klicken Sie hier auf &quot;Erneut
+            pruefen&quot;.
+          </li>
         </ol>
 
         <div className="access-pending-actions">

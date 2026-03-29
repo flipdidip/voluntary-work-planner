@@ -547,7 +547,7 @@ export class DataCryptoService {
       userRole,
       message: authorized
         ? "Verschlüsselung ist aktiv und dieser Benutzer ist freigegeben."
-        : "Freigabe ausstehend. Es wurde eine Zugriffsanfrage für diesen Benutzer erstellt.",
+        : "Freigabe ausstehend. Eine bereits autorisierte Person muss Ihre Zugriffsanfrage in deren Einstellungen bestaetigen.",
     };
   }
 
