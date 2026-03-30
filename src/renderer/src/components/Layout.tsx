@@ -61,7 +61,7 @@ export default function Layout({
       <aside className="sidebar">
         <div className="sidebar-logo">
           <img
-            src="/app-icon.ico"
+            src="app-icon.ico"
             alt="App Icon"
             width={22}
             height={22}
