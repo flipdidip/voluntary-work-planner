@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Users2,
-  Plus,
 } from "lucide-react";
 import {
   format,
@@ -217,13 +216,14 @@ export default function UpcomingEvents(): JSX.Element {
                     <span className="cal-day-number">{format(day, "d")}</span>
                     <button
                       className="cal-day-add-btn"
-                      title="Gruppentreffen erstellen"
+                      title="Neues Gruppentreffen erstellen"
+                      aria-label="Neues Gruppentreffen erstellen"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/meetings/new?date=${dateKey}`);
                       }}
                     >
-                      <Plus size={14} />
+                      <Users2 size={14} />
                     </button>
                   </div>
                   {dayEvents.length > 0 && (
