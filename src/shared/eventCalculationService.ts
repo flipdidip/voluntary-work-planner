@@ -289,7 +289,6 @@ export async function calculateUpcomingEvents(
 
   // ======== REQUIREMENT RENEWAL EVENTS ========
   if (settings.enableRequirementRenewalReminders && getVolunteerFull) {
-    const warningDays = settings.requirementRenewalDaysWarning ?? 30;
     const activeVolunteerIds = activeVolunteers.map((v) => v.id);
 
     for (const id of activeVolunteerIds) {
@@ -307,8 +306,9 @@ export async function calculateUpcomingEvents(
 
           const daysUntilExpiry = differenceInCalendarDays(expiryDate, today);
 
-          // Show if expiring within warning period and not yet expired
-          if (daysUntilExpiry >= 0 && daysUntilExpiry <= warningDays) {
+          // Use the same range logic as other event types so expiry dates
+          // appear in the calendar regardless of the notification warning window
+          if (isEventInRange(daysUntilExpiry)) {
             const requirementLabel =
               REQUIREMENT_DEFINITIONS[requirement.requirementType]?.label ||
               requirement.requirementType;
