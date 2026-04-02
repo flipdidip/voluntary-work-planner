@@ -477,7 +477,7 @@ export default function VolunteerDetail(): JSX.Element {
                       padding: "0.5rem 0.75rem",
                       borderLeft: "2px solid var(--color-border, #e0e0e0)",
                       marginBottom: "0.5rem",
-                      backgroundColor: "var(--color-bg-secondary, #f9f9f9)",
+                      backgroundColor: "var(--color-surface-2)",
                       borderRadius: "4px",
                     }}
                   >
