@@ -28,7 +28,9 @@ export class SettingsService {
     if (existsSync(this.settingsPath)) {
       try {
         const raw = readFileSync(this.settingsPath, "utf-8");
-        return JSON.parse(raw) as AppSettings;
+        // Merge with defaults so any fields added after the file was first
+        // created will get their default values instead of being undefined.
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
       } catch {
         return { ...DEFAULT_SETTINGS };
       }
