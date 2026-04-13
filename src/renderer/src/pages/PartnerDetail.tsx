@@ -56,7 +56,9 @@ export default function PartnerDetail(): JSX.Element {
       roles: Array.isArray(initial.roles) ? initial.roles : [],
       notes: typeof initial.notes === "string" ? initial.notes : "",
       reminders: Array.isArray(initial.reminders) ? initial.reminders : [],
-      fileRecords: Array.isArray(initial.fileRecords) ? initial.fileRecords : [],
+      fileRecords: Array.isArray(initial.fileRecords)
+        ? initial.fileRecords
+        : [],
       requirements: Array.isArray(initial.requirements)
         ? initial.requirements
         : [],
