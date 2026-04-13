@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
-import { usePartner } from "../hooks/usePartners";
+import { usePartner, usePartnerIndex } from "../hooks/usePartners";
 import {
   Volunteer,
   Reminder,
@@ -40,6 +40,7 @@ export default function PartnerDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { partner: initial, loading } = usePartner(id);
+  const { index } = usePartnerIndex();
   const [form, setForm] = useState<Volunteer | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +50,38 @@ export default function PartnerDetail(): JSX.Element {
 
   // Init form from loaded data
   if (initial && !form) {
-    setForm({ ...initial });
+    setForm({
+      ...initial,
+      statusLog: Array.isArray(initial.statusLog) ? initial.statusLog : [],
+      roles: Array.isArray(initial.roles) ? initial.roles : [],
+      notes: typeof initial.notes === "string" ? initial.notes : "",
+      reminders: Array.isArray(initial.reminders) ? initial.reminders : [],
+      fileRecords: Array.isArray(initial.fileRecords) ? initial.fileRecords : [],
+      requirements: Array.isArray(initial.requirements)
+        ? initial.requirements
+        : [],
+    });
   }
+
+  const roleSuggestions = (() => {
+    if (!index) {
+      return [];
+    }
+
+    const roleSet = new Set<string>();
+    index.volunteers.forEach((entry) => {
+      if (!Array.isArray(entry.roles)) {
+        return;
+      }
+      entry.roles.forEach((role) => {
+        if (typeof role === "string" && role.trim().length > 0) {
+          roleSet.add(role);
+        }
+      });
+    });
+
+    return Array.from(roleSet);
+  })();
 
   if (loading) return <div className="loading">Lade...</div>;
   if (!form)
@@ -329,6 +360,7 @@ export default function PartnerDetail(): JSX.Element {
             <RolesInput
               value={form.roles}
               onChange={(newRoles) => update({ roles: newRoles })}
+              suggestions={roleSuggestions}
             />
           </label>
           <label className="mt">

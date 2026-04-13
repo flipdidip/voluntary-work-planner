@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
-import { useVolunteer } from "../hooks/useVolunteers";
+import { useVolunteer, useVolunteerIndex } from "../hooks/useVolunteers";
 import {
   Volunteer,
   Reminder,
@@ -55,6 +55,7 @@ export default function VolunteerDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { volunteer: initial, loading } = useVolunteer(id);
+  const { index } = useVolunteerIndex();
   const [form, setForm] = useState<Volunteer | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,8 +68,40 @@ export default function VolunteerDetail(): JSX.Element {
 
   // Init form from loaded data
   if (initial && !form) {
-    setForm({ ...initial });
+    setForm({
+      ...initial,
+      statusLog: Array.isArray(initial.statusLog) ? initial.statusLog : [],
+      roles: Array.isArray(initial.roles) ? initial.roles : [],
+      notes: typeof initial.notes === "string" ? initial.notes : "",
+      reminders: Array.isArray(initial.reminders) ? initial.reminders : [],
+      fileRecords: Array.isArray(initial.fileRecords)
+        ? initial.fileRecords
+        : [],
+      requirements: Array.isArray(initial.requirements)
+        ? initial.requirements
+        : [],
+    });
   }
+
+  const roleSuggestions = (() => {
+    if (!index) {
+      return [];
+    }
+
+    const roleSet = new Set<string>();
+    index.volunteers.forEach((entry) => {
+      if (!Array.isArray(entry.roles)) {
+        return;
+      }
+      entry.roles.forEach((role) => {
+        if (typeof role === "string" && role.trim().length > 0) {
+          roleSet.add(role);
+        }
+      });
+    });
+
+    return Array.from(roleSet);
+  })();
 
   if (loading) return <div className="loading">Lade...</div>;
   if (!form)
@@ -437,6 +470,7 @@ export default function VolunteerDetail(): JSX.Element {
             <RolesInput
               value={form.roles}
               onChange={(newRoles) => update({ roles: newRoles })}
+              suggestions={roleSuggestions}
             />
           </label>
           <label className="mt">
