@@ -14,6 +14,7 @@ import {
   VolunteerIndexEntry,
   SaveResult,
   calculateRequirementsStatus,
+  getVolunteerMediaConsentLevel,
 } from "@shared/types";
 import { DataCryptoService } from "./dataCryptoService";
 
@@ -72,7 +73,55 @@ export class VolunteerFileService {
       };
     }
     try {
-      return this.readJsonFile<VolunteerIndex>(this.indexPath);
+      const index = this.readJsonFile<VolunteerIndex>(this.indexPath);
+      let hasChanges = false;
+
+      const volunteers = (index.volunteers || []).map((entry) => {
+        const volunteer = this.readVolunteer(entry.id);
+        if (!volunteer) {
+          return entry;
+        }
+
+        const normalizedEntry: VolunteerIndexEntry = {
+          id: volunteer.id,
+          firstName: volunteer.firstName,
+          lastName: volunteer.lastName,
+          dateOfBirth: volunteer.dateOfBirth,
+          phone: volunteer.phone,
+          mobile: volunteer.mobile,
+          email: volunteer.email,
+          joinedDate: volunteer.joinedDate,
+          status: volunteer.status,
+          roles: volunteer.roles,
+          _updatedAt: volunteer._updatedAt,
+          requirementsStatus: calculateRequirementsStatus(volunteer),
+          mediaConsentLevel: getVolunteerMediaConsentLevel(
+            volunteer.requirements,
+          ),
+        };
+
+        if (
+          entry._updatedAt !== normalizedEntry._updatedAt ||
+          entry.mediaConsentLevel !== normalizedEntry.mediaConsentLevel ||
+          JSON.stringify(entry.requirementsStatus) !==
+            JSON.stringify(normalizedEntry.requirementsStatus)
+        ) {
+          hasChanges = true;
+        }
+
+        return normalizedEntry;
+      });
+
+      const normalizedIndex: VolunteerIndex = {
+        ...index,
+        volunteers,
+      };
+
+      if (hasChanges) {
+        this.writeIndex(normalizedIndex);
+      }
+
+      return normalizedIndex;
     } catch {
       return {
         _version: 0,
@@ -102,6 +151,7 @@ export class VolunteerFileService {
       roles: volunteer.roles,
       _updatedAt: volunteer._updatedAt,
       requirementsStatus: calculateRequirementsStatus(volunteer),
+      mediaConsentLevel: getVolunteerMediaConsentLevel(volunteer.requirements),
     };
     const existingIdx = index.volunteers.findIndex(
       (v) => v.id === volunteer.id,

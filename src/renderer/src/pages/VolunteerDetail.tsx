@@ -16,6 +16,7 @@ import {
   CheckCircle,
   AlertCircle,
   Plus,
+  Pencil,
 } from "lucide-react";
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
@@ -29,7 +30,11 @@ import {
   FileRecord,
   RequirementRecord,
   RequirementType,
+  MediaConsentLevel,
   REQUIREMENT_DEFINITIONS,
+  MEDIA_CONSENT_OPTIONS,
+  getMediaConsentLevel,
+  getMediaConsentDescription,
   calculateActivityTime,
   formatActivityTime,
   calculateRequirementsStatus,
@@ -69,6 +74,8 @@ export default function VolunteerDetail(): JSX.Element {
   const [showRequirementForm, setShowRequirementForm] = useState(false);
   const [selectedRequirementType, setSelectedRequirementType] =
     useState<RequirementType | null>(null);
+  const [editingRequirement, setEditingRequirement] =
+    useState<RequirementRecord | null>(null);
 
   // Init form from loaded data
   if (initial && !form) {
@@ -818,10 +825,12 @@ export default function VolunteerDetail(): JSX.Element {
               volunteerId={form.id}
               existingRequirements={form.requirements || []}
               initialRequirementType={selectedRequirementType}
+              initialRequirement={editingRequirement}
               onAdd={addOrUpdateRequirement}
               onClose={() => {
                 setShowRequirementForm(false);
                 setSelectedRequirementType(null);
+                setEditingRequirement(null);
               }}
             />
           )}
@@ -838,6 +847,11 @@ export default function VolunteerDetail(): JSX.Element {
                     <RequirementItem
                       key={reqType}
                       requirement={requirement}
+                      onEdit={() => {
+                        setSelectedRequirementType(reqType);
+                        setEditingRequirement(requirement);
+                        setShowRequirementForm(true);
+                      }}
                       onRemove={() =>
                         removeRequirement(requirement.requirementType)
                       }
@@ -854,6 +868,7 @@ export default function VolunteerDetail(): JSX.Element {
                       requirementType={reqType}
                       onAdd={() => {
                         setSelectedRequirementType(reqType);
+                        setEditingRequirement(null);
                         setShowRequirementForm(true);
                       }}
                     />
@@ -1260,6 +1275,7 @@ interface RequirementFormProps {
   volunteerId: string;
   existingRequirements: RequirementRecord[];
   initialRequirementType: RequirementType | null;
+  initialRequirement?: RequirementRecord | null;
   onAdd: (r: RequirementRecord) => void;
   onClose: () => void;
 }
@@ -1268,25 +1284,37 @@ function RequirementForm({
   volunteerId,
   existingRequirements,
   initialRequirementType,
+  initialRequirement,
   onAdd,
   onClose,
 }: RequirementFormProps): JSX.Element {
   const [requirementType, setRequirementType] = useState<RequirementType | "">(
-    initialRequirementType || "",
+    initialRequirement?.requirementType || initialRequirementType || "",
   );
-  const [completedDate, setCompletedDate] = useState("");
-  const [notes, setNotes] = useState("");
+  const [completedDate, setCompletedDate] = useState(
+    initialRequirement?.completedDate || "",
+  );
+  const [mediaConsentLevel, setMediaConsentLevel] = useState<MediaConsentLevel>(
+    getMediaConsentLevel(initialRequirement),
+  );
+  const [notes, setNotes] = useState(initialRequirement?.notes || "");
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const selectedDef = requirementType
     ? REQUIREMENT_DEFINITIONS[requirementType]
     : null;
+  const hasExistingDocument = Boolean(initialRequirement?.filePath);
+  const selectedFileName = selectedFilePath?.split(/[\\/]/).pop();
 
   // Get available requirements (not yet completed or renewable)
   const availableRequirements = (
     Object.keys(REQUIREMENT_DEFINITIONS) as RequirementType[]
   ).filter((type) => {
+    if (type === initialRequirement?.requirementType) {
+      return true;
+    }
+
     const existing = existingRequirements.find(
       (r) => r.requirementType === type,
     );
@@ -1306,27 +1334,56 @@ function RequirementForm({
   };
 
   const handleAdd = async (): Promise<void> => {
-    if (!requirementType || !completedDate) return;
+    if (!requirementType || !completedDate || !selectedDef) return;
+    if (
+      selectedDef.requiresDocument &&
+      !selectedFilePath &&
+      !hasExistingDocument
+    ) {
+      return;
+    }
 
     setUploading(true);
-    let uploadResult = null;
 
-    if (selectedFilePath && selectedDef?.requiresDocument) {
-      uploadResult = await window.api.uploadFile(volunteerId, selectedFilePath);
+    let nextFileName = initialRequirement?.fileName;
+    let nextFilePath = initialRequirement?.filePath;
+    let nextFileSize = initialRequirement?.fileSize;
+    let nextUploadedAt = initialRequirement?.uploadedAt;
+
+    if (selectedFilePath) {
+      const uploadResult = await window.api.uploadFile(
+        volunteerId,
+        selectedFilePath,
+      );
       if (!uploadResult.success) {
         alert(`Fehler beim Hochladen: ${uploadResult.error}`);
         setUploading(false);
         return;
       }
+
+      nextFileName = uploadResult.fileName;
+      nextFilePath = uploadResult.filePath;
+      nextFileSize = uploadResult.fileSize || 0;
+      nextUploadedAt = new Date().toISOString();
+
+      if (
+        initialRequirement?.filePath &&
+        initialRequirement.filePath !== nextFilePath
+      ) {
+        await window.api.deleteFile(initialRequirement.filePath);
+      }
     }
 
     const requirement: RequirementRecord = {
+      ...initialRequirement,
       requirementType: requirementType as RequirementType,
       completedDate,
-      fileName: uploadResult?.fileName,
-      filePath: uploadResult?.filePath,
-      fileSize: uploadResult?.fileSize || 0,
-      uploadedAt: uploadResult ? new Date().toISOString() : undefined,
+      mediaConsentLevel:
+        requirementType === "bildundton" ? mediaConsentLevel : undefined,
+      fileName: nextFileName,
+      filePath: nextFilePath,
+      fileSize: nextFileSize,
+      uploadedAt: nextUploadedAt,
       notes: notes.trim() || undefined,
     };
 
@@ -1338,7 +1395,11 @@ function RequirementForm({
   return (
     <div className="requirement-form card">
       <div className="requirement-form-header">
-        <h3>Qualifikation hinzufügen</h3>
+        <h3>
+          {initialRequirement
+            ? "Qualifikation bearbeiten"
+            : "Qualifikation hinzufügen"}
+        </h3>
         <button className="btn btn-ghost" onClick={onClose}>
           <X size={16} />
         </button>
@@ -1395,9 +1456,34 @@ function RequirementForm({
             />
           </label>
 
+          {requirementType === "bildundton" && (
+            <>
+              <label>
+                Freigabe Foto & Video *
+                <select
+                  className="select"
+                  value={mediaConsentLevel}
+                  onChange={(e) =>
+                    setMediaConsentLevel(e.target.value as MediaConsentLevel)
+                  }
+                >
+                  {MEDIA_CONSENT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} – {option.description}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <p className="hint" style={{ marginBottom: "1rem" }}>
+                Standardmäßig ist Rot vorausgewählt.
+              </p>
+            </>
+          )}
+
           {selectedDef.requiresDocument && (
             <label>
-              Dokument (PDF) {selectedDef.requiresDocument ? "*" : "(optional)"}
+              Dokument (PDF) *
               <div
                 style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
               >
@@ -1406,18 +1492,20 @@ function RequirementForm({
                   onClick={handleSelectFile}
                   type="button"
                 >
-                  <Upload size={15} /> Datei auswählen
+                  <Upload size={15} />
+                  {hasExistingDocument ? " Datei ersetzen" : " Datei auswählen"}
                 </button>
-                {selectedFilePath && (
-                  <span
-                    style={{
-                      fontSize: "0.9em",
-                      color: "var(--color-text-secondary)",
-                    }}
-                  >
-                    {selectedFilePath.split(/[\\/]/).pop()}
-                  </span>
-                )}
+                <span
+                  style={{
+                    fontSize: "0.9em",
+                    color: "var(--color-text-secondary)",
+                  }}
+                >
+                  {selectedFileName ||
+                    (initialRequirement?.fileName
+                      ? `Aktuell: ${initialRequirement.fileName}`
+                      : "Noch kein Dokument hinterlegt")}
+                </span>
               </div>
             </label>
           )}
@@ -1443,10 +1531,17 @@ function RequirementForm({
                 uploading ||
                 !requirementType ||
                 !completedDate ||
-                (selectedDef.requiresDocument && !selectedFilePath)
+                (selectedDef.requiresDocument &&
+                  !selectedFilePath &&
+                  !hasExistingDocument)
               }
             >
-              <Plus size={15} /> {uploading ? "Hochladen..." : "Hinzufügen"}
+              <Plus size={15} />
+              {uploading
+                ? " Hochladen..."
+                : initialRequirement
+                  ? " Speichern"
+                  : " Hinzufügen"}
             </button>
           </div>
         </>
@@ -1461,16 +1556,25 @@ function RequirementForm({
 
 interface RequirementItemProps {
   requirement: RequirementRecord;
+  onEdit: () => void;
   onRemove: () => void;
   onOpen: () => void;
 }
 
 function RequirementItem({
   requirement,
+  onEdit,
   onRemove,
   onOpen,
 }: RequirementItemProps): JSX.Element {
   const def = REQUIREMENT_DEFINITIONS[requirement.requirementType];
+  const mediaConsentLevel = getMediaConsentLevel(requirement);
+  const mediaConsentIcon =
+    mediaConsentLevel === "green"
+      ? "🟢"
+      : mediaConsentLevel === "yellow"
+        ? "🟡"
+        : "🔴";
 
   // Check if renewal is due
   let isExpired = false;
@@ -1516,8 +1620,21 @@ function RequirementItem({
           )}
         </div>
 
+        {requirement.requirementType === "bildundton" && (
+          <div className="requirement-item-notes">
+            <strong>{mediaConsentIcon} Freigabe:</strong>{" "}
+            {getMediaConsentDescription(mediaConsentLevel)}
+          </div>
+        )}
+
         {requirement.fileName && (
           <div className="requirement-item-file">📎 {requirement.fileName}</div>
+        )}
+
+        {!requirement.filePath && def.requiresDocument && (
+          <div className="requirement-item-notes">
+            Unterschriebenes Dokument fehlt noch.
+          </div>
         )}
 
         {requirement.notes && (
@@ -1525,6 +1642,9 @@ function RequirementItem({
         )}
       </div>
       <div className="requirement-item-actions">
+        <button className="btn btn-ghost" title="Bearbeiten" onClick={onEdit}>
+          <Pencil size={15} /> Bearbeiten
+        </button>
         {requirement.fileName && requirement.filePath && (
           <button
             className="btn btn-ghost"
@@ -1579,6 +1699,9 @@ function MissingRequirementItem({
             </span>
           )}
           {def.renewalMonths === null && <span> · Einmalig</span>}
+          {requirementType === "bildundton" && (
+            <span> · Standard: Rot (nur intern)</span>
+          )}
         </div>
       </div>
       <div className="requirement-item-actions">

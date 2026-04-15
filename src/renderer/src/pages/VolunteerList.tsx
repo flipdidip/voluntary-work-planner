@@ -13,6 +13,8 @@ import {
   VolunteerStatus,
   REQUIREMENT_DEFINITIONS,
   RequirementType,
+  MediaConsentLevel,
+  getMediaConsentDescription,
 } from "@shared/types";
 import {
   differenceInMonths,
@@ -49,6 +51,13 @@ const REQUIREMENT_STATUS_LABELS: Record<RequirementStatus, string> = {
   missing: "Fehlend",
 };
 
+const MEDIA_CONSENT_LABELS: Record<MediaConsentLevel | "none", string> = {
+  green: "🟢",
+  yellow: "🟡",
+  red: "🔴",
+  none: "⚪",
+};
+
 export default function VolunteerList(): JSX.Element {
   const { index, loading } = useVolunteerIndex();
   const navigate = useNavigate();
@@ -73,6 +82,14 @@ export default function VolunteerList(): JSX.Element {
     complete: "off",
     expired: "off",
     missing: "off",
+  });
+  const [mediaConsentFilters, setMediaConsentFilters] = useState<
+    Partial<Record<MediaConsentLevel | "none", FilterMode>>
+  >({
+    green: "off",
+    yellow: "off",
+    red: "off",
+    none: "off",
   });
   const [showMailDialog, setShowMailDialog] = useState(false);
   const [mailDialogMode, setMailDialogMode] = useState<"default" | "filtered">(
@@ -202,6 +219,13 @@ export default function VolunteerList(): JSX.Element {
           joinedFilterMode === "include" ? inJoinedFilter : !inJoinedFilter;
       }
 
+      const mediaConsentLevel =
+        v.mediaConsentLevel ||
+        (v.requirementsStatus?.bildundton &&
+        v.requirementsStatus.bildundton !== "missing"
+          ? "red"
+          : null);
+
       // Requirement status filters
       let matchesRequirements = true;
       const requirementStatusModesToCheck = {
@@ -261,6 +285,34 @@ export default function VolunteerList(): JSX.Element {
         matchesRequirements = false;
       }
 
+      let matchesMediaConsent = true;
+      const mediaConsentModesToCheck = {
+        green: mediaConsentFilters.green,
+        yellow: mediaConsentFilters.yellow,
+        red: mediaConsentFilters.red,
+        none: mediaConsentFilters.none,
+      };
+
+      const activeMediaConsentFilters = Object.entries(mediaConsentModesToCheck)
+        .filter(([_, mode]) => mode !== "off")
+        .map(([status]) => status as MediaConsentLevel | "none");
+
+      if (activeMediaConsentFilters.length > 0) {
+        activeMediaConsentFilters.forEach((filterValue) => {
+          const mode = mediaConsentModesToCheck[filterValue];
+          const hasMatch =
+            filterValue === "none"
+              ? mediaConsentLevel === null
+              : mediaConsentLevel === filterValue;
+
+          if (mode === "include") {
+            matchesMediaConsent = matchesMediaConsent && hasMatch;
+          } else if (mode === "exclude") {
+            matchesMediaConsent = matchesMediaConsent && !hasMatch;
+          }
+        });
+      }
+
       return (
         matchesStatus &&
         matchesQuery &&
@@ -269,7 +321,8 @@ export default function VolunteerList(): JSX.Element {
         matchesPhone &&
         matchesBirthday &&
         matchesJoined &&
-        matchesRequirements
+        matchesRequirements &&
+        matchesMediaConsent
       );
     });
   }, [
@@ -285,6 +338,7 @@ export default function VolunteerList(): JSX.Element {
     joinedFilter,
     joinedFilterMode,
     requirementStatusFilters,
+    mediaConsentFilters,
   ]);
 
   const cycleRole = (role: string) => {
@@ -358,6 +412,21 @@ export default function VolunteerList(): JSX.Element {
     });
   };
 
+  const cycleMediaConsentFilter = (consent: MediaConsentLevel | "none") => {
+    setMediaConsentFilters((prev) => {
+      const currentMode = prev[consent] || "off";
+      let nextMode: FilterMode = "off";
+      if (currentMode === "off") nextMode = "include";
+      else if (currentMode === "include") nextMode = "exclude";
+      else nextMode = "off";
+
+      return {
+        ...prev,
+        [consent]: nextMode,
+      };
+    });
+  };
+
   const chipModeClass = (mode: FilterMode): string => {
     if (mode === "include") return "active";
     if (mode === "exclude") return "exclude";
@@ -379,6 +448,12 @@ export default function VolunteerList(): JSX.Element {
       expired: "off",
       missing: "off",
     });
+    setMediaConsentFilters({
+      green: "off",
+      yellow: "off",
+      red: "off",
+      none: "off",
+    });
   };
 
   const hasActiveFilters =
@@ -389,7 +464,8 @@ export default function VolunteerList(): JSX.Element {
     phoneFilterMode !== "off" ||
     birthdayFilterMode !== "off" ||
     (joinedFilter !== null && joinedFilterMode !== "off") ||
-    Object.values(requirementStatusFilters).some((mode) => mode !== "off");
+    Object.values(requirementStatusFilters).some((mode) => mode !== "off") ||
+    Object.values(mediaConsentFilters).some((mode) => mode !== "off");
 
   const hasAnyEmail = useMemo(
     () => index?.volunteers.some((v) => v.email?.trim()) ?? false,
@@ -525,6 +601,30 @@ export default function VolunteerList(): JSX.Element {
           </div>
         </div>
 
+        <div className="filter-group">
+          <span className="filter-group-label">Foto & Video:</span>
+          <div className="filter-chips">
+            {(
+              ["green", "yellow", "red", "none"] as Array<
+                MediaConsentLevel | "none"
+              >
+            ).map((status) => (
+              <button
+                key={status}
+                className={`filter-chip ${chipModeClass(mediaConsentFilters[status] || "off")}`}
+                onClick={() => cycleMediaConsentFilter(status)}
+                title={
+                  status === "none"
+                    ? "Keine Medienfreigabe erfasst"
+                    : getMediaConsentDescription(status)
+                }
+              >
+                {MEDIA_CONSENT_LABELS[status]}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {allRoles.length > 0 && (
           <div className="filter-group">
             <span className="filter-group-label">Aufgaben:</span>
@@ -579,6 +679,20 @@ export default function VolunteerList(): JSX.Element {
           const age = v.dateOfBirth
             ? differenceInYears(new Date(), parseISO(v.dateOfBirth))
             : null;
+          const mediaConsentLevel =
+            v.mediaConsentLevel ||
+            (v.requirementsStatus?.bildundton &&
+            v.requirementsStatus.bildundton !== "missing"
+              ? "red"
+              : null);
+          const mediaConsentTooltip = mediaConsentLevel
+            ? `Foto & Video: ${getMediaConsentDescription(mediaConsentLevel)}${
+                v.requirementsStatus?.bildundton === "missing"
+                  ? " · Unterschriebenes Dokument fehlt noch"
+                  : ""
+              }`
+            : "";
+
           return (
             <div
               key={v.id}
@@ -622,8 +736,20 @@ export default function VolunteerList(): JSX.Element {
                 <span className={`badge ${STATUS_BADGE[v.status]}`}>
                   {STATUS_LABELS[v.status]}
                 </span>
-                {v.requirementsStatus && (
+                {(v.requirementsStatus || mediaConsentLevel) && (
                   <div className="vol-requirements">
+                    {mediaConsentLevel && (
+                      <span
+                        className={`requirement-chip media-consent-chip media-consent-chip--${mediaConsentLevel}`}
+                        title={mediaConsentTooltip}
+                      >
+                        {mediaConsentLevel === "green"
+                          ? "🟢"
+                          : mediaConsentLevel === "yellow"
+                            ? "🟡"
+                            : "🔴"}
+                      </span>
+                    )}
                     {(() => {
                       const allTypes = Object.keys(
                         REQUIREMENT_DEFINITIONS,

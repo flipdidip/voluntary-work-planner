@@ -68,7 +68,31 @@ export type RequirementType =
   | "fuehrungszeugnis" // Background check - renewal every 5 years, no upload
   | "hygieneschulung" // Hygiene training - renewal every year, PDF required
   | "kameraueberwachung" // Camera surveillance consent - one-time, PDF required
-  | "bildundton"; // Image & sound consent - one-time, no document
+  | "bildundton"; // Image & sound consent - one-time, PDF required
+
+export type MediaConsentLevel = "red" | "yellow" | "green";
+
+export const MEDIA_CONSENT_OPTIONS: Array<{
+  value: MediaConsentLevel;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "green",
+    label: "Grün",
+    description: "Social Media, Homepage und interner Gebrauch erlaubt",
+  },
+  {
+    value: "yellow",
+    label: "Gelb",
+    description: "Homepage und interner Gebrauch erlaubt, kein Social Media",
+  },
+  {
+    value: "red",
+    label: "Rot",
+    description: "Keine Veröffentlichung, ausschließlich interner Gebrauch",
+  },
+];
 
 export interface RequirementMetadata {
   id: RequirementType;
@@ -120,7 +144,7 @@ export const REQUIREMENT_DEFINITIONS: Record<
   bildundton: {
     id: "bildundton",
     label: "Einverständnis Bild und Ton",
-    requiresDocument: false,
+    requiresDocument: true,
     renewalMonths: null, // one-time only
   },
 };
@@ -128,6 +152,7 @@ export const REQUIREMENT_DEFINITIONS: Record<
 export interface RequirementRecord {
   requirementType: RequirementType;
   completedDate?: string; // ISO date (YYYY-MM-DD)
+  mediaConsentLevel?: MediaConsentLevel; // only for bildundton; defaults to red for legacy records
   // Document upload (only for requirements that require it)
   fileName?: string;
   filePath?: string;
@@ -135,6 +160,31 @@ export interface RequirementRecord {
   uploadedAt?: string; // ISO timestamp
   // Notes
   notes?: string;
+}
+
+export function getMediaConsentLevel(
+  record?: RequirementRecord | null,
+): MediaConsentLevel {
+  if (!record || record.requirementType !== "bildundton") {
+    return "red";
+  }
+
+  return record.mediaConsentLevel || "red";
+}
+
+export function getMediaConsentDescription(level: MediaConsentLevel): string {
+  const match = MEDIA_CONSENT_OPTIONS.find((option) => option.value === level);
+  return match?.description || MEDIA_CONSENT_OPTIONS[2].description;
+}
+
+export function getVolunteerMediaConsentLevel(
+  requirements?: RequirementRecord[] | null,
+): MediaConsentLevel | null {
+  const mediaConsent = requirements?.find(
+    (record) => record.requirementType === "bildundton",
+  );
+
+  return mediaConsent ? getMediaConsentLevel(mediaConsent) : null;
 }
 
 // Compact status for index
@@ -209,6 +259,7 @@ export interface VolunteerIndexEntry {
   roles: string[];
   _updatedAt: string;
   requirementsStatus: RequirementStatusSummary;
+  mediaConsentLevel?: MediaConsentLevel | null;
 }
 
 export interface VolunteerIndex {
@@ -744,6 +795,11 @@ export function calculateRequirementsStatus(
     const record = requirements.find((r) => r.requirementType === type);
 
     if (!record || !record.completedDate) {
+      summary[type] = "missing";
+      continue;
+    }
+
+    if (def.requiresDocument && !record.filePath) {
       summary[type] = "missing";
       continue;
     }
