@@ -259,6 +259,31 @@
   border-color: var(--color-req-missing-border);
 }
 
+.media-consent-chip {
+  min-width: auto;
+  padding: 3px 5px;
+  text-align: center;
+  line-height: 1;
+}
+
+.media-consent-chip--green {
+  background: var(--color-req-complete-bg);
+  color: var(--color-req-complete-fg);
+  border-color: var(--color-req-complete-border);
+}
+
+.media-consent-chip--yellow {
+  background: transparent;
+  color: var(--color-req-missing-fg);
+  border-color: var(--color-req-missing-border);
+}
+
+.media-consent-chip--red {
+  background: var(--color-req-missing-bg);
+  color: var(--color-req-missing-fg);
+  border-color: var(--color-req-missing-border);
+}
+
 .empty-hint {
   padding: 24px;
   color: var(--color-text-muted);
