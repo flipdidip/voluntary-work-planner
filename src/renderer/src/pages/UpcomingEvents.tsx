@@ -98,12 +98,12 @@ export default function UpcomingEvents(): JSX.Element {
     const loadEvents = async (): Promise<void> => {
       try {
         setEventsLoading(true);
-        const settings = await globalThis.api.getSettings();
-        const meetingsIdx = await globalThis.api.getGroupMeetings();
+        const settings = await window.api.getSettings();
+        const meetingsIdx = await window.api.getGroupMeetings();
         const result = await calculateUpcomingEvents(
           index,
           settings,
-          (id) => globalThis.api.getVolunteer(id),
+          (id) => window.api.getVolunteer(id),
           undefined,
           meetingsIdx,
         );

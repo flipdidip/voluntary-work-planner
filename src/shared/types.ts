@@ -359,11 +359,13 @@ export function createDefaultProcessingActivitiesDocument(): ProcessingActivitie
 // ─────────────────────────────────────────────────
 
 export type GroupMeetingParticipantType = "volunteer" | "partner";
+export type GroupMeetingAttendanceStatus = "unknown" | "present" | "absent";
 
 export interface GroupMeetingParticipant {
   id: string; // volunteer or partner ID
   name: string; // display name (cached for index)
   type: GroupMeetingParticipantType;
+  attendance?: GroupMeetingAttendanceStatus;
 }
 
 export interface GroupMeeting {
@@ -380,6 +382,69 @@ export interface GroupMeetingIndex {
   _version: number;
   _updatedAt: string;
   meetings: GroupMeeting[];
+}
+
+export const GROUP_MEETING_ATTENDANCE_LABELS: Record<
+  GroupMeetingAttendanceStatus,
+  string
+> = {
+  unknown: "Offen",
+  present: "Anwesend",
+  absent: "Nicht anwesend",
+};
+
+export interface GroupMeetingParticipationStats {
+  invitedCount: number;
+  presentCount: number;
+  absentCount: number;
+  unknownCount: number;
+  attendanceRate: number;
+}
+
+export function getGroupMeetingAttendanceStatus(
+  participant: GroupMeetingParticipant | null | undefined,
+): GroupMeetingAttendanceStatus {
+  return participant?.attendance ?? "unknown";
+}
+
+export function calculateGroupMeetingParticipationStats(
+  meetings: GroupMeeting[],
+  participantId: string,
+  participantType: GroupMeetingParticipantType,
+): GroupMeetingParticipationStats {
+  const safeMeetings = Array.isArray(meetings) ? meetings : [];
+
+  const relevantParticipants = safeMeetings
+    .flatMap((meeting) =>
+      Array.isArray(meeting?.participants) ? meeting.participants : [],
+    )
+    .filter((participant) => {
+      return (
+        participant?.id === participantId &&
+        participant?.type === participantType
+      );
+    });
+
+  const invitedCount = relevantParticipants.length;
+  const presentCount = relevantParticipants.filter(
+    (participant) => getGroupMeetingAttendanceStatus(participant) === "present",
+  ).length;
+  const absentCount = relevantParticipants.filter(
+    (participant) => getGroupMeetingAttendanceStatus(participant) === "absent",
+  ).length;
+  const unknownCount = relevantParticipants.filter(
+    (participant) => getGroupMeetingAttendanceStatus(participant) === "unknown",
+  ).length;
+  const ratedCount = presentCount + absentCount;
+
+  return {
+    invitedCount,
+    presentCount,
+    absentCount,
+    unknownCount,
+    attendanceRate:
+      ratedCount > 0 ? Math.round((presentCount / ratedCount) * 100) : 0,
+  };
 }
 
 // ─────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import { de } from "date-fns/locale";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
 import { usePartnerIndex } from "../hooks/usePartners";
-import { GroupMeeting } from "@shared/types";
+import { GroupMeeting, getGroupMeetingAttendanceStatus } from "@shared/types";
 import "./GroupMeetings.css";
 
 export default function GroupMeetings(): JSX.Element {
@@ -115,6 +115,14 @@ export default function GroupMeetings(): JSX.Element {
           const meetingDate = parseISO(m.date);
           const isToday = isSameDay(meetingDate, today);
           const isPast = isBefore(meetingDate, today) && !isToday;
+          const attendanceCounts = m.participants.reduce(
+            (acc, participant) => {
+              const status = getGroupMeetingAttendanceStatus(participant);
+              acc[status] += 1;
+              return acc;
+            },
+            { present: 0, unknown: 0, absent: 0 },
+          );
 
           return (
             <div
@@ -142,6 +150,19 @@ export default function GroupMeetings(): JSX.Element {
                   </span>
                 )}
               </div>
+              {m.participants.length > 0 && (
+                <div className="meeting-attendance-summary">
+                  <span className="attendance-pill attendance-pill-present">
+                    {attendanceCounts.present} anwesend
+                  </span>
+                  <span className="attendance-pill attendance-pill-unknown">
+                    {attendanceCounts.unknown} offen
+                  </span>
+                  <span className="attendance-pill attendance-pill-absent">
+                    {attendanceCounts.absent} nicht da
+                  </span>
+                </div>
+              )}
               <div className="meeting-actions">
                 <button
                   className="btn-icon-mail"

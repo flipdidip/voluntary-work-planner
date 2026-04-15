@@ -14,12 +14,14 @@ export class GroupMeetingService {
   ) {}
 
   readAll(): GroupMeetingIndex {
+    const emptyIndex = {
+      _version: 1,
+      _updatedAt: new Date().toISOString(),
+      meetings: [],
+    };
+
     if (!existsSync(this.meetingsFilePath)) {
-      return {
-        _version: 1,
-        _updatedAt: new Date().toISOString(),
-        meetings: [],
-      };
+      return emptyIndex;
     }
 
     try {
@@ -28,13 +30,58 @@ export class GroupMeetingService {
         this.dataPath,
         raw,
       );
-      return JSON.parse(decrypted.toString("utf-8")) as GroupMeetingIndex;
-    } catch {
+      const parsed = JSON.parse(
+        decrypted.toString("utf-8"),
+      ) as Partial<GroupMeetingIndex>;
+      const meetings: GroupMeeting[] = Array.isArray(parsed.meetings)
+        ? parsed.meetings.map((meeting) => ({
+            id: typeof meeting?.id === "string" ? meeting.id : "",
+            title: typeof meeting?.title === "string" ? meeting.title : "",
+            date:
+              typeof meeting?.date === "string"
+                ? meeting.date
+                : new Date().toISOString().slice(0, 10),
+            participants: Array.isArray(meeting?.participants)
+              ? meeting.participants.map((participant) => ({
+                  id: typeof participant?.id === "string" ? participant.id : "",
+                  name:
+                    typeof participant?.name === "string"
+                      ? participant.name
+                      : "",
+                  type: (participant?.type === "partner"
+                    ? "partner"
+                    : "volunteer") as "partner" | "volunteer",
+                  attendance:
+                    participant?.attendance === "present" ||
+                    participant?.attendance === "absent" ||
+                    participant?.attendance === "unknown"
+                      ? participant.attendance
+                      : "unknown",
+                }))
+              : [],
+            notes:
+              typeof meeting?.notes === "string" ? meeting.notes : undefined,
+            _createdAt:
+              typeof meeting?._createdAt === "string"
+                ? meeting._createdAt
+                : new Date().toISOString(),
+            _updatedAt:
+              typeof meeting?._updatedAt === "string"
+                ? meeting._updatedAt
+                : new Date().toISOString(),
+          }))
+        : [];
+
       return {
-        _version: 1,
-        _updatedAt: new Date().toISOString(),
-        meetings: [],
+        _version: typeof parsed._version === "number" ? parsed._version : 1,
+        _updatedAt:
+          typeof parsed._updatedAt === "string"
+            ? parsed._updatedAt
+            : new Date().toISOString(),
+        meetings,
       };
+    } catch {
+      return emptyIndex;
     }
   }
 

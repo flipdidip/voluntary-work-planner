@@ -61,6 +61,35 @@
   color: var(--color-badge-teal-fg);
 }
 
+.group-meetings-page .meeting-attendance-summary {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.group-meetings-page .attendance-pill {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.group-meetings-page .attendance-pill-present {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+}
+
+.group-meetings-page .attendance-pill-unknown {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.group-meetings-page .attendance-pill-absent {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
 .group-meetings-page .meeting-actions {
   display: flex;
   gap: 6px;
