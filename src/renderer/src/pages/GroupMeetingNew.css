@@ -47,6 +47,12 @@
   color: var(--color-text);
 }
 
+.participant-bulk-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .participant-type-tabs {
   display: flex;
   gap: 6px;
@@ -96,6 +102,32 @@
   font-size: 0.85rem;
   width: calc(50% - 0px);
   box-sizing: border-box;
+}
+
+.participant-pick-name {
+  flex: 1;
+}
+
+.participant-pick-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.participant-pick-status.status-active {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+}
+
+.participant-pick-status.status-inactive {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.participant-pick-status.status-archived {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
 }
 
 .participant-pick-item:hover {
@@ -257,4 +289,111 @@
   align-items: center;
   gap: 6px;
   font-size: 0.82rem;
+}
+
+.attendance-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.attendance-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.attendance-summary-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.attendance-summary-pill.present {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+}
+
+.attendance-summary-pill.unknown {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.attendance-summary-pill.absent {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.attendance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attendance-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-surface-2, #f4f4f5);
+}
+
+.attendance-name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.attendance-type-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.attendance-lights {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.attendance-light {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.attendance-light-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.attendance-light.present {
+  color: #15803d;
+}
+
+.attendance-light.unknown {
+  color: #b45309;
+}
+
+.attendance-light.absent {
+  color: #b91c1c;
+}
+
+.attendance-light.active {
+  border-color: currentColor;
+  box-shadow: inset 0 0 0 1px currentColor;
 }

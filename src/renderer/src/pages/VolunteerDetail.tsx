@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -20,6 +20,7 @@ import {
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
 import { useVolunteer, useVolunteerIndex } from "../hooks/useVolunteers";
+import { useGroupMeetings } from "../hooks/useGroupMeetings";
 import {
   Volunteer,
   Reminder,
@@ -33,6 +34,8 @@ import {
   formatActivityTime,
   calculateRequirementsStatus,
   RequirementStatusSummary,
+  calculateGroupMeetingParticipationStats,
+  GROUP_MEETING_ATTENDANCE_LABELS,
 } from "@shared/types";
 import {
   format,
@@ -56,6 +59,7 @@ export default function VolunteerDetail(): JSX.Element {
   const navigate = useNavigate();
   const { volunteer: initial, loading } = useVolunteer(id);
   const { index } = useVolunteerIndex();
+  const { index: meetingsIndex, loading: meetingsLoading } = useGroupMeetings();
   const [form, setForm] = useState<Volunteer | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,17 +107,52 @@ export default function VolunteerDetail(): JSX.Element {
     return Array.from(roleSet);
   })();
 
+  const age = form?.dateOfBirth
+    ? differenceInYears(new Date(), parseISO(form.dateOfBirth))
+    : null;
+  const activityTimeMs = form ? calculateActivityTime(form) : 0;
+  const activityTimeFormatted = formatActivityTime(activityTimeMs);
+  const requirementsStatus: RequirementStatusSummary = form
+    ? calculateRequirementsStatus(form)
+    : {};
+
+  const volunteerMeetings = useMemo(() => {
+    if (!form || !meetingsIndex) return [];
+
+    return meetingsIndex.meetings
+      .filter((meeting) => {
+        const participants = Array.isArray(meeting.participants)
+          ? meeting.participants
+          : [];
+        return participants.some(
+          (participant) =>
+            participant.id === form.id && participant.type === "volunteer",
+        );
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [form, meetingsIndex]);
+
+  const meetingStats = useMemo(() => {
+    if (!form) {
+      return {
+        invitedCount: 0,
+        presentCount: 0,
+        absentCount: 0,
+        unknownCount: 0,
+        attendanceRate: 0,
+      };
+    }
+
+    return calculateGroupMeetingParticipationStats(
+      meetingsIndex?.meetings ?? [],
+      form.id,
+      "volunteer",
+    );
+  }, [form, meetingsIndex]);
+
   if (loading) return <div className="loading">Lade...</div>;
   if (!form)
     return <div className="loading">Ehrenamtlicher nicht gefunden.</div>;
-
-  const age = form.dateOfBirth
-    ? differenceInYears(new Date(), parseISO(form.dateOfBirth))
-    : null;
-  const activityTimeMs = calculateActivityTime(form);
-  const activityTimeFormatted = formatActivityTime(activityTimeMs);
-  const requirementsStatus: RequirementStatusSummary =
-    calculateRequirementsStatus(form);
 
   const update = (partial: Partial<Volunteer>): void =>
     setForm((prev) => (prev ? { ...prev, ...partial } : prev));
@@ -546,6 +585,126 @@ export default function VolunteerDetail(): JSX.Element {
                 ))}
               </div>
             </details>
+          )}
+        </section>
+
+        <section className="card section-card">
+          <h2>Gruppentreffen</h2>
+
+          {meetingsLoading ? (
+            <p className="text-muted">Lade Teilnahme...</p>
+          ) : volunteerMeetings.length === 0 ? (
+            <p className="empty-hint">
+              Noch keine Teilnahme an Gruppentreffen dokumentiert.
+            </p>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                  gap: "0.75rem",
+                  marginTop: "1rem",
+                }}
+              >
+                <div className="activity-time-box">
+                  <strong>Eingeladen:</strong> {meetingStats.invitedCount}
+                </div>
+                <div className="activity-time-box">
+                  <strong>Anwesend:</strong> {meetingStats.presentCount}
+                </div>
+                <div className="activity-time-box">
+                  <strong>Nicht anwesend:</strong> {meetingStats.absentCount}
+                </div>
+                <div className="activity-time-box">
+                  <strong>Quote:</strong> {meetingStats.attendanceRate}%
+                </div>
+              </div>
+
+              <details className="status-history" style={{ marginTop: "1rem" }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    fontWeight: "500",
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    userSelect: "none",
+                  }}
+                >
+                  Teilnahme-Verlauf ({volunteerMeetings.length} Einträge)
+                </summary>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                    marginTop: "1rem",
+                  }}
+                >
+                  {volunteerMeetings.map((meeting) => {
+                    const participant = meeting.participants.find(
+                      (entry) =>
+                        entry.id === form.id && entry.type === "volunteer",
+                    );
+                    const attendance = participant?.attendance ?? "unknown";
+                    const badgeStyles =
+                      attendance === "present"
+                        ? {
+                            backgroundColor: "rgba(34, 197, 94, 0.12)",
+                            color: "#15803d",
+                          }
+                        : attendance === "absent"
+                          ? {
+                              backgroundColor: "rgba(239, 68, 68, 0.12)",
+                              color: "#b91c1c",
+                            }
+                          : {
+                              backgroundColor: "rgba(245, 158, 11, 0.12)",
+                              color: "#b45309",
+                            };
+
+                    return (
+                      <div
+                        key={meeting.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          padding: "0.65rem 0.8rem",
+                          backgroundColor: "var(--color-surface-2)",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{meeting.title}</div>
+                          <div
+                            className="text-muted"
+                            style={{ fontSize: "0.85rem" }}
+                          >
+                            {format(parseISO(meeting.date), "dd.MM.yyyy", {
+                              locale: de,
+                            })}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            ...badgeStyles,
+                            padding: "0.25rem 0.6rem",
+                            borderRadius: "999px",
+                            fontSize: "0.8rem",
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {GROUP_MEETING_ATTENDANCE_LABELS[attendance]}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            </>
           )}
         </section>
 

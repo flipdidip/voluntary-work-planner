@@ -6,7 +6,9 @@ import { de } from "date-fns/locale";
 import { v4 as uuidv4 } from "uuid";
 import {
   GroupMeeting,
+  GroupMeetingAttendanceStatus,
   GroupMeetingParticipant,
+  GROUP_MEETING_ATTENDANCE_LABELS,
   VolunteerIndexEntry,
 } from "@shared/types";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
@@ -15,6 +17,12 @@ import { useGroupMeetings } from "../hooks/useGroupMeetings";
 import "./GroupMeetingNew.css";
 
 type ParticipantTab = "volunteer" | "partner";
+
+const ATTENDANCE_STATUSES: GroupMeetingAttendanceStatus[] = [
+  "present",
+  "unknown",
+  "absent",
+];
 
 export default function GroupMeetingNew(): JSX.Element {
   const navigate = useNavigate();
@@ -47,9 +55,25 @@ export default function GroupMeetingNew(): JSX.Element {
       setTitle(meeting.title);
       setDate(meeting.date);
       setNotes(meeting.notes || "");
-      setParticipants(meeting.participants);
+      setParticipants(
+        meeting.participants.map((participant) => ({
+          ...participant,
+          attendance: participant.attendance ?? "unknown",
+        })),
+      );
     }
   }, [isEdit, id, meetingsIndex]);
+
+  useEffect(() => {
+    setEmailSelection((prev) => {
+      const selectedIds = new Set(
+        participants.map((participant) => participant.id),
+      );
+      return new Set(
+        [...prev].filter((participantId) => selectedIds.has(participantId)),
+      );
+    });
+  }, [participants]);
 
   const volunteers: VolunteerIndexEntry[] = useMemo(
     () =>
@@ -63,7 +87,19 @@ export default function GroupMeetingNew(): JSX.Element {
     [partnerIndex],
   );
 
+  const activeVolunteers = useMemo(
+    () => volunteers.filter((entry) => entry.status === "active"),
+    [volunteers],
+  );
+
+  const activePartners = useMemo(
+    () => partners.filter((entry) => entry.status === "active"),
+    [partners],
+  );
+
   const currentList = activeTab === "volunteer" ? volunteers : partners;
+  const currentActiveList =
+    activeTab === "volunteer" ? activeVolunteers : activePartners;
 
   // ── E-Mail helpers ──
   const participantEmails = useMemo(() => {
@@ -147,14 +183,61 @@ export default function GroupMeetingNew(): JSX.Element {
           id: entry.id,
           name: `${entry.firstName} ${entry.lastName}`,
           type: activeTab,
+          attendance: "unknown",
         },
       ]);
     }
   };
 
+  const selectAllActiveForTab = (): void => {
+    setParticipants((prev) => {
+      const existingIds = new Set(prev.map((participant) => participant.id));
+      const additions = currentActiveList
+        .filter((entry) => !existingIds.has(entry.id))
+        .map((entry) => ({
+          id: entry.id,
+          name: `${entry.firstName} ${entry.lastName}`,
+          type: activeTab,
+          attendance: "unknown" as const,
+        }));
+
+      return [...prev, ...additions];
+    });
+  };
+
+  const clearParticipantsForTab = (): void => {
+    setParticipants((prev) =>
+      prev.filter((participant) => participant.type !== activeTab),
+    );
+  };
+
+  const setParticipantAttendance = (
+    participantId: string,
+    attendance: GroupMeetingAttendanceStatus,
+  ): void => {
+    setParticipants((prev) =>
+      prev.map((participant) =>
+        participant.id === participantId
+          ? { ...participant, attendance }
+          : participant,
+      ),
+    );
+  };
+
   const removeParticipant = (participantId: string): void => {
     setParticipants((prev) => prev.filter((p) => p.id !== participantId));
   };
+
+  const attendanceSummary = useMemo(() => {
+    return participants.reduce(
+      (acc, participant) => {
+        const status = participant.attendance ?? "unknown";
+        acc[status] += 1;
+        return acc;
+      },
+      { present: 0, unknown: 0, absent: 0 },
+    );
+  }, [participants]);
 
   const handleSave = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -271,6 +354,28 @@ export default function GroupMeetingNew(): JSX.Element {
             )}
           </div>
 
+          <div className="participant-bulk-actions">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={selectAllActiveForTab}
+              disabled={currentActiveList.length === 0}
+            >
+              Alle aktiven{" "}
+              {activeTab === "volunteer"
+                ? "Ehrenamtlichen"
+                : "Kooperationspartner"}{" "}
+              auswählen ({currentActiveList.length})
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={clearParticipantsForTab}
+            >
+              Auswahl im Tab löschen
+            </button>
+          </div>
+
           {/* Type tabs */}
           <div className="participant-type-tabs">
             <button
@@ -310,10 +415,83 @@ export default function GroupMeetingNew(): JSX.Element {
                   checked={isParticipantSelected(entry.id)}
                   onChange={() => toggleParticipant(entry)}
                 />
-                {entry.firstName} {entry.lastName}
+                <span className="participant-pick-name">
+                  {entry.firstName} {entry.lastName}
+                </span>
+                <span
+                  className={`participant-pick-status status-${entry.status}`}
+                >
+                  {entry.status === "active"
+                    ? "Aktiv"
+                    : entry.status === "inactive"
+                      ? "Inaktiv"
+                      : "Archiviert"}
+                </span>
               </label>
             ))}
           </div>
+
+          {participants.length > 0 && (
+            <div className="attendance-section">
+              <h3>Teilnahme dokumentieren</h3>
+              <p
+                className="text-muted"
+                style={{ margin: 0, fontSize: "0.82rem" }}
+              >
+                Die Ampel kann direkt oder auch nachträglich nach dem Treffen
+                gespeichert werden.
+              </p>
+
+              <div className="attendance-summary">
+                <span className="attendance-summary-pill present">
+                  Anwesend: {attendanceSummary.present}
+                </span>
+                <span className="attendance-summary-pill unknown">
+                  Offen: {attendanceSummary.unknown}
+                </span>
+                <span className="attendance-summary-pill absent">
+                  Nicht anwesend: {attendanceSummary.absent}
+                </span>
+              </div>
+
+              <div className="attendance-list">
+                {participants.map((participant) => {
+                  const attendance = participant.attendance ?? "unknown";
+
+                  return (
+                    <div key={participant.id} className="attendance-item">
+                      <div>
+                        <div className="attendance-name">
+                          {participant.name}
+                        </div>
+                        <div className="attendance-type-label">
+                          {participant.type === "volunteer"
+                            ? "Ehrenamtlich"
+                            : "Kooperationspartner"}
+                        </div>
+                      </div>
+                      <div className="attendance-lights">
+                        {ATTENDANCE_STATUSES.map((status) => (
+                          <button
+                            key={status}
+                            type="button"
+                            className={`attendance-light ${status}${attendance === status ? " active" : ""}`}
+                            title={GROUP_MEETING_ATTENDANCE_LABELS[status]}
+                            onClick={() =>
+                              setParticipantAttendance(participant.id, status)
+                            }
+                          >
+                            <span className="attendance-light-dot" />
+                            {GROUP_MEETING_ATTENDANCE_LABELS[status]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── E-Mail Actions ── */}
