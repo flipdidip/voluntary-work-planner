@@ -1,3 +1,62 @@
+/* ── Filters ── */
+.cal-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.cal-filters-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.cal-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.cal-filter-chip:hover {
+  background: var(--color-surface-2);
+  border-color: var(--color-text-muted);
+  box-shadow: none;
+}
+
+.cal-filter-chip.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.cal-filter-chip.active:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.cal-filter-chip.exclude {
+  background: var(--color-chip-exclude-bg);
+  color: var(--color-chip-exclude-fg);
+  border-color: var(--color-chip-exclude-border);
+}
+
+.cal-filter-chip.exclude:hover {
+  background: var(--color-chip-exclude-hover-bg);
+  border-color: var(--color-chip-exclude-hover-border);
+}
+
 /* ── Calendar navigation ── */
 .cal-nav {
   display: flex;

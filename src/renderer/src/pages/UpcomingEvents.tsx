@@ -89,17 +89,22 @@ interface UpcomingEventsProps {
   userRole?: UserRole;
 }
 
+type PartnerFilterMode = "off" | "include" | "exclude";
+
 export default function UpcomingEvents({
   userRole = "primary",
 }: UpcomingEventsProps): JSX.Element {
   const navigate = useNavigate();
   const { index, loading } = useVolunteerIndex();
   const isPartnerOnly = userRole === "partner-only";
+  const hasFullAccess = userRole === "primary";
   const [events, setEvents] = useState<UpcomingEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(() =>
     startOfMonth(new Date()),
   );
+  const [partnerFilterMode, setPartnerFilterMode] =
+    useState<PartnerFilterMode>("off");
 
   useEffect(() => {
     if (!isPartnerOnly && !index) {
@@ -186,22 +191,40 @@ export default function UpcomingEvents({
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentMonth]);
 
+  const filteredEvents = useMemo(() => {
+    if (partnerFilterMode === "off") {
+      return events;
+    }
+
+    return events.filter((event) => {
+      const isPartnerEvent = event.kind === "partner-appointment";
+      return partnerFilterMode === "include" ? isPartnerEvent : !isPartnerEvent;
+    });
+  }, [events, partnerFilterMode]);
+
   // Group events by date string for quick lookup
   const eventsByDate = useMemo(() => {
     const map = new Map<string, UpcomingEvent[]>();
-    for (const ev of events) {
+    for (const ev of filteredEvents) {
       const key = ev.date; // already "yyyy-MM-dd"
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     }
     return map;
-  }, [events]);
+  }, [filteredEvents]);
 
   const today = new Date();
 
   const goToPreviousMonth = (): void => setCurrentMonth((m) => subMonths(m, 1));
   const goToNextMonth = (): void => setCurrentMonth((m) => addMonths(m, 1));
   const goToToday = (): void => setCurrentMonth(startOfMonth(new Date()));
+  const cyclePartnerFilter = (): void => {
+    setPartnerFilterMode((prev) => {
+      if (prev === "off") return "include";
+      if (prev === "include") return "exclude";
+      return "off";
+    });
+  };
 
   return (
     <div className="upcoming-events-page">
@@ -220,6 +243,26 @@ export default function UpcomingEvents({
 
       {!((!isPartnerOnly && loading) || eventsLoading) && (
         <>
+          {hasFullAccess && (
+            <div className="cal-filters">
+              <span className="cal-filters-label">Filter:</span>
+              <button
+                className={`cal-filter-chip ${partnerFilterMode === "include" ? "active" : partnerFilterMode === "exclude" ? "exclude" : ""}`}
+                onClick={cyclePartnerFilter}
+                type="button"
+                title="Aus: alle Ereignisse · Aktiv: nur Kooperationspartner · Ausschließen: nur Nicht-Kooperationspartner"
+              >
+                <Handshake size={14} />
+                Kooperationspartner:{" "}
+                {partnerFilterMode === "include"
+                  ? "Nur"
+                  : partnerFilterMode === "exclude"
+                    ? "Ohne"
+                    : "Alle"}
+              </button>
+            </div>
+          )}
+
           {/* Calendar navigation */}
           <div className="cal-nav">
             <button
