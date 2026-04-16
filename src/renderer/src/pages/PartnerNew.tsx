@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Volunteer } from "@shared/types";
 import { v4 as uuidv4 } from "uuid";
-import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
+import { usePartnerIndex } from "../hooks/usePartners";
 import "./PartnerNew.css";
 
 const EMPTY_PARTNER: Omit<
@@ -13,6 +13,8 @@ const EMPTY_PARTNER: Omit<
 > = {
   firstName: "",
   lastName: "",
+  organization: "",
+  contactPerson: "",
   dateOfBirth: undefined,
   gender: undefined,
   phone: undefined,
@@ -32,8 +34,44 @@ const EMPTY_PARTNER: Omit<
 
 export default function PartnerNew(): JSX.Element {
   const navigate = useNavigate();
-  const [dateOfBirth, setDateOfBirth] = useState<string | undefined>(undefined);
+  const { index } = usePartnerIndex();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
   const [roles, setRoles] = useState<string[]>([]);
+
+  const contactSuggestions = useMemo(() => {
+    if (!index) {
+      return [];
+    }
+
+    const contacts = new Set<string>();
+    index.volunteers.forEach((entry) => {
+      const value = entry.contactPerson?.trim();
+      if (value) {
+        contacts.add(value);
+      }
+    });
+
+    return Array.from(contacts).sort((a, b) => a.localeCompare(b, "de"));
+  }, [index]);
+
+  const organizationSuggestions = useMemo(() => {
+    if (!index) {
+      return [];
+    }
+
+    const organizations = new Set<string>();
+    index.volunteers.forEach((entry) => {
+      const value = entry.organization?.trim();
+      if (value) {
+        organizations.add(value);
+      }
+    });
+
+    return Array.from(organizations).sort((a, b) => a.localeCompare(b, "de"));
+  }, [index]);
 
   const handleCreate = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -47,9 +85,10 @@ export default function PartnerNew(): JSX.Element {
       _version: 0,
       _createdAt: new Date().toISOString(),
       _updatedAt: new Date().toISOString(),
-      firstName: fd.get("firstName") as string,
-      lastName: fd.get("lastName") as string,
-      dateOfBirth: dateOfBirth,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      organization: organization.trim() || undefined,
+      contactPerson: contactPerson.trim() || undefined,
       phone: (fd.get("phone") as string) || undefined,
       email: (fd.get("email") as string) || undefined,
       status: (fd.get("status") as Volunteer["status"]) ?? "active",
@@ -76,7 +115,7 @@ export default function PartnerNew(): JSX.Element {
 
       <form className="new-form card" onSubmit={handleCreate}>
         <div className="form-header-row">
-          <h3>Basisdaten</h3>
+          <h3>Kooperationspartner</h3>
           <label className="status-select-label">
             Status
             <select className="select" name="status" defaultValue="active">
@@ -85,23 +124,88 @@ export default function PartnerNew(): JSX.Element {
             </select>
           </label>
         </div>
+        <label>
+          Einrichtung / Institution *
+          <div className="roles-input">
+            {organizationSuggestions.length > 0 && (
+              <div className="roles-input-field">
+                <select
+                  className="select roles-select"
+                  defaultValue=""
+                  onChange={(e) => setOrganization(e.target.value)}
+                >
+                  <option value="">Vorhandene Einrichtung auswählen...</option>
+                  {organizationSuggestions.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="roles-input-field">
+              <input
+                className="input"
+                name="organization"
+                value={organization}
+                onChange={(e) => setOrganization(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+        </label>
         <div className="form-row">
           <label>
-            Vorname *
-            <input className="input" name="firstName" required />
+            Vorname Kooperationspartner *
+            <input
+              className="input"
+              name="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+            />
           </label>
           <label>
-            Nachname *
-            <input className="input" name="lastName" required />
+            Nachname Kooperationspartner *
+            <input
+              className="input"
+              name="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+            />
           </label>
         </div>
         <label>
-          Geburtsdatum
-          <BirthdayInput
-            value={dateOfBirth}
-            onChange={setDateOfBirth}
-            name="dateOfBirth"
-          />
+          Ansprechpartner
+          <div className="roles-input">
+            {contactSuggestions.length > 0 && (
+              <div className="roles-input-field">
+                <select
+                  className="select roles-select"
+                  value={contactPerson}
+                  onChange={(e) => setContactPerson(e.target.value)}
+                >
+                  <option value="">
+                    Vorhandene Ansprechperson auswählen...
+                  </option>
+                  {contactSuggestions.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="roles-input-field">
+              <input
+                className="input"
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+                placeholder="z.B. Max Mustermann"
+              />
+            </div>
+          </div>
         </label>
         <div className="form-row">
           <label>
@@ -114,7 +218,7 @@ export default function PartnerNew(): JSX.Element {
           </label>
         </div>
         <label>
-          Aufgaben
+          Kooperationsbereich / Aufgaben
           <RolesInput value={roles} onChange={setRoles} />
         </label>
         <label>

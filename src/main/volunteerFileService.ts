@@ -86,6 +86,8 @@ export class VolunteerFileService {
           id: volunteer.id,
           firstName: volunteer.firstName,
           lastName: volunteer.lastName,
+          organization: volunteer.organization,
+          contactPerson: volunteer.contactPerson,
           dateOfBirth: volunteer.dateOfBirth,
           phone: volunteer.phone,
           mobile: volunteer.mobile,
@@ -102,6 +104,8 @@ export class VolunteerFileService {
 
         if (
           entry._updatedAt !== normalizedEntry._updatedAt ||
+          entry.organization !== normalizedEntry.organization ||
+          entry.contactPerson !== normalizedEntry.contactPerson ||
           entry.mediaConsentLevel !== normalizedEntry.mediaConsentLevel ||
           JSON.stringify(entry.requirementsStatus) !==
             JSON.stringify(normalizedEntry.requirementsStatus)
@@ -142,6 +146,8 @@ export class VolunteerFileService {
       id: volunteer.id,
       firstName: volunteer.firstName,
       lastName: volunteer.lastName,
+      organization: volunteer.organization,
+      contactPerson: volunteer.contactPerson,
       dateOfBirth: volunteer.dateOfBirth,
       phone: volunteer.phone,
       mobile: volunteer.mobile,
