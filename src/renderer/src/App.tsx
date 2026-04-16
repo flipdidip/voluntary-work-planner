@@ -228,7 +228,10 @@ export default function App(): JSX.Element {
                 path="/events"
                 element={<UpcomingEvents userRole={userRole} />}
               />
-              <Route path="/settings" element={<Settings />} />
+              <Route
+                path="/settings"
+                element={<Settings userRole={userRole} />}
+              />
               {/* Redirect any disallowed route to /partners */}
               <Route path="*" element={<Navigate to="/partners" replace />} />
             </>
@@ -258,7 +261,10 @@ export default function App(): JSX.Element {
                 path="/events"
                 element={<UpcomingEvents userRole={userRole} />}
               />
-              <Route path="/settings" element={<Settings />} />
+              <Route
+                path="/settings"
+                element={<Settings userRole={userRole} />}
+              />
             </>
           )}
         </Routes>
