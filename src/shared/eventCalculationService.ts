@@ -15,6 +15,7 @@ import {
   calculateRequirementExpiryDate,
   REQUIREMENT_DEFINITIONS,
   GroupMeetingIndex,
+  PartnerAppointmentIndex,
 } from "./types";
 
 export interface UpcomingEvent {
@@ -30,6 +31,7 @@ export interface UpcomingEvent {
    * - requirement-renewal: Requirement/qualification renewal
    * - custom: Custom reminder
    * - group-meeting: Group meeting appointment
+   * - partner-appointment: Appointment with cooperation partners
    */
   kind:
     | "birthday"
@@ -38,12 +40,15 @@ export interface UpcomingEvent {
     | "anniversary-activity"
     | "requirement-renewal"
     | "custom"
-    | "group-meeting";
+    | "group-meeting"
+    | "partner-appointment";
   label: string;
   daysUntil: number;
   date: string;
   /** For group-meeting kind: the meeting ID for navigation */
   meetingId?: string;
+  /** For partner-appointment kind: the appointment ID for navigation */
+  appointmentId?: string;
 }
 
 /**
@@ -133,6 +138,7 @@ export async function calculateUpcomingEvents(
   getVolunteerFull?: (id: string) => Promise<Volunteer | null>,
   options: EventCalculationOptions = {},
   meetingsIndex?: GroupMeetingIndex | null,
+  appointmentsIndex?: PartnerAppointmentIndex | null,
 ): Promise<UpcomingEvent[]> {
   const today = startOfDay(new Date());
   const events: UpcomingEvent[] = [];
@@ -393,6 +399,31 @@ export async function calculateUpcomingEvents(
           daysUntil,
           date: format(meetingDate, "yyyy-MM-dd"),
           meetingId: meeting.id,
+        });
+      }
+    }
+  }
+
+  // ======== PARTNER APPOINTMENT EVENTS ========
+  if (appointmentsIndex) {
+    for (const appointment of appointmentsIndex.appointments) {
+      const appointmentDate = parseISO(appointment.date);
+      const daysUntil = differenceInCalendarDays(appointmentDate, today);
+
+      if (isEventInRange(daysUntil)) {
+        const participantCount = appointment.participants.length;
+        const participantSuffix =
+          participantCount > 0 ? ` (${participantCount} Teilnehmer)` : "";
+
+        events.push({
+          volunteerId: appointment.id,
+          volunteerName: appointment.title,
+          eventType: "reminder",
+          kind: "partner-appointment",
+          label: `Kooperationspartner-Termin${participantSuffix}`,
+          daysUntil,
+          date: format(appointmentDate, "yyyy-MM-dd"),
+          appointmentId: appointment.id,
         });
       }
     }
