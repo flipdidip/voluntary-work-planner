@@ -30,6 +30,7 @@ import {
   calculateUpcomingEvents,
   UpcomingEvent,
 } from "@shared/eventCalculationService";
+import { UserRole } from "@shared/types";
 import "./UpcomingEvents.css";
 
 const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -84,9 +85,16 @@ function getEventKindInfo(kind: UpcomingEvent["kind"]) {
   return info[kind];
 }
 
-export default function UpcomingEvents(): JSX.Element {
+interface UpcomingEventsProps {
+  userRole?: UserRole;
+}
+
+export default function UpcomingEvents({
+  userRole = "primary",
+}: UpcomingEventsProps): JSX.Element {
   const navigate = useNavigate();
   const { index, loading } = useVolunteerIndex();
+  const isPartnerOnly = userRole === "partner-only";
   const [events, setEvents] = useState<UpcomingEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(() =>
@@ -94,7 +102,7 @@ export default function UpcomingEvents(): JSX.Element {
   );
 
   useEffect(() => {
-    if (!index) {
+    if (!isPartnerOnly && !index) {
       setEventsLoading(false);
       return;
     }
@@ -104,11 +112,44 @@ export default function UpcomingEvents(): JSX.Element {
     const loadEvents = async (): Promise<void> => {
       try {
         setEventsLoading(true);
+        const appointmentsIdx = await window.api.getPartnerAppointments();
+
+        if (isPartnerOnly) {
+          const today = new Date();
+          const partnerEvents = appointmentsIdx.appointments
+            .map((appointment) => {
+              const appointmentDate = new Date(appointment.date);
+              const daysUntil = Math.floor(
+                (appointmentDate.setHours(0, 0, 0, 0) -
+                  new Date(today.setHours(0, 0, 0, 0)).getTime()) /
+                  (1000 * 60 * 60 * 24),
+              );
+
+              return {
+                volunteerId: appointment.id,
+                volunteerName: appointment.title,
+                eventType: "reminder" as const,
+                kind: "partner-appointment" as const,
+                label: `Kooperationspartner-Termin (${appointment.participants.length} Teilnehmer)`,
+                daysUntil,
+                date: appointment.date,
+                appointmentId: appointment.id,
+              };
+            })
+            .filter((event) => event.daysUntil >= 0)
+            .sort((a, b) => a.daysUntil - b.daysUntil);
+
+          if (!cancelled) {
+            setEvents(partnerEvents);
+            setEventsLoading(false);
+          }
+          return;
+        }
+
         const settings = await window.api.getSettings();
         const meetingsIdx = await window.api.getGroupMeetings();
-        const appointmentsIdx = await window.api.getPartnerAppointments();
         const result = await calculateUpcomingEvents(
-          index,
+          index!,
           settings,
           (id) => window.api.getVolunteer(id),
           undefined,
@@ -134,7 +175,7 @@ export default function UpcomingEvents(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [index]);
+  }, [index, isPartnerOnly]);
 
   // Build calendar grid days for the current month view
   const calendarDays = useMemo(() => {
@@ -167,13 +208,17 @@ export default function UpcomingEvents(): JSX.Element {
       <div className="page-header">
         <h1>Kommende Ereignisse</h1>
         <p className="text-muted">
-          Monatsübersicht aller Geburtstage, Erinnerungen und Termine
+          {isPartnerOnly
+            ? "Monatsübersicht der Kooperationspartner-Termine"
+            : "Monatsübersicht aller Geburtstage, Erinnerungen und Termine"}
         </p>
       </div>
 
-      {(loading || eventsLoading) && <p className="text-muted">Lade...</p>}
+      {((!isPartnerOnly && loading) || eventsLoading) && (
+        <p className="text-muted">Lade...</p>
+      )}
 
-      {!loading && !eventsLoading && (
+      {!((!isPartnerOnly && loading) || eventsLoading) && (
         <>
           {/* Calendar navigation */}
           <div className="cal-nav">
@@ -224,14 +269,26 @@ export default function UpcomingEvents(): JSX.Element {
                     <span className="cal-day-number">{format(day, "d")}</span>
                     <button
                       className="cal-day-add-btn"
-                      title="Neues Gruppentreffen erstellen"
-                      aria-label="Neues Gruppentreffen erstellen"
+                      title={
+                        isPartnerOnly
+                          ? "Neuen Termin erstellen"
+                          : "Neues Gruppentreffen erstellen"
+                      }
+                      aria-label={
+                        isPartnerOnly
+                          ? "Neuen Termin erstellen"
+                          : "Neues Gruppentreffen erstellen"
+                      }
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/meetings/new?date=${dateKey}`);
+                        navigate(
+                          isPartnerOnly
+                            ? `/appointments/new?date=${dateKey}`
+                            : `/meetings/new?date=${dateKey}`,
+                        );
                       }}
                     >
-                      <Users2 size={14} />
+                      {isPartnerOnly ? <Handshake size={14} /> : <Users2 size={14} />}
                     </button>
                   </div>
                   {dayEvents.length > 0 && (

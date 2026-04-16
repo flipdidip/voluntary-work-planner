@@ -25,7 +25,12 @@ const navItems = [
     icon: LayoutDashboard,
     primaryOnly: true,
   },
-  { to: "/events", label: "Ereignisse", icon: Calendar, primaryOnly: true },
+  {
+    to: "/events",
+    label: "Ereignisse",
+    icon: Calendar,
+    primaryOnly: false,
+  },
   { to: "/volunteers", label: "Ehrenamtliche", icon: Users, primaryOnly: true },
   {
     to: "/meetings",
