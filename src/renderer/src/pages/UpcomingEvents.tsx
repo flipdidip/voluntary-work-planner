@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Users2,
+  Handshake,
 } from "lucide-react";
 import {
   format,
@@ -74,6 +75,11 @@ function getEventKindInfo(kind: UpcomingEvent["kind"]) {
       label: "Gruppentreffen",
       color: "badge-teal",
     },
+    "partner-appointment": {
+      icon: <Handshake size={12} />,
+      label: "Kooperationspartner-Termin",
+      color: "badge-green",
+    },
   };
   return info[kind];
 }
@@ -100,12 +106,14 @@ export default function UpcomingEvents(): JSX.Element {
         setEventsLoading(true);
         const settings = await window.api.getSettings();
         const meetingsIdx = await window.api.getGroupMeetings();
+        const appointmentsIdx = await window.api.getPartnerAppointments();
         const result = await calculateUpcomingEvents(
           index,
           settings,
           (id) => window.api.getVolunteer(id),
           undefined,
           meetingsIdx,
+          appointmentsIdx,
         );
 
         if (!cancelled) {
@@ -159,7 +167,7 @@ export default function UpcomingEvents(): JSX.Element {
       <div className="page-header">
         <h1>Kommende Ereignisse</h1>
         <p className="text-muted">
-          Monatsübersicht aller Geburtstage und Erinnerungen
+          Monatsübersicht aller Geburtstage, Erinnerungen und Termine
         </p>
       </div>
 
@@ -236,9 +244,11 @@ export default function UpcomingEvents(): JSX.Element {
                             className={`cal-event-pill ${kindInfo.color}`}
                             title={`${ev.volunteerName} – ${ev.label}`}
                             onClick={() =>
-                              ev.meetingId
-                                ? navigate(`/meetings/${ev.meetingId}`)
-                                : navigate(`/volunteers/${ev.volunteerId}`)
+                              ev.appointmentId
+                                ? navigate(`/appointments/${ev.appointmentId}`)
+                                : ev.meetingId
+                                  ? navigate(`/meetings/${ev.meetingId}`)
+                                  : navigate(`/volunteers/${ev.volunteerId}`)
                             }
                           >
                             <span className="cal-event-icon">
