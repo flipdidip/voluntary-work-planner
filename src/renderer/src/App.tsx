@@ -224,6 +224,7 @@ export default function App(): JSX.Element {
                 path="/appointments/:id"
                 element={<PartnerAppointmentNew />}
               />
+              <Route path="/events" element={<UpcomingEvents userRole={userRole} />} />
               <Route path="/settings" element={<Settings />} />
               {/* Redirect any disallowed route to /partners */}
               <Route path="*" element={<Navigate to="/partners" replace />} />
@@ -250,7 +251,7 @@ export default function App(): JSX.Element {
                 path="/appointments/:id"
                 element={<PartnerAppointmentNew />}
               />
-              <Route path="/events" element={<UpcomingEvents />} />
+              <Route path="/events" element={<UpcomingEvents userRole={userRole} />} />
               <Route path="/settings" element={<Settings />} />
             </>
           )}
