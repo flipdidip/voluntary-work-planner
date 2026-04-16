@@ -16,6 +16,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
+import { usePartnerIndex } from "../hooks/usePartners";
 import {
   calculateUpcomingEvents,
   UpcomingEvent,
@@ -74,6 +75,7 @@ function getEventKindInfo(kind: UpcomingEvent["kind"]) {
 
 export default function Dashboard(): JSX.Element {
   const { index, loading } = useVolunteerIndex();
+  const { index: partnerIndex, loading: partnerLoading } = usePartnerIndex();
   const navigate = useNavigate();
   const [dataPath, setDataPath] = useState<string>("");
   const [upcoming, setUpcoming] = useState<UpcomingEvent[]>([]);
@@ -123,7 +125,13 @@ export default function Dashboard(): JSX.Element {
     index?.volunteers.filter((v) => v.status === "active").length ?? 0;
   const inactiveCount =
     index?.volunteers.filter((v) => v.status === "inactive").length ?? 0;
-  const totalCount = index?.volunteers.length ?? 0;
+  const totalCount = activeCount + inactiveCount;
+
+  const partnerActiveCount =
+    partnerIndex?.volunteers.filter((v) => v.status === "active").length ?? 0;
+  const partnerInactiveCount =
+    partnerIndex?.volunteers.filter((v) => v.status === "inactive").length ?? 0;
+  const partnerTotalCount = partnerActiveCount + partnerInactiveCount;
 
   if (!dataPath) {
     return (
@@ -150,45 +158,69 @@ export default function Dashboard(): JSX.Element {
     <div className="dashboard">
       <div className="page-header">
         <h1>Dashboard</h1>
-        <p className="text-muted">Übersicht der Ehrenamtlichen</p>
+        <p className="text-muted">
+          Übersicht der Ehrenamtlichen und Kooperationspartner
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-card card" onClick={() => navigate("/volunteers")}>
-          <div className="stat-icon stat-icon--blue">
-            <Users size={20} />
+      <div className="dashboard-overview-grid">
+        <section className="section card summary-panel">
+          <h2>
+            <Users size={18} /> Ehrenamtliche ({totalCount})
+          </h2>
+          {loading && <p className="text-muted">Lade...</p>}
+          <div className="stats-grid stats-grid--compact">
+            <div
+              className="stat-card card"
+              onClick={() => navigate("/volunteers?status=active")}
+            >
+              <div className="stat-icon stat-icon--green">
+                <Users size={20} />
+              </div>
+              <div className="stat-value">{activeCount}</div>
+              <div className="stat-label">Aktiv</div>
+            </div>
+            <div
+              className="stat-card card"
+              onClick={() => navigate("/volunteers?status=inactive")}
+            >
+              <div className="stat-icon stat-icon--gray">
+                <Users size={20} />
+              </div>
+              <div className="stat-value">{inactiveCount}</div>
+              <div className="stat-label">Inaktiv</div>
+            </div>
           </div>
-          <div className="stat-value">{totalCount}</div>
-          <div className="stat-label">Gesamt</div>
-        </div>
-        <div
-          className="stat-card card"
-          onClick={() => navigate("/volunteers?status=active")}
-        >
-          <div className="stat-icon stat-icon--green">
-            <Users size={20} />
+        </section>
+
+        <section className="section card summary-panel">
+          <h2>
+            <Handshake size={18} /> Kooperationspartner ({partnerTotalCount})
+          </h2>
+          {partnerLoading && <p className="text-muted">Lade...</p>}
+          <div className="stats-grid stats-grid--compact">
+            <div
+              className="stat-card card"
+              onClick={() => navigate("/partners?status=active")}
+            >
+              <div className="stat-icon stat-icon--green">
+                <Handshake size={20} />
+              </div>
+              <div className="stat-value">{partnerActiveCount}</div>
+              <div className="stat-label">Aktiv</div>
+            </div>
+            <div
+              className="stat-card card"
+              onClick={() => navigate("/partners?status=inactive")}
+            >
+              <div className="stat-icon stat-icon--gray">
+                <Handshake size={20} />
+              </div>
+              <div className="stat-value">{partnerInactiveCount}</div>
+              <div className="stat-label">Inaktiv</div>
+            </div>
           </div>
-          <div className="stat-value">{activeCount}</div>
-          <div className="stat-label">Aktiv</div>
-        </div>
-        <div
-          className="stat-card card"
-          onClick={() => navigate("/volunteers?status=inactive")}
-        >
-          <div className="stat-icon stat-icon--gray">
-            <Users size={20} />
-          </div>
-          <div className="stat-value">{inactiveCount}</div>
-          <div className="stat-label">Inaktiv</div>
-        </div>
-        <div className="stat-card card" onClick={() => navigate("/events")}>
-          <div className="stat-icon stat-icon--purple">
-            <Bell size={20} />
-          </div>
-          <div className="stat-value">{upcoming.length}</div>
-          <div className="stat-label">Bald fällig</div>
-        </div>
+        </section>
       </div>
 
       {/* Upcoming birthdays / reminders */}
