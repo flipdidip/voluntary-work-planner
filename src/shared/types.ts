@@ -7,7 +7,7 @@ export type VolunteerStatus = "active" | "inactive" | "archived";
 /**
  * Authorization role assigned to each user in the encrypted data folder.
  * - "primary"      → Full access to all features (volunteers, partners, settings, etc.)
- * - "partner-only" → Restricted view: can only see the Kooperationspartner pages
+ * - "partner-only" → Restricted view: can see the Kooperationspartner and Termine pages
  *
  * The initial creator of the folder always receives the "primary" role.
  * Every subsequent user is assigned a role at approval time.
@@ -457,7 +457,7 @@ export interface GroupMeetingParticipationStats {
 }
 
 export function getGroupMeetingAttendanceStatus(
-  participant: GroupMeetingParticipant | null | undefined,
+  participant: { attendance?: GroupMeetingAttendanceStatus } | null | undefined,
 ): GroupMeetingAttendanceStatus {
   return participant?.attendance ?? "unknown";
 }
@@ -479,6 +479,66 @@ export function calculateGroupMeetingParticipationStats(
         participant?.type === participantType
       );
     });
+
+  const invitedCount = relevantParticipants.length;
+  const presentCount = relevantParticipants.filter(
+    (participant) => getGroupMeetingAttendanceStatus(participant) === "present",
+  ).length;
+  const absentCount = relevantParticipants.filter(
+    (participant) => getGroupMeetingAttendanceStatus(participant) === "absent",
+  ).length;
+  const unknownCount = relevantParticipants.filter(
+    (participant) => getGroupMeetingAttendanceStatus(participant) === "unknown",
+  ).length;
+  const ratedCount = presentCount + absentCount;
+
+  return {
+    invitedCount,
+    presentCount,
+    absentCount,
+    unknownCount,
+    attendanceRate:
+      ratedCount > 0 ? Math.round((presentCount / ratedCount) * 100) : 0,
+  };
+}
+
+// ─────────────────────────────────────────────────
+// Partner appointments (Termine)
+// ─────────────────────────────────────────────────
+
+export interface PartnerAppointmentParticipant {
+  id: string;
+  name: string;
+  attendance?: GroupMeetingAttendanceStatus;
+}
+
+export interface PartnerAppointment {
+  id: string;
+  title: string;
+  date: string;
+  participants: PartnerAppointmentParticipant[];
+  notes?: string;
+  _createdAt: string;
+  _updatedAt: string;
+}
+
+export interface PartnerAppointmentIndex {
+  _version: number;
+  _updatedAt: string;
+  appointments: PartnerAppointment[];
+}
+
+export function calculatePartnerAppointmentParticipationStats(
+  appointments: PartnerAppointment[],
+  participantId: string,
+): GroupMeetingParticipationStats {
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
+
+  const relevantParticipants = safeAppointments
+    .flatMap((appointment) =>
+      Array.isArray(appointment?.participants) ? appointment.participants : [],
+    )
+    .filter((participant) => participant?.id === participantId);
 
   const invitedCount = relevantParticipants.length;
   const presentCount = relevantParticipants.filter(
@@ -550,6 +610,11 @@ export const IPC = {
   SAVE_GROUP_MEETING: "save-group-meeting",
   DELETE_GROUP_MEETING: "delete-group-meeting",
 
+  // Partner appointments (Termine)
+  GET_PARTNER_APPOINTMENTS: "get-partner-appointments",
+  SAVE_PARTNER_APPOINTMENT: "save-partner-appointment",
+  DELETE_PARTNER_APPOINTMENT: "delete-partner-appointment",
+
   // Reminders
   GET_DUE_REMINDERS: "get-due-reminders",
   DISMISS_REMINDER: "dismiss-reminder",
@@ -611,7 +676,10 @@ export type BusinessAuditAction =
   | "processing-activities-exported"
   | "group-meeting-created"
   | "group-meeting-updated"
-  | "group-meeting-deleted";
+  | "group-meeting-deleted"
+  | "partner-appointment-created"
+  | "partner-appointment-updated"
+  | "partner-appointment-deleted";
 
 export type BusinessAuditSubjectType =
   | "settings"
@@ -619,7 +687,8 @@ export type BusinessAuditSubjectType =
   | "partner"
   | "attachment"
   | "processing-activities"
-  | "group-meeting";
+  | "group-meeting"
+  | "partner-appointment";
 
 export interface BusinessAuditEntry {
   timestamp: string;

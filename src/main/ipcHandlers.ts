@@ -8,6 +8,7 @@ import {
   BusinessAuditEntry,
   UserRole,
   GroupMeeting,
+  PartnerAppointment,
 } from "@shared/types";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
@@ -17,6 +18,7 @@ import { DataCryptoService } from "./dataCryptoService";
 import { ProcessingActivitiesService } from "./processingActivitiesService";
 import { BusinessAuditService } from "./businessAuditService";
 import { GroupMeetingService } from "./groupMeetingService";
+import { PartnerAppointmentService } from "./partnerAppointmentService";
 
 function getFileService(
   settings: SettingsService,
@@ -151,6 +153,29 @@ function getGroupMeetingService(
   return new GroupMeetingService(
     dataPath,
     settings.getMeetingsPath(),
+    cryptoService,
+  );
+}
+
+function getPartnerAppointmentService(
+  settings: SettingsService,
+): PartnerAppointmentService | null {
+  const dataPath = settings.getDataFolderPath();
+  if (!dataPath) return null;
+
+  const cryptoService = DataCryptoService.getInstance();
+  const cryptoStatus = cryptoService.getStatus(dataPath);
+  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
+    throw new Error(
+      cryptoStatus.message ||
+        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
+    );
+  }
+
+  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
+  return new PartnerAppointmentService(
+    dataPath,
+    settings.getAppointmentsPath(),
     cryptoService,
   );
 }
@@ -711,6 +736,74 @@ export function registerVolunteerHandlers(
       return;
     }
   });
+
+  // Partner appointments (Termine) CRUD
+  ipcMain.handle(IPC.GET_PARTNER_APPOINTMENTS, () => {
+    try {
+      const svc = getPartnerAppointmentService(settings);
+      if (!svc)
+        return {
+          _version: 0,
+          _updatedAt: new Date().toISOString(),
+          appointments: [],
+        };
+      return svc.readAll();
+    } catch {
+      return {
+        _version: 0,
+        _updatedAt: new Date().toISOString(),
+        appointments: [],
+      };
+    }
+  });
+
+  ipcMain.handle(
+    IPC.SAVE_PARTNER_APPOINTMENT,
+    (_event, appointment: PartnerAppointment) => {
+      try {
+        const svc = getPartnerAppointmentService(settings);
+        if (!svc) {
+          return { success: false, error: "Kein Datenordner konfiguriert." };
+        }
+
+        const isNew = !appointment._createdAt;
+        if (!appointment.id) {
+          appointment.id = uuidv4();
+        }
+
+        const saved = svc.save(appointment);
+        appendBusinessAudit(settings, {
+          action: isNew
+            ? "partner-appointment-created"
+            : "partner-appointment-updated",
+          subjectType: "partner-appointment",
+          subjectId: saved.id,
+          details: `${saved.title} (${saved.date})`,
+        });
+        return { success: true, appointment: saved };
+      } catch (error) {
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.DELETE_PARTNER_APPOINTMENT,
+    (_event, appointmentId: string) => {
+      try {
+        const svc = getPartnerAppointmentService(settings);
+        if (!svc) return;
+        svc.delete(appointmentId);
+        appendBusinessAudit(settings, {
+          action: "partner-appointment-deleted",
+          subjectType: "partner-appointment",
+          subjectId: appointmentId,
+        });
+      } catch {
+        return;
+      }
+    },
+  );
 
   // File attachments
   ipcMain.handle(IPC.SELECT_FILE, async (event) => {
