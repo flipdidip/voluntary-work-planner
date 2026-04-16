@@ -9,15 +9,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { UserPlus, Search, Mail, Phone, X } from "lucide-react";
 import { usePartnerIndex } from "../hooks/usePartners";
 import { VolunteerStatus } from "@shared/types";
-import {
-  differenceInYears,
-  parseISO,
-  isAfter,
-  isWithinInterval,
-  addDays,
-  subYears,
-  differenceInMonths,
-} from "date-fns";
+import { isAfter, subYears, differenceInMonths, parseISO } from "date-fns";
 import "./PartnerList.css";
 
 type FilterMode = "off" | "include" | "exclude";
@@ -35,6 +27,10 @@ const STATUS_BADGE: Record<VolunteerStatus, string> = {
   archived: "badge-gray",
 };
 
+function getContactName(person: { contactPerson?: string }): string {
+  return person.contactPerson?.trim() || "";
+}
+
 export default function PartnerList(): JSX.Element {
   const { index, loading } = usePartnerIndex();
   const navigate = useNavigate();
@@ -49,7 +45,13 @@ export default function PartnerList(): JSX.Element {
   const [excludedRoles, setExcludedRoles] = useState<string[]>([]);
   const [emailFilterMode, setEmailFilterMode] = useState<FilterMode>("off");
   const [phoneFilterMode, setPhoneFilterMode] = useState<FilterMode>("off");
-  const [birthdayFilterMode, setBirthdayFilterMode] =
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
+  const [selectedContactMode, setSelectedContactMode] =
+    useState<FilterMode>("off");
+  const [selectedOrganization, setSelectedOrganization] = useState<
+    string | null
+  >(null);
+  const [selectedOrganizationMode, setSelectedOrganizationMode] =
     useState<FilterMode>("off");
   const [joinedFilter, setJoinedFilter] = useState<JoinedFilter | null>(null);
   const [joinedFilterMode, setJoinedFilterMode] = useState<FilterMode>("off");
@@ -78,6 +80,30 @@ export default function PartnerList(): JSX.Element {
     return Array.from(roleSet).sort();
   }, [index]);
 
+  const allContacts = useMemo(() => {
+    if (!index) return [];
+    const contactSet = new Set<string>();
+    index.volunteers.forEach((v) => {
+      const fullName = getContactName(v);
+      if (fullName) {
+        contactSet.add(fullName);
+      }
+    });
+    return Array.from(contactSet).sort((a, b) => a.localeCompare(b, "de"));
+  }, [index]);
+
+  const allOrganizations = useMemo(() => {
+    if (!index) return [];
+    const organizationSet = new Set<string>();
+    index.volunteers.forEach((v) => {
+      const value = v.organization?.trim();
+      if (value) {
+        organizationSet.add(value);
+      }
+    });
+    return Array.from(organizationSet).sort((a, b) => a.localeCompare(b, "de"));
+  }, [index]);
+
   const filtered = useMemo(() => {
     if (!index) return [];
     return index.volunteers.filter((v) => {
@@ -95,6 +121,8 @@ export default function PartnerList(): JSX.Element {
         !q ||
         v.firstName.toLowerCase().includes(q) ||
         v.lastName.toLowerCase().includes(q) ||
+        (v.organization ?? "").toLowerCase().includes(q) ||
+        (v.contactPerson ?? "").toLowerCase().includes(q) ||
         v.roles.some((r) => r.toLowerCase().includes(q));
 
       // Role filter
@@ -122,40 +150,21 @@ export default function PartnerList(): JSX.Element {
             ? hasVolunteerPhone
             : !hasVolunteerPhone;
 
-      // Birthday filter
-      let isUpcomingBirthday = false;
-      if (v.dateOfBirth) {
-        const today = new Date();
-        const dob = parseISO(v.dateOfBirth);
-        const thisYearBirthday = new Date(
-          today.getFullYear(),
-          dob.getMonth(),
-          dob.getDate(),
-        );
-        const nextYearBirthday = new Date(
-          today.getFullYear() + 1,
-          dob.getMonth(),
-          dob.getDate(),
-        );
-
-        const upcoming =
-          isWithinInterval(thisYearBirthday, {
-            start: today,
-            end: addDays(today, 30),
-          }) ||
-          isWithinInterval(nextYearBirthday, {
-            start: today,
-            end: addDays(today, 30),
-          });
-        isUpcomingBirthday = upcoming;
-      }
-
-      const matchesBirthday =
-        birthdayFilterMode === "off"
+      const contactName = getContactName(v);
+      const matchesContact =
+        !selectedContact || selectedContactMode === "off"
           ? true
-          : birthdayFilterMode === "include"
-            ? isUpcomingBirthday
-            : !isUpcomingBirthday;
+          : selectedContactMode === "include"
+            ? contactName === selectedContact
+            : contactName !== selectedContact;
+
+      const organizationName = (v.organization ?? "").trim();
+      const matchesOrganization =
+        !selectedOrganization || selectedOrganizationMode === "off"
+          ? true
+          : selectedOrganizationMode === "include"
+            ? organizationName === selectedOrganization
+            : organizationName !== selectedOrganization;
 
       // Joined date / tenure filter
       let matchesJoined = true;
@@ -183,7 +192,8 @@ export default function PartnerList(): JSX.Element {
         matchesRoles &&
         matchesEmail &&
         matchesPhone &&
-        matchesBirthday &&
+        matchesContact &&
+        matchesOrganization &&
         matchesJoined
       );
     });
@@ -196,7 +206,10 @@ export default function PartnerList(): JSX.Element {
     excludedRoles,
     emailFilterMode,
     phoneFilterMode,
-    birthdayFilterMode,
+    selectedContact,
+    selectedContactMode,
+    selectedOrganization,
+    selectedOrganizationMode,
     joinedFilter,
     joinedFilterMode,
   ]);
@@ -240,6 +253,26 @@ export default function PartnerList(): JSX.Element {
     });
   };
 
+  const cycleSingleValueFilter = (
+    value: string,
+    selectedValue: string | null,
+    setSelectedValue: Dispatch<SetStateAction<string | null>>,
+    setMode: Dispatch<SetStateAction<FilterMode>>,
+  ) => {
+    if (selectedValue !== value) {
+      setSelectedValue(value);
+      setMode("include");
+      return;
+    }
+
+    setMode((prev) => {
+      if (prev === "off") return "include";
+      if (prev === "include") return "exclude";
+      setSelectedValue(null);
+      return "off";
+    });
+  };
+
   const cycleJoinedFilter = (value: JoinedFilter) => {
     if (joinedFilter !== value) {
       setJoinedFilter(value);
@@ -268,7 +301,10 @@ export default function PartnerList(): JSX.Element {
     setExcludedRoles([]);
     setEmailFilterMode("off");
     setPhoneFilterMode("off");
-    setBirthdayFilterMode("off");
+    setSelectedContact(null);
+    setSelectedContactMode("off");
+    setSelectedOrganization(null);
+    setSelectedOrganizationMode("off");
     setJoinedFilter(null);
     setJoinedFilterMode("off");
   };
@@ -279,7 +315,8 @@ export default function PartnerList(): JSX.Element {
     excludedRoles.length > 0 ||
     emailFilterMode !== "off" ||
     phoneFilterMode !== "off" ||
-    birthdayFilterMode !== "off" ||
+    (selectedContact !== null && selectedContactMode !== "off") ||
+    (selectedOrganization !== null && selectedOrganizationMode !== "off") ||
     (joinedFilter !== null && joinedFilterMode !== "off");
 
   return (
@@ -302,7 +339,7 @@ export default function PartnerList(): JSX.Element {
         <Search size={16} className="search-icon" />
         <input
           className="input search-input"
-          placeholder="Name oder Aufgabe suchen..."
+          placeholder="Kooperationspartner, Ansprechpartner, Institution oder Aufgabe suchen..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -330,12 +367,6 @@ export default function PartnerList(): JSX.Element {
           <span className="filter-group-label">Sonstiges:</span>
           <div className="filter-chips">
             <button
-              className={`filter-chip ${chipModeClass(birthdayFilterMode)}`}
-              onClick={() => cycleBinaryFilter(setBirthdayFilterMode)}
-            >
-              Geburtstag (30 Tage)
-            </button>
-            <button
               className={`filter-chip ${chipModeClass(emailFilterMode)}`}
               onClick={() => cycleBinaryFilter(setEmailFilterMode)}
             >
@@ -349,6 +380,54 @@ export default function PartnerList(): JSX.Element {
             </button>
           </div>
         </div>
+
+        {allContacts.length > 0 && (
+          <div className="filter-group">
+            <span className="filter-group-label">Ansprechperson:</span>
+            <div className="filter-chips">
+              {allContacts.map((contact) => (
+                <button
+                  key={contact}
+                  className={`filter-chip ${selectedContact === contact ? chipModeClass(selectedContactMode) : ""}`}
+                  onClick={() =>
+                    cycleSingleValueFilter(
+                      contact,
+                      selectedContact,
+                      setSelectedContact,
+                      setSelectedContactMode,
+                    )
+                  }
+                >
+                  {contact}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {allOrganizations.length > 0 && (
+          <div className="filter-group">
+            <span className="filter-group-label">Einrichtung:</span>
+            <div className="filter-chips">
+              {allOrganizations.map((organization) => (
+                <button
+                  key={organization}
+                  className={`filter-chip ${selectedOrganization === organization ? chipModeClass(selectedOrganizationMode) : ""}`}
+                  onClick={() =>
+                    cycleSingleValueFilter(
+                      organization,
+                      selectedOrganization,
+                      setSelectedOrganization,
+                      setSelectedOrganizationMode,
+                    )
+                  }
+                >
+                  {organization}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="filter-group">
           <span className="filter-group-label">Beitritt:</span>
@@ -402,9 +481,6 @@ export default function PartnerList(): JSX.Element {
           <p className="empty-hint">Keine Einträge gefunden.</p>
         )}
         {filtered.map((v) => {
-          const age = v.dateOfBirth
-            ? differenceInYears(new Date(), parseISO(v.dateOfBirth))
-            : null;
           return (
             <div
               key={v.id}
@@ -420,8 +496,13 @@ export default function PartnerList(): JSX.Element {
                   <span className="vol-name">
                     {v.firstName} {v.lastName}
                   </span>
-                  {age !== null && <span className="vol-age">{age} Jahre</span>}
                 </div>
+                {v.organization && (
+                  <span className="vol-roles">{v.organization}</span>
+                )}
+                <span className="vol-roles">
+                  Ansprechpartner: {getContactName(v) || "—"}
+                </span>
                 <span className="vol-roles">{v.roles.join(", ") || "—"}</span>
                 <div className="vol-contact">
                   {v.phone && (

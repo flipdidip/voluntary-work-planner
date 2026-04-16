@@ -13,7 +13,6 @@ import {
   Upload,
   Eye,
 } from "lucide-react";
-import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
 import { usePartner, usePartnerIndex } from "../hooks/usePartners";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
@@ -28,7 +27,7 @@ import {
   calculateGroupMeetingParticipationStats,
   GROUP_MEETING_ATTENDANCE_LABELS,
 } from "@shared/types";
-import { format, parseISO, differenceInYears } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { v4 as uuidv4 } from "uuid";
 import "./PartnerDetail.css";
@@ -89,9 +88,38 @@ export default function PartnerDetail(): JSX.Element {
     return Array.from(roleSet);
   })();
 
-  const age = form?.dateOfBirth
-    ? differenceInYears(new Date(), parseISO(form.dateOfBirth))
-    : null;
+  const contactSuggestions = (() => {
+    if (!index) {
+      return [];
+    }
+
+    const contacts = new Set<string>();
+    index.volunteers.forEach((entry) => {
+      const value = entry.contactPerson?.trim();
+      if (value) {
+        contacts.add(value);
+      }
+    });
+
+    return Array.from(contacts).sort((a, b) => a.localeCompare(b, "de"));
+  })();
+
+  const organizationSuggestions = (() => {
+    if (!index) {
+      return [];
+    }
+
+    const organizations = new Set<string>();
+    index.volunteers.forEach((entry) => {
+      const value = entry.organization?.trim();
+      if (value) {
+        organizations.add(value);
+      }
+    });
+
+    return Array.from(organizations).sort((a, b) => a.localeCompare(b, "de"));
+  })();
+
   const activityTimeMs = form ? calculateActivityTime(form) : 0;
   const activityTimeFormatted = formatActivityTime(activityTimeMs);
 
@@ -235,7 +263,16 @@ export default function PartnerDetail(): JSX.Element {
           <h1>
             {form.firstName} {form.lastName}
           </h1>
-          {age !== null && <span className="age-chip">{age} Jahre</span>}
+          {form.organization && (
+            <p className="text-muted" style={{ margin: 0 }}>
+              Einrichtung: {form.organization}
+            </p>
+          )}
+          {form.contactPerson && (
+            <p className="text-muted" style={{ margin: 0 }}>
+              Ansprechpartner: {form.contactPerson}
+            </p>
+          )}
         </div>
       </div>
 
@@ -243,7 +280,7 @@ export default function PartnerDetail(): JSX.Element {
         {/* ── Personal Data ─────────────────────────── */}
         <section className="card section-card">
           <div className="section-header-row">
-            <h2>Persönliche Daten</h2>
+            <h2>Kooperationspartner</h2>
             <label className="status-select-inline">
               Status
               <select
@@ -261,9 +298,74 @@ export default function PartnerDetail(): JSX.Element {
               </select>
             </label>
           </div>
+          <label>
+            Einrichtung / Institution
+            <div className="roles-input">
+              {organizationSuggestions.length > 0 && (
+                <div className="roles-input-field">
+                  <select
+                    className="select roles-select"
+                    defaultValue=""
+                    onChange={(e) =>
+                      update({ organization: e.target.value || undefined })
+                    }
+                  >
+                    <option value="">
+                      Vorhandene Einrichtung auswählen...
+                    </option>
+                    {organizationSuggestions.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="roles-input-field">
+                <input
+                  className="input"
+                  value={form.organization ?? ""}
+                  onChange={(e) => update({ organization: e.target.value })}
+                />
+              </div>
+            </div>
+          </label>
+          <label>
+            Ansprechpartner
+            <div className="roles-input">
+              {contactSuggestions.length > 0 && (
+                <div className="roles-input-field">
+                  <select
+                    className="select roles-select"
+                    value={form.contactPerson ?? ""}
+                    onChange={(e) =>
+                      update({ contactPerson: e.target.value || undefined })
+                    }
+                  >
+                    <option value="">
+                      Vorhandene Ansprechperson auswählen...
+                    </option>
+                    {contactSuggestions.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="roles-input-field">
+                <input
+                  className="input"
+                  value={form.contactPerson ?? ""}
+                  onChange={(e) => update({ contactPerson: e.target.value })}
+                  placeholder="z.B. Max Mustermann"
+                />
+              </div>
+            </div>
+          </label>
           <div className="form-row">
             <label>
-              Vorname
+              Vorname Kooperationspartner
               <input
                 className="input"
                 value={form.firstName}
@@ -271,7 +373,7 @@ export default function PartnerDetail(): JSX.Element {
               />
             </label>
             <label>
-              Nachname
+              Nachname Kooperationspartner
               <input
                 className="input"
                 value={form.lastName}
@@ -279,13 +381,6 @@ export default function PartnerDetail(): JSX.Element {
               />
             </label>
           </div>
-          <label>
-            Geburtsdatum
-            <BirthdayInput
-              value={form.dateOfBirth}
-              onChange={(value) => update({ dateOfBirth: value })}
-            />
-          </label>
           <div className="form-row">
             <label>
               Telefon
@@ -600,8 +695,9 @@ export default function PartnerDetail(): JSX.Element {
           </div>
 
           <p className="hint" style={{ marginBottom: "1rem" }}>
-            Geburtstagserinnerungen werden global in den Einstellungen
-            konfiguriert und gelten für alle Personen mit Geburtsdatum.
+            Für Kooperationspartner sind vor allem individuelle Erinnerungen
+            relevant. Vorhandene Geburtsdaten aus älteren Einträgen bleiben
+            dabei weiterhin erhalten.
           </p>
 
           {showReminderForm && (

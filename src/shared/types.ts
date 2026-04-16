@@ -214,7 +214,9 @@ export interface Volunteer {
   // Personal data
   firstName: string;
   lastName: string;
-  dateOfBirth?: string; // ISO date (YYYY-MM-DD)
+  organization?: string; // Institution / Einrichtung, primarily for partners
+  contactPerson?: string; // Ansprechpartner, primarily for partners
+  dateOfBirth?: string; // ISO date (YYYY-MM-DD), kept for legacy compatibility
   gender?: "male" | "female" | "diverse" | "unspecified";
 
   // Contact
@@ -250,6 +252,8 @@ export interface VolunteerIndexEntry {
   id: string;
   firstName: string;
   lastName: string;
+  organization?: string;
+  contactPerson?: string;
   dateOfBirth?: string;
   phone?: string;
   mobile?: string;
