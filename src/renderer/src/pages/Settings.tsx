@@ -28,7 +28,13 @@ import "./Settings.css";
 
 const DATA_FOLDER_CHANGED_EVENT = "vwp:data-folder-changed";
 
-export default function Settings(): JSX.Element {
+interface SettingsProps {
+  userRole?: UserRole;
+}
+
+export default function Settings({
+  userRole = "primary",
+}: SettingsProps): JSX.Element {
   const { themeMode, setThemeMode } = useTheme();
   const [dataPath, setDataPath] = useState("");
   const [interval, setInterval] = useState(60);
@@ -73,6 +79,7 @@ export default function Settings(): JSX.Element {
   const [exportingProcessingActivities, setExportingProcessingActivities] =
     useState(false);
   const [exportingBusinessAudit, setExportingBusinessAudit] = useState(false);
+  const isPartnerOnly = userRole === "partner-only";
 
   const refreshEncryptionStatus = async (): Promise<void> => {
     const [statusResult, requestsResult, auditResult, businessAuditResult] =
@@ -490,7 +497,7 @@ export default function Settings(): JSX.Element {
           </div>
         )}
 
-        {encryptionStatus && encryptionStatus.authorized && (
+        {!isPartnerOnly && encryptionStatus && encryptionStatus.authorized && (
           <div className="path-info" style={{ marginTop: "0.5rem" }}>
             <Info size={14} />
             <span>
@@ -509,7 +516,7 @@ export default function Settings(): JSX.Element {
           </div>
         )}
 
-        {encryptionStatus?.authorized && (
+        {!isPartnerOnly && encryptionStatus?.authorized && (
           <div className="security-section">
             <div className="security-section-header">
               <h3>Zugriffsanfragen</h3>
@@ -586,7 +593,7 @@ export default function Settings(): JSX.Element {
           </div>
         )}
 
-        {encryptionStatus?.authorized && (
+        {!isPartnerOnly && encryptionStatus?.authorized && (
           <div className="security-section">
             <div className="security-section-header">
               <h3>Schluesselrotation</h3>
@@ -607,7 +614,7 @@ export default function Settings(): JSX.Element {
           </div>
         )}
 
-        {encryptionStatus && (
+        {!isPartnerOnly && encryptionStatus && (
           <details className="security-section audit-collapsible">
             <summary className="audit-summary">
               <span className="audit-summary-main">
@@ -688,233 +695,247 @@ export default function Settings(): JSX.Element {
         </div>
       </div>
 
-      <div className="settings-card card">
-        <h2>Erinnerungen</h2>
-        <label>
-          Prüfintervall (Minuten)
-          <input
-            className="input interval-input"
-            type="number"
-            min={5}
-            max={1440}
-            value={interval}
-            onChange={(e) => setInterval(parseInt(e.target.value) || 60)}
-          />
-        </label>
-        <p className="hint">
-          Wie oft soll die App prüfen, ob Erinnerungen fällig sind? (Standard:
-          60 Minuten). Die App prüft auch beim Start.
-        </p>
-
-        <div className="birthday-reminders">
-          <h3 className="birthday-reminders-title">Geburtstagserinnerungen</h3>
-          <p className="hint birthday-reminders-hint">
-            Diese Einstellungen gelten für alle Freiwilligen mit hinterlegtem
-            Geburtsdatum.
-          </p>
-
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={enableYearlyBirthday}
-              onChange={(e) => setEnableYearlyBirthday(e.target.checked)}
-            />
-            <span>Jährliche Geburtstagserinnerungen aktivieren</span>
-          </label>
-
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={enableRoundBirthday}
-              onChange={(e) => setEnableRoundBirthday(e.target.checked)}
-            />
-            <span>Erinnerungen für runde Geburtstage aktivieren</span>
-          </label>
-        </div>
-
-        {enableRoundBirthday && (
-          <div className="round-years-section">
-            <label className="round-years-label">Runde Geburtstage</label>
-            <div className="round-years-grid">
-              {[30, 40, 50, 60, 70, 75, 80, 85, 90, 95, 100].map((year) => (
-                <button
-                  key={year}
-                  type="button"
-                  className={`btn ${roundYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
-                  onClick={() => {
-                    setRoundYears((prev) =>
-                      prev.includes(year)
-                        ? prev.filter((y) => y !== year)
-                        : [...prev, year].sort((a, b) => a - b),
-                    );
-                  }}
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="birthday-reminders anniversary-reminders">
-          <h3 className="birthday-reminders-title">Jubiläumserinnerungen</h3>
-
-          <div className="anniversary-option">
-            <label className="checkbox-label">
+      {!isPartnerOnly && (
+        <>
+          <div className="settings-card card">
+            <h2>Erinnerungen</h2>
+            <label>
+              Prüfintervall (Minuten)
               <input
-                type="checkbox"
-                checked={enableJoinedDateAnniversary}
-                onChange={(e) =>
-                  setEnableJoinedDateAnniversary(e.target.checked)
-                }
+                className="input interval-input"
+                type="number"
+                min={5}
+                max={1440}
+                value={interval}
+                onChange={(e) => setInterval(parseInt(e.target.value) || 60)}
               />
-              <span>Erinnerungen für Eintrittsdatum-Jubiläen aktivieren</span>
             </label>
-            <p className="hint birthday-reminders-hint">
-              Basierend auf dem Eintrittsdatum (Wie lange registriert).
+            <p className="hint">
+              Wie oft soll die App prüfen, ob Erinnerungen fällig sind?
+              (Standard: 60 Minuten). Die App prüft auch beim Start.
             </p>
-          </div>
 
-          {enableJoinedDateAnniversary && (
-            <div className="round-years-section">
-              <label className="round-years-label">
-                Eintrittsdatum-Jubiläumsjahre
+            <div className="birthday-reminders">
+              <h3 className="birthday-reminders-title">
+                Geburtstagserinnerungen
+              </h3>
+              <p className="hint birthday-reminders-hint">
+                Diese Einstellungen gelten für alle Freiwilligen mit
+                hinterlegtem Geburtsdatum.
+              </p>
+
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={enableYearlyBirthday}
+                  onChange={(e) => setEnableYearlyBirthday(e.target.checked)}
+                />
+                <span>Jährliche Geburtstagserinnerungen aktivieren</span>
               </label>
-              <div className="round-years-grid">
-                {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((year) => (
-                  <button
-                    key={`joined-${year}`}
-                    type="button"
-                    className={`btn ${joinedDateAnniversaryYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
-                    onClick={() => {
-                      setJoinedDateAnniversaryYears((prev) =>
-                        prev.includes(year)
-                          ? prev.filter((y) => y !== year)
-                          : [...prev, year].sort((a, b) => a - b),
-                      );
-                    }}
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
-          <div className="anniversary-option anniversary-option-spaced">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={enableActivityTimeAnniversary}
-                onChange={(e) =>
-                  setEnableActivityTimeAnniversary(e.target.checked)
-                }
-              />
-              <span>Erinnerungen für Aktivitätszeit-Jubiläen aktivieren</span>
-            </label>
-            <p className="hint birthday-reminders-hint">
-              Basierend auf der gesamten Aktivitätszeit (nicht nur
-              Registrierungsdatum).
-            </p>
-          </div>
-
-          {enableActivityTimeAnniversary && (
-            <div className="round-years-section">
-              <label className="round-years-label">
-                Aktivitätszeit-Jubiläumsjahre
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={enableRoundBirthday}
+                  onChange={(e) => setEnableRoundBirthday(e.target.checked)}
+                />
+                <span>Erinnerungen für runde Geburtstage aktivieren</span>
               </label>
-              <div className="round-years-grid">
-                {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((year) => (
-                  <button
-                    key={`activity-${year}`}
-                    type="button"
-                    className={`btn ${activityTimeAnniversaryYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
-                    onClick={() => {
-                      setActivityTimeAnniversaryYears((prev) =>
-                        prev.includes(year)
-                          ? prev.filter((y) => y !== year)
-                          : [...prev, year].sort((a, b) => a - b),
-                      );
-                    }}
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      <div className="settings-card card">
-        <div className="processing-header">
-          <div>
-            <h2>Aktivitaetsprotokoll</h2>
-            <p className="hint processing-header-hint">
-              Vollstaendiges Protokoll fuer betriebliche Aktionen wie Anlegen,
-              Aktualisieren und Loeschen von Ehrenamtlichen sowie Datei- und
-              Art.30-Aktivitaeten.
-            </p>
-          </div>
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={handleExportBusinessAudit}
-            disabled={!dataPath || exportingBusinessAudit}
-          >
-            <FileText size={16} />
-            {exportingBusinessAudit
-              ? "Export laeuft..."
-              : "Aktivitaetslog exportieren"}
-          </button>
-        </div>
-
-        <details className="security-section audit-collapsible">
-          <summary className="audit-summary">
-            <span className="audit-summary-main">
-              <span className="security-section-header">
-                <h3>Aktivitaetseintraege</h3>
-                <span className="hint">
-                  Nachvollziehbarkeit fuer operative Datenaenderungen.
-                </span>
-              </span>
-              <span className="audit-summary-hint" aria-hidden="true">
-                Aufklappen
-              </span>
-            </span>
-          </summary>
-
-          <div className="audit-content">
-            {businessAuditEntries.length === 0 ? (
-              <p className="hint">Noch keine Aktivitaetseintraege vorhanden.</p>
-            ) : (
-              <div className="audit-list">
-                {businessAuditEntries.map((entry) => (
-                  <div
-                    key={`${entry.timestamp}-${entry.action}-${entry.subjectId || ""}`}
-                    className="audit-item"
-                  >
-                    <div className="audit-item-header">
-                      <strong>{entry.action}</strong>
-                      <span className="hint">
-                        {formatTimestamp(entry.timestamp)}
-                      </span>
-                    </div>
-                    <div className="hint">Akteur: {entry.actor}</div>
-                    <div className="hint">
-                      Objekt: {entry.subjectType}
-                      {entry.subjectId ? ` (${entry.subjectId})` : ""}
-                    </div>
-                    {entry.details && (
-                      <div className="hint">{entry.details}</div>
-                    )}
-                  </div>
-                ))}
+            {enableRoundBirthday && (
+              <div className="round-years-section">
+                <label className="round-years-label">Runde Geburtstage</label>
+                <div className="round-years-grid">
+                  {[30, 40, 50, 60, 70, 75, 80, 85, 90, 95, 100].map((year) => (
+                    <button
+                      key={year}
+                      type="button"
+                      className={`btn ${roundYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
+                      onClick={() => {
+                        setRoundYears((prev) =>
+                          prev.includes(year)
+                            ? prev.filter((y) => y !== year)
+                            : [...prev, year].sort((a, b) => a - b),
+                        );
+                      }}
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
+
+            <div className="birthday-reminders anniversary-reminders">
+              <h3 className="birthday-reminders-title">
+                Jubiläumserinnerungen
+              </h3>
+
+              <div className="anniversary-option">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={enableJoinedDateAnniversary}
+                    onChange={(e) =>
+                      setEnableJoinedDateAnniversary(e.target.checked)
+                    }
+                  />
+                  <span>
+                    Erinnerungen für Eintrittsdatum-Jubiläen aktivieren
+                  </span>
+                </label>
+                <p className="hint birthday-reminders-hint">
+                  Basierend auf dem Eintrittsdatum (Wie lange registriert).
+                </p>
+              </div>
+
+              {enableJoinedDateAnniversary && (
+                <div className="round-years-section">
+                  <label className="round-years-label">
+                    Eintrittsdatum-Jubiläumsjahre
+                  </label>
+                  <div className="round-years-grid">
+                    {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((year) => (
+                      <button
+                        key={`joined-${year}`}
+                        type="button"
+                        className={`btn ${joinedDateAnniversaryYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
+                        onClick={() => {
+                          setJoinedDateAnniversaryYears((prev) =>
+                            prev.includes(year)
+                              ? prev.filter((y) => y !== year)
+                              : [...prev, year].sort((a, b) => a - b),
+                          );
+                        }}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="anniversary-option anniversary-option-spaced">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={enableActivityTimeAnniversary}
+                    onChange={(e) =>
+                      setEnableActivityTimeAnniversary(e.target.checked)
+                    }
+                  />
+                  <span>
+                    Erinnerungen für Aktivitätszeit-Jubiläen aktivieren
+                  </span>
+                </label>
+                <p className="hint birthday-reminders-hint">
+                  Basierend auf der gesamten Aktivitätszeit (nicht nur
+                  Registrierungsdatum).
+                </p>
+              </div>
+
+              {enableActivityTimeAnniversary && (
+                <div className="round-years-section">
+                  <label className="round-years-label">
+                    Aktivitätszeit-Jubiläumsjahre
+                  </label>
+                  <div className="round-years-grid">
+                    {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map((year) => (
+                      <button
+                        key={`activity-${year}`}
+                        type="button"
+                        className={`btn ${activityTimeAnniversaryYears.includes(year) ? "btn-primary" : "btn-secondary"} year-btn`}
+                        onClick={() => {
+                          setActivityTimeAnniversaryYears((prev) =>
+                            prev.includes(year)
+                              ? prev.filter((y) => y !== year)
+                              : [...prev, year].sort((a, b) => a - b),
+                          );
+                        }}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </details>
-      </div>
+
+          <div className="settings-card card">
+            <div className="processing-header">
+              <div>
+                <h2>Aktivitaetsprotokoll</h2>
+                <p className="hint processing-header-hint">
+                  Vollstaendiges Protokoll fuer betriebliche Aktionen wie
+                  Anlegen, Aktualisieren und Loeschen von Ehrenamtlichen sowie
+                  Datei- und Art.30-Aktivitaeten.
+                </p>
+              </div>
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={handleExportBusinessAudit}
+                disabled={!dataPath || exportingBusinessAudit}
+              >
+                <FileText size={16} />
+                {exportingBusinessAudit
+                  ? "Export laeuft..."
+                  : "Aktivitaetslog exportieren"}
+              </button>
+            </div>
+
+            <details className="security-section audit-collapsible">
+              <summary className="audit-summary">
+                <span className="audit-summary-main">
+                  <span className="security-section-header">
+                    <h3>Aktivitaetseintraege</h3>
+                    <span className="hint">
+                      Nachvollziehbarkeit fuer operative Datenaenderungen.
+                    </span>
+                  </span>
+                  <span className="audit-summary-hint" aria-hidden="true">
+                    Aufklappen
+                  </span>
+                </span>
+              </summary>
+
+              <div className="audit-content">
+                {businessAuditEntries.length === 0 ? (
+                  <p className="hint">
+                    Noch keine Aktivitaetseintraege vorhanden.
+                  </p>
+                ) : (
+                  <div className="audit-list">
+                    {businessAuditEntries.map((entry) => (
+                      <div
+                        key={`${entry.timestamp}-${entry.action}-${entry.subjectId || ""}`}
+                        className="audit-item"
+                      >
+                        <div className="audit-item-header">
+                          <strong>{entry.action}</strong>
+                          <span className="hint">
+                            {formatTimestamp(entry.timestamp)}
+                          </span>
+                        </div>
+                        <div className="hint">Akteur: {entry.actor}</div>
+                        <div className="hint">
+                          Objekt: {entry.subjectType}
+                          {entry.subjectId ? ` (${entry.subjectId})` : ""}
+                        </div>
+                        {entry.details && (
+                          <div className="hint">{entry.details}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </details>
+          </div>
+        </>
+      )}
 
       <div className="settings-card card">
         <h2>Info</h2>
@@ -1024,426 +1045,433 @@ export default function Settings(): JSX.Element {
         </div>
       </div>
 
-      <div className="settings-card card">
-        <div className="processing-header">
-          <div>
-            <h2>
-              <FileText
-                size={20}
-                style={{ verticalAlign: "middle", marginRight: "8px" }}
-              />
-              Verzeichnis von Verarbeitungstaetigkeiten
-            </h2>
-            <p className="hint processing-header-hint">
-              Art. 30 DSGVO: Pflegen Sie hier Ihre Verarbeitungstaetigkeiten und
-              exportieren Sie das Verzeichnis als Markdown für interne
-              Dokumentation oder weitere Abstimmung.
-            </p>
-          </div>
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={handleExportProcessingActivities}
-            disabled={!dataPath || exportingProcessingActivities}
-          >
-            <FileText size={16} />
-            {exportingProcessingActivities
-              ? "Export laeuft..."
-              : "Markdown exportieren"}
-          </button>
-        </div>
-
-        {!dataPath ? (
-          <div className="processing-empty-state">
-            Bitte zuerst einen Datenordner auswaehlen. Das Verzeichnis wird
-            verschluesselt im Datenordner gespeichert.
-          </div>
-        ) : (
-          <>
-            <div className="processing-toolbar">
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={handleAddProcessingActivity}
-              >
-                <Plus size={16} /> Neue Taetigkeit
-              </button>
-              <button
-                className="btn btn-secondary"
-                type="button"
-                onClick={handleDuplicateProcessingActivity}
-                disabled={!activeProcessingActivity}
-              >
-                <Copy size={16} /> Duplizieren
-              </button>
-              <button
-                className="btn btn-danger"
-                type="button"
-                onClick={handleDeleteProcessingActivity}
-                disabled={!activeProcessingActivity}
-              >
-                <Trash2 size={16} /> Loeschen
-              </button>
+      {!isPartnerOnly && (
+        <div className="settings-card card">
+          <div className="processing-header">
+            <div>
+              <h2>
+                <FileText
+                  size={20}
+                  style={{ verticalAlign: "middle", marginRight: "8px" }}
+                />
+                Verzeichnis von Verarbeitungstaetigkeiten
+              </h2>
+              <p className="hint processing-header-hint">
+                Art. 30 DSGVO: Pflegen Sie hier Ihre Verarbeitungstaetigkeiten
+                und exportieren Sie das Verzeichnis als Markdown für interne
+                Dokumentation oder weitere Abstimmung.
+              </p>
             </div>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={handleExportProcessingActivities}
+              disabled={!dataPath || exportingProcessingActivities}
+            >
+              <FileText size={16} />
+              {exportingProcessingActivities
+                ? "Export laeuft..."
+                : "Markdown exportieren"}
+            </button>
+          </div>
 
-            <div className="processing-meta-grid">
-              <div>
-                <span className="hint">Version</span>
-                <strong>{processingDocument?._version || 1}</strong>
-              </div>
-              <div>
-                <span className="hint">Letzte Aktualisierung</span>
-                <strong>
-                  {processingDocument?._updatedAt
-                    ? formatTimestamp(processingDocument._updatedAt)
-                    : "Noch nicht gespeichert"}
-                </strong>
-              </div>
+          {!dataPath ? (
+            <div className="processing-empty-state">
+              Bitte zuerst einen Datenordner auswaehlen. Das Verzeichnis wird
+              verschluesselt im Datenordner gespeichert.
             </div>
-
-            <div className="processing-layout">
-              <div className="processing-sidebar">
-                {(processingDocument?.activities || []).map((activity) => (
-                  <button
-                    key={activity.id}
-                    type="button"
-                    className={`processing-nav-item ${activity.id === selectedProcessingActivityId ? "active" : ""}`}
-                    onClick={() => setSelectedProcessingActivityId(activity.id)}
-                  >
-                    <strong>{activity.name || "Unbenannte Taetigkeit"}</strong>
-                    <span className="hint">
-                      {activity.legalBases[0] || "Rechtsgrundlage ergaenzen"}
-                    </span>
-                  </button>
-                ))}
+          ) : (
+            <>
+              <div className="processing-toolbar">
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={handleAddProcessingActivity}
+                >
+                  <Plus size={16} /> Neue Taetigkeit
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={handleDuplicateProcessingActivity}
+                  disabled={!activeProcessingActivity}
+                >
+                  <Copy size={16} /> Duplizieren
+                </button>
+                <button
+                  className="btn btn-danger"
+                  type="button"
+                  onClick={handleDeleteProcessingActivity}
+                  disabled={!activeProcessingActivity}
+                >
+                  <Trash2 size={16} /> Loeschen
+                </button>
               </div>
 
-              {activeProcessingActivity ? (
-                <div className="processing-editor">
-                  <div className="processing-form-grid">
-                    <label>
-                      Name der Verarbeitungstaetigkeit
-                      <input
-                        className="input"
-                        value={activeProcessingActivity.name}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              name: e.target.value,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+              <div className="processing-meta-grid">
+                <div>
+                  <span className="hint">Version</span>
+                  <strong>{processingDocument?._version || 1}</strong>
+                </div>
+                <div>
+                  <span className="hint">Letzte Aktualisierung</span>
+                  <strong>
+                    {processingDocument?._updatedAt
+                      ? formatTimestamp(processingDocument._updatedAt)
+                      : "Noch nicht gespeichert"}
+                  </strong>
+                </div>
+              </div>
 
-                    <label>
-                      Verantwortlicher
-                      <input
-                        className="input"
-                        value={activeProcessingActivity.controllerName}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              controllerName: e.target.value,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+              <div className="processing-layout">
+                <div className="processing-sidebar">
+                  {(processingDocument?.activities || []).map((activity) => (
+                    <button
+                      key={activity.id}
+                      type="button"
+                      className={`processing-nav-item ${activity.id === selectedProcessingActivityId ? "active" : ""}`}
+                      onClick={() =>
+                        setSelectedProcessingActivityId(activity.id)
+                      }
+                    >
+                      <strong>
+                        {activity.name || "Unbenannte Taetigkeit"}
+                      </strong>
+                      <span className="hint">
+                        {activity.legalBases[0] || "Rechtsgrundlage ergaenzen"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
 
-                    <label>
-                      Kontakt Verantwortlicher
-                      <textarea
-                        className="textarea"
-                        value={activeProcessingActivity.controllerContact}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              controllerContact: e.target.value,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                {activeProcessingActivity ? (
+                  <div className="processing-editor">
+                    <div className="processing-form-grid">
+                      <label>
+                        Name der Verarbeitungstaetigkeit
+                        <input
+                          className="input"
+                          value={activeProcessingActivity.name}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                name: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Datenschutzkontakt
-                      <textarea
-                        className="textarea"
-                        value={activeProcessingActivity.dataProtectionContact}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              dataProtectionContact: e.target.value,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Verantwortlicher
+                        <input
+                          className="input"
+                          value={activeProcessingActivity.controllerName}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                controllerName: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label className="processing-field-full">
-                      Zwecke der Verarbeitung
-                      <textarea
-                        className="textarea"
-                        value={activeProcessingActivity.purposes}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              purposes: e.target.value,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Kontakt Verantwortlicher
+                        <textarea
+                          className="textarea"
+                          value={activeProcessingActivity.controllerContact}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                controllerContact: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Kategorien betroffener Personen
-                      <textarea
-                        className="textarea"
-                        value={listToMultiline(
-                          activeProcessingActivity.categoriesOfSubjects,
-                        )}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              categoriesOfSubjects: multilineToList(
-                                e.target.value,
-                              ),
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Datenschutzkontakt
+                        <textarea
+                          className="textarea"
+                          value={activeProcessingActivity.dataProtectionContact}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                dataProtectionContact: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Kategorien personenbezogener Daten
-                      <textarea
-                        className="textarea"
-                        value={listToMultiline(
-                          activeProcessingActivity.categoriesOfData,
-                        )}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              categoriesOfData: multilineToList(e.target.value),
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label className="processing-field-full">
+                        Zwecke der Verarbeitung
+                        <textarea
+                          className="textarea"
+                          value={activeProcessingActivity.purposes}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                purposes: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Rechtsgrundlagen
-                      <textarea
-                        className="textarea"
-                        value={listToMultiline(
-                          activeProcessingActivity.legalBases,
-                        )}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              legalBases: multilineToList(e.target.value),
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Kategorien betroffener Personen
+                        <textarea
+                          className="textarea"
+                          value={listToMultiline(
+                            activeProcessingActivity.categoriesOfSubjects,
+                          )}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                categoriesOfSubjects: multilineToList(
+                                  e.target.value,
+                                ),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Empfaenger
-                      <textarea
-                        className="textarea"
-                        value={listToMultiline(
-                          activeProcessingActivity.recipients,
-                        )}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              recipients: multilineToList(e.target.value),
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Kategorien personenbezogener Daten
+                        <textarea
+                          className="textarea"
+                          value={listToMultiline(
+                            activeProcessingActivity.categoriesOfData,
+                          )}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                categoriesOfData: multilineToList(
+                                  e.target.value,
+                                ),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Auftragsverarbeiter
-                      <textarea
-                        className="textarea"
-                        value={listToMultiline(
-                          activeProcessingActivity.processors,
-                        )}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              processors: multilineToList(e.target.value),
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Rechtsgrundlagen
+                        <textarea
+                          className="textarea"
+                          value={listToMultiline(
+                            activeProcessingActivity.legalBases,
+                          )}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                legalBases: multilineToList(e.target.value),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Systeme und Speicherorte
-                      <textarea
-                        className="textarea"
-                        value={listToMultiline(
-                          activeProcessingActivity.systems,
-                        )}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              systems: multilineToList(e.target.value),
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Empfaenger
+                        <textarea
+                          className="textarea"
+                          value={listToMultiline(
+                            activeProcessingActivity.recipients,
+                          )}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                recipients: multilineToList(e.target.value),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label className="processing-field-full">
-                      Drittlandtransfer
-                      <textarea
-                        className="textarea"
-                        value={activeProcessingActivity.thirdCountryTransfers}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              thirdCountryTransfers: e.target.value,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Auftragsverarbeiter
+                        <textarea
+                          className="textarea"
+                          value={listToMultiline(
+                            activeProcessingActivity.processors,
+                          )}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                processors: multilineToList(e.target.value),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label className="processing-field-full">
-                      Speicherfristen und Loeschkonzept
-                      <textarea
-                        className="textarea"
-                        value={activeProcessingActivity.retentionPolicy}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              retentionPolicy: e.target.value,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Systeme und Speicherorte
+                        <textarea
+                          className="textarea"
+                          value={listToMultiline(
+                            activeProcessingActivity.systems,
+                          )}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                systems: multilineToList(e.target.value),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Technische Massnahmen
-                      <textarea
-                        className="textarea"
-                        value={listToMultiline(
-                          activeProcessingActivity.technicalMeasures,
-                        )}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              technicalMeasures: multilineToList(
-                                e.target.value,
-                              ),
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label className="processing-field-full">
+                        Drittlandtransfer
+                        <textarea
+                          className="textarea"
+                          value={activeProcessingActivity.thirdCountryTransfers}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                thirdCountryTransfers: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Organisatorische Massnahmen
-                      <textarea
-                        className="textarea"
-                        value={listToMultiline(
-                          activeProcessingActivity.organizationalMeasures,
-                        )}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              organizationalMeasures: multilineToList(
-                                e.target.value,
-                              ),
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label className="processing-field-full">
+                        Speicherfristen und Loeschkonzept
+                        <textarea
+                          className="textarea"
+                          value={activeProcessingActivity.retentionPolicy}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                retentionPolicy: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label>
-                      Letzte Pruefung
-                      <input
-                        className="input"
-                        type="date"
-                        value={activeProcessingActivity.lastReviewedAt || ""}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              lastReviewedAt: e.target.value || undefined,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Technische Massnahmen
+                        <textarea
+                          className="textarea"
+                          value={listToMultiline(
+                            activeProcessingActivity.technicalMeasures,
+                          )}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                technicalMeasures: multilineToList(
+                                  e.target.value,
+                                ),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
 
-                    <label className="processing-field-full">
-                      Notizen
-                      <textarea
-                        className="textarea"
-                        value={activeProcessingActivity.notes}
-                        onChange={(e) =>
-                          updateProcessingActivity(
-                            activeProcessingActivity.id,
-                            (activity) => ({
-                              ...activity,
-                              notes: e.target.value,
-                            }),
-                          )
-                        }
-                      />
-                    </label>
+                      <label>
+                        Organisatorische Massnahmen
+                        <textarea
+                          className="textarea"
+                          value={listToMultiline(
+                            activeProcessingActivity.organizationalMeasures,
+                          )}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                organizationalMeasures: multilineToList(
+                                  e.target.value,
+                                ),
+                              }),
+                            )
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        Letzte Pruefung
+                        <input
+                          className="input"
+                          type="date"
+                          value={activeProcessingActivity.lastReviewedAt || ""}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                lastReviewedAt: e.target.value || undefined,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
+
+                      <label className="processing-field-full">
+                        Notizen
+                        <textarea
+                          className="textarea"
+                          value={activeProcessingActivity.notes}
+                          onChange={(e) =>
+                            updateProcessingActivity(
+                              activeProcessingActivity.id,
+                              (activity) => ({
+                                ...activity,
+                                notes: e.target.value,
+                              }),
+                            )
+                          }
+                        />
+                      </label>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="processing-empty-state">
-                  Keine Verarbeitungstaetigkeit ausgewaehlt.
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
+                ) : (
+                  <div className="processing-empty-state">
+                    Keine Verarbeitungstaetigkeit ausgewaehlt.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
       <div className="settings-actions">
         {saved && (
           <span className="success-msg">Einstellungen gespeichert!</span>
