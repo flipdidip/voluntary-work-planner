@@ -288,7 +288,11 @@ export default function UpcomingEvents({
                         );
                       }}
                     >
-                      {isPartnerOnly ? <Handshake size={14} /> : <Users2 size={14} />}
+                      {isPartnerOnly ? (
+                        <Handshake size={14} />
+                      ) : (
+                        <Users2 size={14} />
+                      )}
                     </button>
                   </div>
                   {dayEvents.length > 0 && (
