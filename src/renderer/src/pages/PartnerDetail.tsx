@@ -12,10 +12,12 @@ import {
   FileText,
   Upload,
   Eye,
+  CalendarDays,
 } from "lucide-react";
 import RolesInput from "../components/RolesInput";
 import { usePartner, usePartnerIndex } from "../hooks/usePartners";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
+import { usePartnerAppointments } from "../hooks/usePartnerAppointments";
 import {
   Volunteer,
   Reminder,
@@ -25,6 +27,7 @@ import {
   calculateActivityTime,
   formatActivityTime,
   calculateGroupMeetingParticipationStats,
+  calculatePartnerAppointmentParticipationStats,
   GROUP_MEETING_ATTENDANCE_LABELS,
 } from "@shared/types";
 import { format, parseISO } from "date-fns";
@@ -44,6 +47,8 @@ export default function PartnerDetail(): JSX.Element {
   const { partner: initial, loading } = usePartner(id);
   const { index } = usePartnerIndex();
   const { index: meetingsIndex, loading: meetingsLoading } = useGroupMeetings();
+  const { index: appointmentsIndex, loading: appointmentsLoading } =
+    usePartnerAppointments();
   const [form, setForm] = useState<Volunteer | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +161,36 @@ export default function PartnerDetail(): JSX.Element {
       "partner",
     );
   }, [form, meetingsIndex]);
+
+  const partnerAppointments = useMemo(() => {
+    if (!form || !appointmentsIndex) return [];
+
+    return appointmentsIndex.appointments
+      .filter((appointment) => {
+        const participants = Array.isArray(appointment.participants)
+          ? appointment.participants
+          : [];
+        return participants.some((participant) => participant.id === form.id);
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [form, appointmentsIndex]);
+
+  const appointmentStats = useMemo(() => {
+    if (!form) {
+      return {
+        invitedCount: 0,
+        presentCount: 0,
+        absentCount: 0,
+        unknownCount: 0,
+        attendanceRate: 0,
+      };
+    }
+
+    return calculatePartnerAppointmentParticipationStats(
+      appointmentsIndex?.appointments ?? [],
+      form.id,
+    );
+  }, [form, appointmentsIndex]);
 
   if (loading) return <div className="loading">Lade...</div>;
   if (!form)
@@ -575,6 +610,146 @@ export default function PartnerDetail(): JSX.Element {
         </section>
 
         <section className="card section-card">
+          <div className="section-header">
+            <h2>
+              <CalendarDays size={17} /> Termine
+            </h2>
+            <button
+              className="btn btn-secondary"
+              onClick={() => navigate(`/appointments/new?partnerId=${form.id}`)}
+            >
+              Termin anlegen
+            </button>
+          </div>
+
+          {appointmentsLoading ? (
+            <p className="text-muted">Lade Termine...</p>
+          ) : partnerAppointments.length === 0 ? (
+            <p className="empty-hint">
+              Noch keine Termine mit diesem Kooperationspartner dokumentiert.
+            </p>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                  gap: "0.75rem",
+                  marginTop: "1rem",
+                }}
+              >
+                <div className="activity-time-box">
+                  <strong>Eingeladen:</strong> {appointmentStats.invitedCount}
+                </div>
+                <div className="activity-time-box">
+                  <strong>Anwesend:</strong> {appointmentStats.presentCount}
+                </div>
+                <div className="activity-time-box">
+                  <strong>Nicht anwesend:</strong>{" "}
+                  {appointmentStats.absentCount}
+                </div>
+                <div className="activity-time-box">
+                  <strong>Quote:</strong> {appointmentStats.attendanceRate}%
+                </div>
+              </div>
+
+              <details className="status-history" style={{ marginTop: "1rem" }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    fontWeight: "500",
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    userSelect: "none",
+                  }}
+                >
+                  Termin-Historie ({partnerAppointments.length} Einträge)
+                </summary>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                    marginTop: "1rem",
+                  }}
+                >
+                  {partnerAppointments.slice(0, 5).map((appointment) => {
+                    const participant = appointment.participants.find(
+                      (entry) => entry.id === form.id,
+                    );
+                    const attendance = participant?.attendance ?? "unknown";
+                    const badgeStyles =
+                      attendance === "present"
+                        ? {
+                            backgroundColor: "rgba(34, 197, 94, 0.12)",
+                            color: "#15803d",
+                          }
+                        : attendance === "absent"
+                          ? {
+                              backgroundColor: "rgba(239, 68, 68, 0.12)",
+                              color: "#b91c1c",
+                            }
+                          : {
+                              backgroundColor: "rgba(245, 158, 11, 0.12)",
+                              color: "#b45309",
+                            };
+
+                    return (
+                      <button
+                        key={appointment.id}
+                        type="button"
+                        onClick={() =>
+                          navigate(`/appointments/${appointment.id}`)
+                        }
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          padding: "0.65rem 0.8rem",
+                          backgroundColor: "var(--color-surface-2)",
+                          borderRadius: "8px",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600 }}>
+                            {appointment.title}
+                          </div>
+                          <div
+                            className="text-muted"
+                            style={{ fontSize: "0.85rem" }}
+                          >
+                            {format(parseISO(appointment.date), "dd.MM.yyyy", {
+                              locale: de,
+                            })}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            ...badgeStyles,
+                            padding: "0.25rem 0.6rem",
+                            borderRadius: "999px",
+                            fontSize: "0.8rem",
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {GROUP_MEETING_ATTENDANCE_LABELS[attendance]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </details>
+            </>
+          )}
+        </section>
+
+        <section className="card section-card">
           <h2>Gruppentreffen</h2>
 
           {meetingsLoading ? (
@@ -607,75 +782,90 @@ export default function PartnerDetail(): JSX.Element {
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.5rem",
-                  marginTop: "1rem",
-                }}
-              >
-                {partnerMeetings.slice(0, 5).map((meeting) => {
-                  const participant = meeting.participants.find(
-                    (entry) => entry.id === form.id && entry.type === "partner",
-                  );
-                  const attendance = participant?.attendance ?? "unknown";
-                  const badgeStyles =
-                    attendance === "present"
-                      ? {
-                          backgroundColor: "rgba(34, 197, 94, 0.12)",
-                          color: "#15803d",
-                        }
-                      : attendance === "absent"
-                        ? {
-                            backgroundColor: "rgba(239, 68, 68, 0.12)",
-                            color: "#b91c1c",
-                          }
-                        : {
-                            backgroundColor: "rgba(245, 158, 11, 0.12)",
-                            color: "#b45309",
-                          };
+              <details className="status-history" style={{ marginTop: "1rem" }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    fontWeight: "500",
+                    padding: "0.5rem",
+                    borderRadius: "4px",
+                    userSelect: "none",
+                  }}
+                >
+                  Gruppentreffen-Historie ({partnerMeetings.length} Einträge)
+                </summary>
 
-                  return (
-                    <div
-                      key={meeting.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "0.75rem",
-                        padding: "0.65rem 0.8rem",
-                        backgroundColor: "var(--color-surface-2)",
-                        borderRadius: "8px",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 600 }}>{meeting.title}</div>
-                        <div
-                          className="text-muted"
-                          style={{ fontSize: "0.85rem" }}
-                        >
-                          {format(parseISO(meeting.date), "dd.MM.yyyy", {
-                            locale: de,
-                          })}
-                        </div>
-                      </div>
-                      <span
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                    marginTop: "1rem",
+                  }}
+                >
+                  {partnerMeetings.slice(0, 5).map((meeting) => {
+                    const participant = meeting.participants.find(
+                      (entry) =>
+                        entry.id === form.id && entry.type === "partner",
+                    );
+                    const attendance = participant?.attendance ?? "unknown";
+                    const badgeStyles =
+                      attendance === "present"
+                        ? {
+                            backgroundColor: "rgba(34, 197, 94, 0.12)",
+                            color: "#15803d",
+                          }
+                        : attendance === "absent"
+                          ? {
+                              backgroundColor: "rgba(239, 68, 68, 0.12)",
+                              color: "#b91c1c",
+                            }
+                          : {
+                              backgroundColor: "rgba(245, 158, 11, 0.12)",
+                              color: "#b45309",
+                            };
+
+                    return (
+                      <div
+                        key={meeting.id}
                         style={{
-                          ...badgeStyles,
-                          padding: "0.25rem 0.6rem",
-                          borderRadius: "999px",
-                          fontSize: "0.8rem",
-                          fontWeight: 600,
-                          whiteSpace: "nowrap",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          padding: "0.65rem 0.8rem",
+                          backgroundColor: "var(--color-surface-2)",
+                          borderRadius: "8px",
                         }}
                       >
-                        {GROUP_MEETING_ATTENDANCE_LABELS[attendance]}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{meeting.title}</div>
+                          <div
+                            className="text-muted"
+                            style={{ fontSize: "0.85rem" }}
+                          >
+                            {format(parseISO(meeting.date), "dd.MM.yyyy", {
+                              locale: de,
+                            })}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            ...badgeStyles,
+                            padding: "0.25rem 0.6rem",
+                            borderRadius: "999px",
+                            fontSize: "0.8rem",
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {GROUP_MEETING_ATTENDANCE_LABELS[attendance]}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
             </>
           )}
         </section>

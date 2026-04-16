@@ -4,6 +4,7 @@ import {
   Users,
   Settings,
   Calendar,
+  CalendarDays,
   Handshake,
   Users2,
 } from "lucide-react";
@@ -32,6 +33,12 @@ const navItems = [
     label: "Gruppen Treffen",
     icon: Users2,
     primaryOnly: true,
+  },
+  {
+    to: "/appointments",
+    label: "Termine",
+    icon: CalendarDays,
+    primaryOnly: false,
   },
   {
     to: "/partners",

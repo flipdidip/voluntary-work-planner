@@ -18,6 +18,8 @@ import Settings from "./pages/Settings";
 import UpcomingEvents from "./pages/UpcomingEvents";
 import GroupMeetings from "./pages/GroupMeetings";
 import GroupMeetingNew from "./pages/GroupMeetingNew";
+import PartnerAppointments from "./pages/PartnerAppointments";
+import PartnerAppointmentNew from "./pages/PartnerAppointmentNew";
 import ReminderToast from "./components/ReminderToast";
 import ConsentDialog from "./components/ConsentDialog";
 import AccessPendingOverlay from "./components/AccessPendingOverlay";
@@ -213,6 +215,15 @@ export default function App(): JSX.Element {
               <Route path="/partners" element={<PartnerList />} />
               <Route path="/partners/new" element={<PartnerNew />} />
               <Route path="/partners/:id" element={<PartnerDetail />} />
+              <Route path="/appointments" element={<PartnerAppointments />} />
+              <Route
+                path="/appointments/new"
+                element={<PartnerAppointmentNew />}
+              />
+              <Route
+                path="/appointments/:id"
+                element={<PartnerAppointmentNew />}
+              />
               <Route path="/settings" element={<Settings />} />
               {/* Redirect any disallowed route to /partners */}
               <Route path="*" element={<Navigate to="/partners" replace />} />
@@ -230,6 +241,15 @@ export default function App(): JSX.Element {
               <Route path="/meetings" element={<GroupMeetings />} />
               <Route path="/meetings/new" element={<GroupMeetingNew />} />
               <Route path="/meetings/:id" element={<GroupMeetingNew />} />
+              <Route path="/appointments" element={<PartnerAppointments />} />
+              <Route
+                path="/appointments/new"
+                element={<PartnerAppointmentNew />}
+              />
+              <Route
+                path="/appointments/:id"
+                element={<PartnerAppointmentNew />}
+              />
               <Route path="/events" element={<UpcomingEvents />} />
               <Route path="/settings" element={<Settings />} />
             </>
