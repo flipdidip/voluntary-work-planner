@@ -9,34 +9,149 @@ import {
   UserRole,
   GroupMeeting,
   PartnerAppointment,
+  createDefaultProcessingActivitiesDocument,
 } from "@shared/types";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
 import { DueReminder, getUpcomingReminders } from "./reminderScheduler";
-import { mkdirSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { join } from "path";
 import { DataCryptoService } from "./dataCryptoService";
 import { ProcessingActivitiesService } from "./processingActivitiesService";
 import { BusinessAuditService } from "./businessAuditService";
 import { GroupMeetingService } from "./groupMeetingService";
 import { PartnerAppointmentService } from "./partnerAppointmentService";
 
-function getFileService(
-  settings: SettingsService,
-): VolunteerFileService | null {
+function getValidatedDataFolder(settings: SettingsService) {
   const dataPath = settings.getDataFolderPath();
   if (!dataPath) return null;
 
   const cryptoService = DataCryptoService.getInstance();
   const cryptoStatus = cryptoService.getStatus(dataPath);
-  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
+
+  if (!cryptoStatus.hasManifest) {
     throw new Error(
-      cryptoStatus.message ||
-        "Dieser Benutzer hat noch keinen Zugriff auf den verschlüsselten Datenordner.",
+      "Der ausgewaehlte Datenordner ist noch nicht initialisiert oder noch nicht vollstaendig synchronisiert. Bitte pruefen Sie die Verbindung in den Einstellungen oder initialisieren Sie nur einen neuen, leeren Ordner.",
     );
   }
 
-  // Ensures the folder is initialized and this user can unwrap the DEK.
-  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
+  if (!cryptoStatus.authorized) {
+    throw new Error(
+      cryptoStatus.message ||
+        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
+    );
+  }
+
+  return { dataPath, cryptoService };
+}
+
+function writeEncryptedJsonIfMissing(
+  filePath: string,
+  dataPath: string,
+  cryptoService: DataCryptoService,
+  value: unknown,
+): void {
+  if (existsSync(filePath)) {
+    return;
+  }
+
+  const plain = Buffer.from(JSON.stringify(value, null, 2), "utf-8");
+  const encrypted = cryptoService.encryptBytesForDataFolder(dataPath, plain);
+  writeFileSync(filePath, encrypted);
+}
+
+function initializeFolderStructure(settings: SettingsService) {
+  const dataPath = settings.getDataFolderPath();
+  if (!dataPath) {
+    return {
+      success: false,
+      error: "Kein Datenordner konfiguriert.",
+    };
+  }
+
+  const cryptoService = DataCryptoService.getInstance();
+  const currentStatus = cryptoService.getStatus(dataPath);
+
+  if (currentStatus.hasManifest && !currentStatus.authorized) {
+    return {
+      success: false,
+      error:
+        currentStatus.message ||
+        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
+    };
+  }
+
+  const encryptionStatus = cryptoService.initializeDataFolder(dataPath);
+  const now = new Date().toISOString();
+
+  mkdirSync(settings.getVolunteersPath(), { recursive: true });
+  mkdirSync(settings.getBackupsPath(), { recursive: true });
+  mkdirSync(settings.getAttachmentsPath(), { recursive: true });
+  mkdirSync(settings.getPartnersPath(), { recursive: true });
+  mkdirSync(settings.getPartnerBackupsPath(), { recursive: true });
+  mkdirSync(settings.getPartnerAttachmentsPath(), { recursive: true });
+
+  writeEncryptedJsonIfMissing(
+    settings.getIndexPath(),
+    dataPath,
+    cryptoService,
+    {
+      _version: 0,
+      _updatedAt: now,
+      volunteers: [],
+    },
+  );
+
+  writeEncryptedJsonIfMissing(
+    settings.getPartnerIndexPath(),
+    dataPath,
+    cryptoService,
+    {
+      _version: 0,
+      _updatedAt: now,
+      volunteers: [],
+    },
+  );
+
+  writeEncryptedJsonIfMissing(
+    settings.getMeetingsPath(),
+    dataPath,
+    cryptoService,
+    {
+      _version: 1,
+      _updatedAt: now,
+      meetings: [],
+    },
+  );
+
+  writeEncryptedJsonIfMissing(
+    settings.getAppointmentsPath(),
+    dataPath,
+    cryptoService,
+    {
+      _version: 1,
+      _updatedAt: now,
+      appointments: [],
+    },
+  );
+
+  writeEncryptedJsonIfMissing(
+    join(dataPath, "processing-activities.json"),
+    dataPath,
+    cryptoService,
+    createDefaultProcessingActivitiesDocument(),
+  );
+
+  return { success: true, encryptionStatus };
+}
+
+function getFileService(
+  settings: SettingsService,
+): VolunteerFileService | null {
+  const access = getValidatedDataFolder(settings);
+  if (!access) return null;
+
+  const { dataPath, cryptoService } = access;
 
   mkdirSync(settings.getVolunteersPath(), { recursive: true });
   mkdirSync(settings.getBackupsPath(), { recursive: true });
@@ -55,19 +170,10 @@ function getFileService(
 function getPartnerFileService(
   settings: SettingsService,
 ): VolunteerFileService | null {
-  const dataPath = settings.getDataFolderPath();
-  if (!dataPath) return null;
+  const access = getValidatedDataFolder(settings);
+  if (!access) return null;
 
-  const cryptoService = DataCryptoService.getInstance();
-  const cryptoStatus = cryptoService.getStatus(dataPath);
-  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
-    throw new Error(
-      cryptoStatus.message ||
-        "Dieser Benutzer hat noch keinen Zugriff auf den verschlüsselten Datenordner.",
-    );
-  }
-
-  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
+  const { dataPath, cryptoService } = access;
 
   mkdirSync(settings.getPartnersPath(), { recursive: true });
   mkdirSync(settings.getPartnerBackupsPath(), { recursive: true });
@@ -83,100 +189,47 @@ function getPartnerFileService(
   );
 }
 
-function bootstrapFolderEncryption(folderPath: string) {
-  const cryptoService = DataCryptoService.getInstance();
-  try {
-    cryptoService.encryptBytesForDataFolder(
-      folderPath,
-      Buffer.from("bootstrap"),
-    );
-  } catch {
-    // Status call below still returns whether access is pending or authorized.
-  }
-  return cryptoService.getStatus(folderPath);
-}
-
 function getProcessingActivitiesService(
   settings: SettingsService,
 ): ProcessingActivitiesService | null {
-  const dataPath = settings.getDataFolderPath();
-  if (!dataPath) return null;
+  const access = getValidatedDataFolder(settings);
+  if (!access) return null;
 
-  const cryptoService = DataCryptoService.getInstance();
-  const cryptoStatus = cryptoService.getStatus(dataPath);
-  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
-    throw new Error(
-      cryptoStatus.message ||
-        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
-    );
-  }
-
-  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
-  return new ProcessingActivitiesService(dataPath, cryptoService);
+  return new ProcessingActivitiesService(access.dataPath, access.cryptoService);
 }
 
 function getBusinessAuditService(
   settings: SettingsService,
 ): BusinessAuditService | null {
-  const dataPath = settings.getDataFolderPath();
-  if (!dataPath) return null;
+  const access = getValidatedDataFolder(settings);
+  if (!access) return null;
 
-  const cryptoService = DataCryptoService.getInstance();
-  const cryptoStatus = cryptoService.getStatus(dataPath);
-  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
-    throw new Error(
-      cryptoStatus.message ||
-        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
-    );
-  }
-
-  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
-  return new BusinessAuditService(dataPath, cryptoService);
+  return new BusinessAuditService(access.dataPath, access.cryptoService);
 }
 
 function getGroupMeetingService(
   settings: SettingsService,
 ): GroupMeetingService | null {
-  const dataPath = settings.getDataFolderPath();
-  if (!dataPath) return null;
+  const access = getValidatedDataFolder(settings);
+  if (!access) return null;
 
-  const cryptoService = DataCryptoService.getInstance();
-  const cryptoStatus = cryptoService.getStatus(dataPath);
-  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
-    throw new Error(
-      cryptoStatus.message ||
-        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
-    );
-  }
-
-  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
   return new GroupMeetingService(
-    dataPath,
+    access.dataPath,
     settings.getMeetingsPath(),
-    cryptoService,
+    access.cryptoService,
   );
 }
 
 function getPartnerAppointmentService(
   settings: SettingsService,
 ): PartnerAppointmentService | null {
-  const dataPath = settings.getDataFolderPath();
-  if (!dataPath) return null;
+  const access = getValidatedDataFolder(settings);
+  if (!access) return null;
 
-  const cryptoService = DataCryptoService.getInstance();
-  const cryptoStatus = cryptoService.getStatus(dataPath);
-  if (!cryptoStatus.authorized && cryptoStatus.hasManifest) {
-    throw new Error(
-      cryptoStatus.message ||
-        "Dieser Benutzer hat noch keinen Zugriff auf den verschluesselten Datenordner.",
-    );
-  }
-
-  cryptoService.encryptBytesForDataFolder(dataPath, Buffer.from("healthcheck"));
   return new PartnerAppointmentService(
-    dataPath,
+    access.dataPath,
     settings.getAppointmentsPath(),
-    cryptoService,
+    access.cryptoService,
   );
 }
 
@@ -218,15 +271,10 @@ export function registerVolunteerHandlers(
 
   ipcMain.handle(IPC.SET_DATA_PATH, (_event, folderPath: string) => {
     settings.set({ dataFolderPath: folderPath });
-    mkdirSync(settings.getVolunteersPath(), { recursive: true });
-    mkdirSync(settings.getBackupsPath(), { recursive: true });
-    mkdirSync(settings.getAttachmentsPath(), { recursive: true });
-    mkdirSync(settings.getPartnersPath(), { recursive: true });
-    mkdirSync(settings.getPartnerBackupsPath(), { recursive: true });
-    mkdirSync(settings.getPartnerAttachmentsPath(), { recursive: true });
-
-    const status = bootstrapFolderEncryption(folderPath);
-    return { success: true, encryptionStatus: status };
+    return {
+      success: true,
+      encryptionStatus: DataCryptoService.getInstance().getStatus(folderPath),
+    };
   });
 
   ipcMain.handle(IPC.SELECT_DATA_FOLDER, async (event) => {
@@ -239,15 +287,11 @@ export function registerVolunteerHandlers(
 
     const folderPath = result.filePaths[0];
     settings.set({ dataFolderPath: folderPath });
-    mkdirSync(settings.getVolunteersPath(), { recursive: true });
-    mkdirSync(settings.getBackupsPath(), { recursive: true });
-    mkdirSync(settings.getAttachmentsPath(), { recursive: true });
-    mkdirSync(settings.getPartnersPath(), { recursive: true });
-    mkdirSync(settings.getPartnerBackupsPath(), { recursive: true });
-    mkdirSync(settings.getPartnerAttachmentsPath(), { recursive: true });
-
-    bootstrapFolderEncryption(folderPath);
     return folderPath;
+  });
+
+  ipcMain.handle(IPC.INITIALIZE_DATA_FOLDER, () => {
+    return initializeFolderStructure(settings);
   });
 
   ipcMain.handle(IPC.GET_ENCRYPTION_STATUS, () => {

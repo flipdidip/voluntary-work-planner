@@ -107,6 +107,11 @@ export default function App(): JSX.Element {
       ? encryptionStatus.userRole
       : "primary";
 
+  const showFolderSetupOverlay =
+    consentGiven === true &&
+    encryptionStatus?.hasManifest === false &&
+    location.pathname !== "/settings";
+
   const showAccessPendingOverlay =
     consentGiven === true &&
     encryptionStatus?.hasManifest === true &&
@@ -183,6 +188,17 @@ export default function App(): JSX.Element {
     <>
       {liveReminders.length > 0 && (
         <ReminderToast reminders={liveReminders} onDismiss={dismissLive} />
+      )}
+      {showFolderSetupOverlay && (
+        <AccessPendingOverlay
+          variant="folder-setup"
+          currentUser={encryptionStatus?.currentUser || ""}
+          message={encryptionStatus?.message}
+          onOpenSettings={() => navigate("/settings")}
+          onRetry={() => {
+            refreshEncryptionStatus();
+          }}
+        />
       )}
       {showAccessPendingOverlay && (
         <AccessPendingOverlay

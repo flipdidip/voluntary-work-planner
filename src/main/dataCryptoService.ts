@@ -510,7 +510,6 @@ export class DataCryptoService {
     }
 
     const identity = this.ensureLocalUserIdentity();
-    this.ensureCryptoFolders(dataPath);
 
     const manifestPath = this.getManifestPath(dataPath);
     const hasManifest = existsSync(manifestPath);
@@ -518,13 +517,14 @@ export class DataCryptoService {
 
     if (!hasManifest) {
       return {
-        enabled: true,
-        authorized: true,
+        enabled: false,
+        authorized: false,
         hasManifest: false,
         pendingRequestCount,
         currentUser: `${identity.userName}@${identity.machineName}`,
         keyFingerprint: identity.keyFingerprint,
-        message: "Ordner wird beim ersten Zugriff verschlüsselt initialisiert.",
+        message:
+          "Der ausgewaehlte Ordner ist noch nicht initialisiert oder noch nicht vollstaendig synchronisiert.",
       };
     }
 
@@ -549,6 +549,21 @@ export class DataCryptoService {
         ? "Verschlüsselung ist aktiv und dieser Benutzer ist freigegeben."
         : "Freigabe ausstehend. Eine bereits autorisierte Person muss Ihre Zugriffsanfrage in deren Einstellungen bestaetigen.",
     };
+  }
+
+  initializeDataFolder(dataPath: string): EncryptionStatus {
+    if (!dataPath) {
+      throw new Error("Kein Datenordner ausgewählt.");
+    }
+
+    const identity = this.ensureLocalUserIdentity();
+    this.ensureCryptoFolders(dataPath);
+
+    if (!existsSync(this.getManifestPath(dataPath))) {
+      this.initializeManifest(dataPath, identity);
+    }
+
+    return this.getStatus(dataPath);
   }
 
   getPendingEnrollmentRequests(dataPath: string): EnrollmentRequestSummary[] {
