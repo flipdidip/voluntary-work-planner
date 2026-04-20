@@ -571,6 +571,7 @@ export const IPC = {
   GET_DATA_PATH: "get-data-path",
   SET_DATA_PATH: "set-data-path",
   SELECT_DATA_FOLDER: "select-data-folder",
+  INITIALIZE_DATA_FOLDER: "initialize-data-folder",
   GET_SETTINGS: "get-settings",
   SAVE_SETTINGS: "save-settings",
   GET_ENCRYPTION_STATUS: "get-encryption-status",

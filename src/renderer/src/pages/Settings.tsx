@@ -79,7 +79,15 @@ export default function Settings({
   const [exportingProcessingActivities, setExportingProcessingActivities] =
     useState(false);
   const [exportingBusinessAudit, setExportingBusinessAudit] = useState(false);
+  const [checkingFolder, setCheckingFolder] = useState(false);
+  const [initializingFolder, setInitializingFolder] = useState(false);
   const isPartnerOnly = userRole === "partner-only";
+  const folderNeedsInitialization =
+    Boolean(dataPath) && encryptionStatus?.hasManifest === false;
+  const canUseDataFolder =
+    Boolean(dataPath) &&
+    encryptionStatus?.hasManifest === true &&
+    encryptionStatus.authorized;
 
   const refreshEncryptionStatus = async (): Promise<void> => {
     const [statusResult, requestsResult, auditResult, businessAuditResult] =
@@ -231,6 +239,48 @@ export default function Settings({
     }
   };
 
+  const handleCheckFolderConnection = async (): Promise<void> => {
+    setCheckingFolder(true);
+    try {
+      await refreshEncryptionStatus();
+      await loadProcessingActivities();
+      window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
+    } finally {
+      setCheckingFolder(false);
+    }
+  };
+
+  const handleInitializeFolder = async (): Promise<void> => {
+    if (!dataPath) {
+      alert("Bitte zuerst einen Datenordner auswählen.");
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "Den ausgewaehlten Ordner jetzt initialisieren?\n\nNur fuer einen neuen, leeren Ordner verwenden. Wenn dies ein bestehender OneDrive-Ordner ist, bitte zuerst die Synchronisierung abwarten und stattdessen 'Verbindung pruefen' verwenden.",
+      )
+    ) {
+      return;
+    }
+
+    setInitializingFolder(true);
+    try {
+      const result = await window.api.initializeDataFolder();
+      if (!result.success) {
+        alert(result.error || "Ordner konnte nicht initialisiert werden.");
+        return;
+      }
+
+      await refreshEncryptionStatus();
+      await loadProcessingActivities();
+      window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
+      alert("Datenordner wurde erfolgreich initialisiert.");
+    } finally {
+      setInitializingFolder(false);
+    }
+  };
+
   const handleApproveEnrollments = async (): Promise<void> => {
     setApproving(true);
     try {
@@ -374,7 +424,7 @@ export default function Settings({
   };
 
   const persistProcessingActivities = async (): Promise<boolean> => {
-    if (!dataPath || !processingDocument) {
+    if (!dataPath || !processingDocument || !canUseDataFolder) {
       return true;
     }
 
@@ -479,10 +529,14 @@ export default function Settings({
           <div className="path-info" style={{ marginTop: "0.6rem" }}>
             <Info size={14} />
             <span>
-              <strong>Verschlüsselung:</strong>{" "}
-              {encryptionStatus.authorized
-                ? "aktiv und freigegeben"
-                : "aktiv, Freigabe ausstehend"}
+              <strong>Ordnerstatus:</strong>{" "}
+              {!dataPath
+                ? "kein Datenordner verbunden"
+                : encryptionStatus.hasManifest
+                  ? encryptionStatus.authorized
+                    ? "aktiv und freigegeben"
+                    : "aktiv, Freigabe ausstehend"
+                  : "nicht initialisiert / nicht verbunden"}
               {encryptionStatus.message ? ` (${encryptionStatus.message})` : ""}
             </span>
           </div>
@@ -494,6 +548,48 @@ export default function Settings({
             <span>
               Aktueller Benutzer: <code>{encryptionStatus.currentUser}</code>
             </span>
+          </div>
+        )}
+
+        {folderNeedsInitialization && (
+          <div className="security-section">
+            <div className="security-section-header">
+              <h3>Ordnerverbindung prüfen</h3>
+              <span className="hint">
+                Noch keine initialisierte Datenstruktur gefunden.
+              </span>
+            </div>
+            <p className="hint">
+              Wenn dies ein bestehender OneDrive- oder SharePoint-Ordner ist,
+              warten Sie bitte die Synchronisierung ab und klicken Sie dann auf
+              &quot;Verbindung prüfen&quot;. Initialisieren Sie den Ordner nur,
+              wenn er neu und leer ist.
+            </p>
+            <div className="folder-row">
+              <button
+                className="btn btn-secondary"
+                onClick={handleCheckFolderConnection}
+                disabled={checkingFolder}
+              >
+                {checkingFolder ? "Prüfe..." : "Verbindung prüfen"}
+              </button>
+              {!isPartnerOnly && (
+                <button
+                  className="btn btn-primary"
+                  onClick={handleInitializeFolder}
+                  disabled={initializingFolder}
+                >
+                  {initializingFolder
+                    ? "Initialisiere..."
+                    : "Neuen Ordner initialisieren"}
+                </button>
+              )}
+            </div>
+            {isPartnerOnly && (
+              <p className="hint" style={{ marginTop: "0.6rem" }}>
+                Die Initialisierung ist nur mit Vollzugriff möglich.
+              </p>
+            )}
           </div>
         )}
 

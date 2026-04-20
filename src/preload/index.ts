@@ -97,11 +97,19 @@ const api = {
     error?: string;
   }> => ipcRenderer.invoke(IPC.EXPORT_BUSINESS_AUDIT_MARKDOWN),
 
-  setDataPath: (folderPath: string): Promise<{ success: boolean }> =>
+  setDataPath: (
+    folderPath: string,
+  ): Promise<{ success: boolean; encryptionStatus?: EncryptionStatus }> =>
     ipcRenderer.invoke(IPC.SET_DATA_PATH, folderPath),
 
   selectDataFolder: (): Promise<string | null> =>
     ipcRenderer.invoke(IPC.SELECT_DATA_FOLDER),
+
+  initializeDataFolder: (): Promise<{
+    success: boolean;
+    encryptionStatus?: EncryptionStatus;
+    error?: string;
+  }> => ipcRenderer.invoke(IPC.INITIALIZE_DATA_FOLDER),
 
   // Volunteers
   getVolunteerIndex: () => ipcRenderer.invoke(IPC.GET_VOLUNTEER_INDEX),

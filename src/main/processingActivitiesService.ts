@@ -66,9 +66,7 @@ export class ProcessingActivitiesService {
 
   readDocument(): ProcessingActivitiesDocument {
     if (!existsSync(this.filePath)) {
-      const created = createDefaultProcessingActivitiesDocument();
-      this.writeJsonFile(this.filePath, created);
-      return created;
+      return createDefaultProcessingActivitiesDocument();
     }
 
     try {
@@ -76,9 +74,7 @@ export class ProcessingActivitiesService {
         this.filePath,
       );
       if (!parsed.activities || parsed.activities.length === 0) {
-        const created = createDefaultProcessingActivitiesDocument();
-        this.writeJsonFile(this.filePath, created);
-        return created;
+        return createDefaultProcessingActivitiesDocument();
       }
       return {
         _version: parsed._version || 1,
