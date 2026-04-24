@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -21,6 +21,9 @@ import {
   calculateUpcomingEvents,
   UpcomingEvent,
 } from "@shared/eventCalculationService";
+import { DinoIconId } from "@shared/types";
+import DinoIconBadge from "../components/DinoIcon";
+import "../components/DinoIcon.css";
 import "./Dashboard.css";
 
 // Helper to get event kind badge info
@@ -133,6 +136,87 @@ export default function Dashboard(): JSX.Element {
     partnerIndex?.volunteers.filter((v) => v.status === "inactive").length ?? 0;
   const partnerTotalCount = partnerActiveCount + partnerInactiveCount;
 
+  const dinoIconByParticipantId = useMemo(() => {
+    const iconMap = new Map<string, DinoIconId>();
+
+    (index?.volunteers ?? []).forEach((entry) => {
+      if (entry.dinoIconId) {
+        iconMap.set(entry.id, entry.dinoIconId);
+      }
+    });
+
+    (partnerIndex?.volunteers ?? []).forEach((entry) => {
+      if (entry.dinoIconId) {
+        iconMap.set(entry.id, entry.dinoIconId);
+      }
+    });
+
+    return iconMap;
+  }, [index, partnerIndex]);
+
+  const participantNameById = useMemo(() => {
+    const nameMap = new Map<string, string>();
+
+    (index?.volunteers ?? []).forEach((entry) => {
+      nameMap.set(entry.id, `${entry.firstName} ${entry.lastName}`);
+    });
+
+    (partnerIndex?.volunteers ?? []).forEach((entry) => {
+      nameMap.set(entry.id, `${entry.firstName} ${entry.lastName}`);
+    });
+
+    return nameMap;
+  }, [index, partnerIndex]);
+
+  const getEventDinoParticipants = useMemo(
+    () =>
+      (
+        event: UpcomingEvent,
+      ): Array<{ participantId: string; iconId: DinoIconId; name: string }> => {
+        if (event.participants && event.participants.length > 0) {
+          return event.participants
+            .map((participant) => {
+              const iconId = dinoIconByParticipantId.get(participant.id);
+              if (!iconId) {
+                return null;
+              }
+
+              return {
+                participantId: participant.id,
+                iconId,
+                name:
+                  participantNameById.get(participant.id) ||
+                  "Unbekannte Person",
+              };
+            })
+            .filter(
+              (
+                participant,
+              ): participant is {
+                participantId: string;
+                iconId: DinoIconId;
+                name: string;
+              } => !!participant,
+            );
+        }
+
+        const iconId = dinoIconByParticipantId.get(event.volunteerId);
+        if (!iconId) {
+          return [];
+        }
+
+        return [
+          {
+            participantId: event.volunteerId,
+            iconId,
+            name:
+              participantNameById.get(event.volunteerId) || event.volunteerName,
+          },
+        ];
+      },
+    [dinoIconByParticipantId, participantNameById],
+  );
+
   if (!dataPath) {
     return (
       <div className="dashboard-setup">
@@ -235,6 +319,7 @@ export default function Dashboard(): JSX.Element {
         <div className="upcoming-list">
           {upcoming.map((ev) => {
             const kindInfo = getEventKindInfo(ev.kind);
+            const dinoParticipants = getEventDinoParticipants(ev);
             return (
               <div
                 key={`${ev.volunteerId}-${ev.date}`}
@@ -259,7 +344,26 @@ export default function Dashboard(): JSX.Element {
                   {kindInfo.icon}
                 </div>
                 <div className="upcoming-info">
-                  <span className="upcoming-name">{ev.volunteerName}</span>
+                  <span className="upcoming-name-row">
+                    <span className="upcoming-name">{ev.volunteerName}</span>
+                    {dinoParticipants.length > 0 && (
+                      <span className="upcoming-dinos">
+                        {dinoParticipants.slice(0, 3).map((participant) => (
+                          <DinoIconBadge
+                            key={participant.participantId}
+                            iconId={participant.iconId}
+                            size="sm"
+                            title={participant.name}
+                          />
+                        ))}
+                        {dinoParticipants.length > 3 && (
+                          <span className="upcoming-dinos-more">
+                            +{dinoParticipants.length - 3}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
                   <span className="upcoming-label">{ev.label}</span>
                 </div>
                 <div className="upcoming-date">
