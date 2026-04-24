@@ -126,6 +126,11 @@ export interface EventCalculationOptions {
    * Whether this is being called from the main process (for logging purposes)
    */
   isBackgroundCheck?: boolean;
+  /**
+   * Include events that are in the given month, even if they are in the past.
+   * Useful for month calendar views.
+   */
+  includePastInMonth?: Date;
 }
 
 /**
@@ -142,10 +147,18 @@ export async function calculateUpcomingEvents(
 ): Promise<UpcomingEvent[]> {
   const today = startOfDay(new Date());
   const events: UpcomingEvent[] = [];
-  const { daysLimit, todayOnly } = options;
+  const { daysLimit, todayOnly, includePastInMonth } = options;
 
   // Helper to check if event is within range
-  const isEventInRange = (daysUntil: number): boolean => {
+  const isEventInRange = (daysUntil: number, eventDate: Date): boolean => {
+    if (
+      includePastInMonth &&
+      eventDate.getFullYear() === includePastInMonth.getFullYear() &&
+      eventDate.getMonth() === includePastInMonth.getMonth()
+    ) {
+      return true;
+    }
+
     if (todayOnly) {
       return daysUntil === 0;
     }
@@ -168,12 +181,18 @@ export async function calculateUpcomingEvents(
     for (const v of activeVolunteers) {
       if (!v.dateOfBirth) continue;
 
-      const nextBirthday = getNextBirthdayDate(v.dateOfBirth, today);
-      const daysUntil = differenceInCalendarDays(nextBirthday, today);
+      const dob = parseISO(v.dateOfBirth);
+      const birthdayDate = includePastInMonth
+        ? new Date(
+            includePastInMonth.getFullYear(),
+            dob.getMonth(),
+            dob.getDate(),
+          )
+        : getNextBirthdayDate(v.dateOfBirth, today);
+      const daysUntil = differenceInCalendarDays(birthdayDate, today);
 
-      if (isEventInRange(daysUntil)) {
-        const age =
-          nextBirthday.getFullYear() - parseISO(v.dateOfBirth).getFullYear();
+      if (isEventInRange(daysUntil, birthdayDate)) {
+        const age = birthdayDate.getFullYear() - dob.getFullYear();
 
         // Check if this is a round birthday
         const isRound =
@@ -194,7 +213,7 @@ export async function calculateUpcomingEvents(
               ? `${age}. Geburtstag (Runder Geburtstag!)`
               : `${age}. Geburtstag`,
             daysUntil,
-            date: format(nextBirthday, "yyyy-MM-dd"),
+            date: format(birthdayDate, "yyyy-MM-dd"),
           });
         }
       }
@@ -207,17 +226,26 @@ export async function calculateUpcomingEvents(
       if (!v.joinedDate) continue;
 
       const joinedDate = parseISO(v.joinedDate);
-      let nextAnniversary = new Date(
-        today.getFullYear(),
-        joinedDate.getMonth(),
-        joinedDate.getDate(),
-      );
-      if (differenceInCalendarDays(nextAnniversary, today) < 0) {
+      let nextAnniversary = includePastInMonth
+        ? new Date(
+            includePastInMonth.getFullYear(),
+            joinedDate.getMonth(),
+            joinedDate.getDate(),
+          )
+        : new Date(
+            today.getFullYear(),
+            joinedDate.getMonth(),
+            joinedDate.getDate(),
+          );
+      if (
+        !includePastInMonth &&
+        differenceInCalendarDays(nextAnniversary, today) < 0
+      ) {
         nextAnniversary.setFullYear(nextAnniversary.getFullYear() + 1);
       }
       const daysUntil = differenceInCalendarDays(nextAnniversary, today);
 
-      if (isEventInRange(daysUntil)) {
+      if (isEventInRange(daysUntil, nextAnniversary)) {
         const yearsOfService =
           nextAnniversary.getFullYear() - joinedDate.getFullYear();
         const joinedDateAnniversaryYears = settings.joinedDateAnniversaryYears;
@@ -268,9 +296,9 @@ export async function calculateUpcomingEvents(
               const remainingDays = Math.ceil(
                 remainingMs / (1000 * 60 * 60 * 24),
               );
+              const anniversaryDate = new Date(today.getTime() + remainingMs);
 
-              if (isEventInRange(remainingDays)) {
-                const anniversaryDate = new Date(today.getTime() + remainingMs);
+              if (isEventInRange(remainingDays, anniversaryDate)) {
                 events.push({
                   volunteerId: v.id,
                   volunteerName: `${v.firstName} ${v.lastName}`,
@@ -314,7 +342,7 @@ export async function calculateUpcomingEvents(
 
           // Use the same range logic as other event types so expiry dates
           // appear in the calendar regardless of the notification warning window
-          if (isEventInRange(daysUntilExpiry)) {
+          if (isEventInRange(daysUntilExpiry, expiryDate)) {
             const requirementLabel =
               REQUIREMENT_DEFINITIONS[requirement.requirementType]?.label ||
               requirement.requirementType;
@@ -359,7 +387,7 @@ export async function calculateUpcomingEvents(
             const reminderDate = parseISO(reminder.triggerDate);
             const daysUntil = differenceInCalendarDays(reminderDate, today);
 
-            if (isEventInRange(daysUntil)) {
+            if (isEventInRange(daysUntil, reminderDate)) {
               events.push({
                 volunteerId: fullVolunteer.id,
                 volunteerName: `${fullVolunteer.firstName} ${fullVolunteer.lastName}`,
@@ -385,7 +413,7 @@ export async function calculateUpcomingEvents(
       const meetingDate = parseISO(meeting.date);
       const daysUntil = differenceInCalendarDays(meetingDate, today);
 
-      if (isEventInRange(daysUntil)) {
+      if (isEventInRange(daysUntil, meetingDate)) {
         const participantCount = meeting.participants.length;
         const participantSuffix =
           participantCount > 0 ? ` (${participantCount} Teilnehmer)` : "";
@@ -410,7 +438,7 @@ export async function calculateUpcomingEvents(
       const appointmentDate = parseISO(appointment.date);
       const daysUntil = differenceInCalendarDays(appointmentDate, today);
 
-      if (isEventInRange(daysUntil)) {
+      if (isEventInRange(daysUntil, appointmentDate)) {
         const participantCount = appointment.participants.length;
         const participantSuffix =
           participantCount > 0 ? ` (${participantCount} Teilnehmer)` : "";

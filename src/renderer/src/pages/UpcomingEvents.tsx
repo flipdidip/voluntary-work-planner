@@ -141,7 +141,6 @@ export default function UpcomingEvents({
                 appointmentId: appointment.id,
               };
             })
-            .filter((event) => event.daysUntil >= 0)
             .sort((a, b) => a.daysUntil - b.daysUntil);
 
           if (!cancelled) {
@@ -157,7 +156,7 @@ export default function UpcomingEvents({
           index!,
           settings,
           (id) => window.api.getVolunteer(id),
-          undefined,
+          { includePastInMonth: currentMonth },
           meetingsIdx,
           appointmentsIdx,
         );
@@ -180,7 +179,7 @@ export default function UpcomingEvents({
     return () => {
       cancelled = true;
     };
-  }, [index, isPartnerOnly]);
+  }, [index, isPartnerOnly, currentMonth]);
 
   // Build calendar grid days for the current month view
   const calendarDays = useMemo(() => {
