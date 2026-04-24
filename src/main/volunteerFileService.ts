@@ -93,6 +93,7 @@ export class VolunteerFileService {
           mobile: volunteer.mobile,
           email: volunteer.email,
           joinedDate: volunteer.joinedDate,
+          dinoIconId: volunteer.dinoIconId,
           status: volunteer.status,
           roles: volunteer.roles,
           _updatedAt: volunteer._updatedAt,
@@ -106,6 +107,7 @@ export class VolunteerFileService {
           entry._updatedAt !== normalizedEntry._updatedAt ||
           entry.organization !== normalizedEntry.organization ||
           entry.contactPerson !== normalizedEntry.contactPerson ||
+          entry.dinoIconId !== normalizedEntry.dinoIconId ||
           entry.mediaConsentLevel !== normalizedEntry.mediaConsentLevel ||
           JSON.stringify(entry.requirementsStatus) !==
             JSON.stringify(normalizedEntry.requirementsStatus)
@@ -153,6 +155,7 @@ export class VolunteerFileService {
       mobile: volunteer.mobile,
       email: volunteer.email,
       joinedDate: volunteer.joinedDate,
+      dinoIconId: volunteer.dinoIconId,
       status: volunteer.status,
       roles: volunteer.roles,
       _updatedAt: volunteer._updatedAt,

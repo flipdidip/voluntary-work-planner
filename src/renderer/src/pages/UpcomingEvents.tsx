@@ -26,11 +26,14 @@ import {
 } from "date-fns";
 import { de } from "date-fns/locale";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
+import { usePartnerIndex } from "../hooks/usePartners";
 import {
   calculateUpcomingEvents,
   UpcomingEvent,
 } from "@shared/eventCalculationService";
-import { UserRole } from "@shared/types";
+import { DinoIconId, UserRole } from "@shared/types";
+import DinoIconBadge from "../components/DinoIcon";
+import "../components/DinoIcon.css";
 import "./UpcomingEvents.css";
 
 const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -96,6 +99,7 @@ export default function UpcomingEvents({
 }: UpcomingEventsProps): JSX.Element {
   const navigate = useNavigate();
   const { index, loading } = useVolunteerIndex();
+  const { index: partnerIndex } = usePartnerIndex();
   const isPartnerOnly = userRole === "partner-only";
   const hasFullAccess = userRole === "primary";
   const [events, setEvents] = useState<UpcomingEvent[]>([]);
@@ -139,6 +143,10 @@ export default function UpcomingEvents({
                 daysUntil,
                 date: appointment.date,
                 appointmentId: appointment.id,
+                participants: appointment.participants.map((participant) => ({
+                  id: participant.id,
+                  type: "partner" as const,
+                })),
               };
             })
             .sort((a, b) => a.daysUntil - b.daysUntil);
@@ -200,6 +208,69 @@ export default function UpcomingEvents({
       return partnerFilterMode === "include" ? isPartnerEvent : !isPartnerEvent;
     });
   }, [events, partnerFilterMode]);
+
+  const dinoIconByParticipantId = useMemo(() => {
+    const iconMap = new Map<string, DinoIconId>();
+
+    (index?.volunteers ?? []).forEach((entry) => {
+      if (entry.dinoIconId) {
+        iconMap.set(entry.id, entry.dinoIconId);
+      }
+    });
+
+    (partnerIndex?.volunteers ?? []).forEach((entry) => {
+      if (entry.dinoIconId) {
+        iconMap.set(entry.id, entry.dinoIconId);
+      }
+    });
+
+    return iconMap;
+  }, [index, partnerIndex]);
+
+  const participantNameById = useMemo(() => {
+    const nameMap = new Map<string, string>();
+
+    (index?.volunteers ?? []).forEach((entry) => {
+      nameMap.set(entry.id, `${entry.firstName} ${entry.lastName}`);
+    });
+
+    (partnerIndex?.volunteers ?? []).forEach((entry) => {
+      nameMap.set(entry.id, `${entry.firstName} ${entry.lastName}`);
+    });
+
+    return nameMap;
+  }, [index, partnerIndex]);
+
+  const getEventDinoParticipants = (
+    event: UpcomingEvent,
+  ): Array<{ participantId: string; iconId: DinoIconId; name: string }> => {
+    if (!event.participants || event.participants.length === 0) {
+      return [];
+    }
+
+    return event.participants
+      .map((participant) => {
+        const iconId = dinoIconByParticipantId.get(participant.id);
+        if (!iconId) {
+          return null;
+        }
+
+        return {
+          participantId: participant.id,
+          iconId,
+          name: participantNameById.get(participant.id) || "Unbekannte Person",
+        };
+      })
+      .filter(
+        (
+          participant,
+        ): participant is {
+          participantId: string;
+          iconId: DinoIconId;
+          name: string;
+        } => !!participant,
+      );
+  };
 
   // Group events by date string for quick lookup
   const eventsByDate = useMemo(() => {
@@ -341,6 +412,11 @@ export default function UpcomingEvents({
                     <div className="cal-day-events">
                       {dayEvents.map((ev) => {
                         const kindInfo = getEventKindInfo(ev.kind);
+                        const dinoIcons =
+                          ev.kind === "group-meeting" ||
+                          ev.kind === "partner-appointment"
+                            ? getEventDinoParticipants(ev)
+                            : [];
                         return (
                           <button
                             key={`${ev.volunteerId}-${ev.kind}-${ev.label}`}
@@ -360,6 +436,23 @@ export default function UpcomingEvents({
                             <span className="cal-event-text">
                               {ev.volunteerName}
                             </span>
+                            {dinoIcons.length > 0 && (
+                              <span className="cal-event-dinos">
+                                {dinoIcons.slice(0, 3).map((participant) => (
+                                  <DinoIconBadge
+                                    key={participant.participantId}
+                                    iconId={participant.iconId}
+                                    size="sm"
+                                    title={participant.name}
+                                  />
+                                ))}
+                                {dinoIcons.length > 3 && (
+                                  <span className="cal-event-dinos-more">
+                                    +{dinoIcons.length - 3}
+                                  </span>
+                                )}
+                              </span>
+                            )}
                           </button>
                         );
                       })}

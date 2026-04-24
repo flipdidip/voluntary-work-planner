@@ -201,6 +201,125 @@ export interface StatusLogEntry {
   note?: string;
 }
 
+export type DinoIconId =
+  | "mint-saurus"
+  | "sunny-rex"
+  | "sky-bronto"
+  | "peach-raptor"
+  | "berry-trike"
+  | "teal-steggo"
+  | "coral-sprout"
+  | "lemon-anky"
+  | "lavender-diplo"
+  | "aqua-chomp"
+  | "rose-trike"
+  | "jade-plates";
+
+export type DinoIconShape = "longneck" | "trex" | "trike" | "steggo";
+
+export type DinoIconAccent =
+  | "spots"
+  | "stripes"
+  | "cheeks"
+  | "heart"
+  | "star"
+  | "crown";
+
+export interface DinoIconOption {
+  id: DinoIconId;
+  label: string;
+  shape: DinoIconShape;
+  accent: DinoIconAccent;
+  color: string;
+}
+
+export const DINO_ICON_OPTIONS: DinoIconOption[] = [
+  {
+    id: "mint-saurus",
+    label: "Mint-Saurus",
+    shape: "longneck",
+    accent: "spots",
+    color: "#7AD8B0",
+  },
+  {
+    id: "sunny-rex",
+    label: "Sunny-Rex",
+    shape: "trex",
+    accent: "star",
+    color: "#F6C453",
+  },
+  {
+    id: "sky-bronto",
+    label: "Sky-Bronto",
+    shape: "longneck",
+    accent: "stripes",
+    color: "#7BB8FF",
+  },
+  {
+    id: "peach-raptor",
+    label: "Peach-Raptor",
+    shape: "trex",
+    accent: "cheeks",
+    color: "#FFAE8A",
+  },
+  {
+    id: "berry-trike",
+    label: "Berry-Trike",
+    shape: "trike",
+    accent: "heart",
+    color: "#D79BFF",
+  },
+  {
+    id: "teal-steggo",
+    label: "Teal-Steggo",
+    shape: "steggo",
+    accent: "stripes",
+    color: "#6EDDD6",
+  },
+  {
+    id: "coral-sprout",
+    label: "Coral-Sprout",
+    shape: "longneck",
+    accent: "heart",
+    color: "#FF9E9A",
+  },
+  {
+    id: "lemon-anky",
+    label: "Lemon-Anky",
+    shape: "steggo",
+    accent: "star",
+    color: "#FFE27A",
+  },
+  {
+    id: "lavender-diplo",
+    label: "Lavender-Diplo",
+    shape: "longneck",
+    accent: "crown",
+    color: "#C8B0FF",
+  },
+  {
+    id: "aqua-chomp",
+    label: "Aqua-Chomp",
+    shape: "trex",
+    accent: "spots",
+    color: "#72D8F7",
+  },
+  {
+    id: "rose-trike",
+    label: "Rose-Trike",
+    shape: "trike",
+    accent: "cheeks",
+    color: "#FF9FC2",
+  },
+  {
+    id: "jade-plates",
+    label: "Jade-Plates",
+    shape: "steggo",
+    accent: "crown",
+    color: "#8CD6A0",
+  },
+];
+
 export interface Volunteer {
   id: string;
   /** Optimistic locking — increment on every write */
@@ -231,6 +350,7 @@ export interface Volunteer {
   // Volunteer metadata
   status: VolunteerStatus;
   joinedDate?: string; // ISO date
+  dinoIconId?: DinoIconId;
   roles: string[]; // e.g. ['Sterbebegleitung', 'Fahrdienst']
   notes: string;
 
@@ -259,6 +379,7 @@ export interface VolunteerIndexEntry {
   mobile?: string;
   email?: string;
   joinedDate?: string;
+  dinoIconId?: DinoIconId;
   status: VolunteerStatus;
   roles: string[];
   _updatedAt: string;
