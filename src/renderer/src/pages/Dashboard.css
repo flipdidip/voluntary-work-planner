@@ -145,6 +145,24 @@
   font-size: 0.9rem;
 }
 
+.upcoming-name-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.upcoming-dinos {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.upcoming-dinos-more {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
 .upcoming-label {
   font-size: 0.8rem;
   color: var(--color-text-muted);
