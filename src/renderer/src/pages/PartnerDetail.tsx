@@ -125,6 +125,11 @@ export default function PartnerDetail(): JSX.Element {
     return Array.from(organizations).sort((a, b) => a.localeCompare(b, "de"));
   })();
 
+  const selectedOrganizationSuggestion = (() => {
+    const value = form?.organization?.trim() ?? "";
+    return value && organizationSuggestions.includes(value) ? value : "";
+  })();
+
   const activityTimeMs = form ? calculateActivityTime(form) : 0;
   const activityTimeFormatted = formatActivityTime(activityTimeMs);
 
@@ -340,7 +345,7 @@ export default function PartnerDetail(): JSX.Element {
                 <div className="roles-input-field">
                   <select
                     className="select roles-select"
-                    defaultValue=""
+                    value={selectedOrganizationSuggestion}
                     onChange={(e) =>
                       update({ organization: e.target.value || undefined })
                     }
