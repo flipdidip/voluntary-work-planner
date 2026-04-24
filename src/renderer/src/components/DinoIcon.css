@@ -1,0 +1,38 @@
+.dino-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dino-color);
+  line-height: 1;
+}
+
+.dino-icon-badge--sm {
+  width: 16px;
+  height: 16px;
+}
+
+.dino-icon-badge--md {
+  width: 22px;
+  height: 22px;
+}
+
+.dino-icon-shape {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.dino-select-preview {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.dino-select-row {
+  display: flex;
+  align-items: center;
+}
+
+.dino-select {
+  font-weight: 600;
+}

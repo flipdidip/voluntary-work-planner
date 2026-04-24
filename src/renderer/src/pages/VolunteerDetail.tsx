@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
+import DinoIconSelect from "../components/DinoIconSelect";
 import { useVolunteer, useVolunteerIndex } from "../hooks/useVolunteers";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
 import {
@@ -470,6 +471,14 @@ export default function VolunteerDetail(): JSX.Element {
               />
             </label>
           </div>
+          <label>
+            Dino-Icon (Kalender-Indikator, optional)
+            <DinoIconSelect
+              value={form.dinoIconId}
+              onChange={(value) => update({ dinoIconId: value })}
+              placeholder="Kein Dino-Icon auswählen"
+            />
+          </label>
         </section>
 
         {/* ── Volunteer Info ─────────────────────────── */}

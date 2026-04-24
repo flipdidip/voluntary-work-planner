@@ -49,6 +49,8 @@ export interface UpcomingEvent {
   meetingId?: string;
   /** For partner-appointment kind: the appointment ID for navigation */
   appointmentId?: string;
+  /** Participants used for rendering optional avatars/icons in UI */
+  participants?: Array<{ id: string; type: "volunteer" | "partner" }>;
 }
 
 /**
@@ -427,6 +429,10 @@ export async function calculateUpcomingEvents(
           daysUntil,
           date: format(meetingDate, "yyyy-MM-dd"),
           meetingId: meeting.id,
+          participants: meeting.participants.map((participant) => ({
+            id: participant.id,
+            type: participant.type,
+          })),
         });
       }
     }
@@ -452,6 +458,10 @@ export async function calculateUpcomingEvents(
           daysUntil,
           date: format(appointmentDate, "yyyy-MM-dd"),
           appointmentId: appointment.id,
+          participants: appointment.participants.map((participant) => ({
+            id: participant.id,
+            type: "partner",
+          })),
         });
       }
     }

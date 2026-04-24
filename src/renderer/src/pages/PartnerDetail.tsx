@@ -15,6 +15,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import RolesInput from "../components/RolesInput";
+import DinoIconSelect from "../components/DinoIconSelect";
 import { usePartner, usePartnerIndex } from "../hooks/usePartners";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
 import { usePartnerAppointments } from "../hooks/usePartnerAppointments";
@@ -489,6 +490,14 @@ export default function PartnerDetail(): JSX.Element {
               />
             </label>
           </div>
+          <label>
+            Dino-Icon (Kalender-Indikator, optional)
+            <DinoIconSelect
+              value={form.dinoIconId}
+              onChange={(value) => update({ dinoIconId: value })}
+              placeholder="Kein Dino-Icon auswählen"
+            />
+          </label>
         </section>
 
         {/* ── Partner Info ─────────────────────────── */}

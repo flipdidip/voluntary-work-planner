@@ -265,6 +265,19 @@
   text-overflow: ellipsis;
 }
 
+.cal-event-dinos {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cal-event-dinos-more {
+  font-size: 0.62rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
 /* Badge colors reused for pills */
 .cal-event-pill.badge-blue {
   background: var(--color-badge-blue-bg);
