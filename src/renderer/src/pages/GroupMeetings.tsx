@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Users2, Mail, Globe } from "lucide-react";
+import { Plus, Trash2, Users2, Mail, Globe, CalendarClock } from "lucide-react";
 import { format, parseISO, isSameDay, isBefore, startOfDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
@@ -14,6 +14,7 @@ export default function GroupMeetings(): JSX.Element {
   const { index: volunteerIndex } = useVolunteerIndex();
   const { index: partnerIndex } = usePartnerIndex();
   const navigate = useNavigate();
+  const [showPast, setShowPast] = useState(false);
 
   const meetings = useMemo(() => {
     if (!index) return [];
@@ -24,6 +25,14 @@ export default function GroupMeetings(): JSX.Element {
   }, [index]);
 
   const today = startOfDay(new Date());
+
+  const visibleMeetings = useMemo(() => {
+    if (showPast) return meetings;
+    return meetings.filter((meeting) => {
+      const meetingDate = parseISO(meeting.date);
+      return !isBefore(meetingDate, today) || isSameDay(meetingDate, today);
+    });
+  }, [meetings, showPast, today]);
 
   const handleDelete = async (
     e: React.MouseEvent,
@@ -108,16 +117,31 @@ export default function GroupMeetings(): JSX.Element {
         </button>
       </div>
 
+      <div className="meeting-filters">
+        <span className="meeting-filters-label">Filter:</span>
+        <button
+          type="button"
+          className={`meeting-filter-chip ${showPast ? "active" : ""}`}
+          onClick={() => setShowPast((prev) => !prev)}
+          title="Aus: vergangene Treffen ausblenden · Aktiv: alle Treffen anzeigen"
+        >
+          <CalendarClock size={14} />
+          Vergangene: {showPast ? "Alle" : "Aus"}
+        </button>
+      </div>
+
       {loading && <p className="text-muted">Lade...</p>}
 
-      {!loading && meetings.length === 0 && (
+      {!loading && visibleMeetings.length === 0 && (
         <p className="text-muted empty-hint">
-          Noch keine Gruppentreffen erstellt.
+          {showPast
+            ? "Noch keine Gruppentreffen erstellt."
+            : "Keine kommenden Gruppentreffen. Aktiviere den Filter, um vergangene zu sehen."}
         </p>
       )}
 
       <div className="meeting-list">
-        {meetings.map((m) => {
+        {visibleMeetings.map((m) => {
           const meetingDate = parseISO(m.date);
           const isToday = isSameDay(meetingDate, today);
           const isPast = isBefore(meetingDate, today) && !isToday;
