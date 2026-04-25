@@ -89,11 +89,45 @@ function getEventKindInfo(kind: UpcomingEvent["kind"]) {
   return info[kind];
 }
 
+function getEventTimeLabel(event: UpcomingEvent): string | null {
+  const isTimedEvent =
+    event.kind === "group-meeting" || event.kind === "partner-appointment";
+
+  if (!isTimedEvent) {
+    return null;
+  }
+
+  const match = normalizeEventDateTime(event.date).match(/T(\d{2}:\d{2})/);
+  return match ? match[1] : null;
+}
+
 interface UpcomingEventsProps {
   userRole?: UserRole;
 }
 
 type PartnerFilterMode = "off" | "include" | "exclude";
+
+function getEventSortMinutes(event: UpcomingEvent): number | null {
+  const isTimedEvent =
+    event.kind === "group-meeting" || event.kind === "partner-appointment";
+
+  if (!isTimedEvent) {
+    return null;
+  }
+
+  const match = event.date.match(/T(\d{2}):(\d{2})/);
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
 
 export default function UpcomingEvents({
   userRole = "primary",
@@ -281,6 +315,32 @@ export default function UpcomingEvents({
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     }
+
+    // Sort each day by event time (timed events first), keep untimed order stable.
+    for (const [key, dayEvents] of map.entries()) {
+      const sortedDayEvents = dayEvents
+        .map((event, index) => ({
+          event,
+          index,
+          sortMinutes: getEventSortMinutes(event),
+        }))
+        .sort((a, b) => {
+          if (a.sortMinutes !== null && b.sortMinutes !== null) {
+            return a.sortMinutes - b.sortMinutes;
+          }
+          if (a.sortMinutes !== null) {
+            return -1;
+          }
+          if (b.sortMinutes !== null) {
+            return 1;
+          }
+          return a.index - b.index;
+        })
+        .map((entry) => entry.event);
+
+      map.set(key, sortedDayEvents);
+    }
+
     return map;
   }, [filteredEvents]);
 
@@ -413,6 +473,7 @@ export default function UpcomingEvents({
                     <div className="cal-day-events">
                       {dayEvents.map((ev) => {
                         const kindInfo = getEventKindInfo(ev.kind);
+                        const eventTimeLabel = getEventTimeLabel(ev);
                         const dinoIcons =
                           ev.kind === "group-meeting" ||
                           ev.kind === "partner-appointment"
@@ -422,7 +483,7 @@ export default function UpcomingEvents({
                           <button
                             key={`${ev.volunteerId}-${ev.kind}-${ev.label}`}
                             className={`cal-event-pill ${kindInfo.color}`}
-                            title={`${ev.volunteerName} – ${ev.label}`}
+                            title={`${eventTimeLabel ? `${eventTimeLabel} · ` : ""}${ev.volunteerName} – ${ev.label}`}
                             onClick={() =>
                               ev.appointmentId
                                 ? navigate(`/appointments/${ev.appointmentId}`)
@@ -434,6 +495,11 @@ export default function UpcomingEvents({
                             <span className="cal-event-icon">
                               {kindInfo.icon}
                             </span>
+                            {eventTimeLabel && (
+                              <span className="cal-event-time">
+                                {eventTimeLabel}
+                              </span>
+                            )}
                             <span className="cal-event-text">
                               {ev.volunteerName}
                             </span>
