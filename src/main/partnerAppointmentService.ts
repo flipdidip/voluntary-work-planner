@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { PartnerAppointment, PartnerAppointmentIndex } from "@shared/types";
+import { normalizeEventDateTime } from "@shared/dateTime";
 import { DataCryptoService } from "./dataCryptoService";
 
 /**
@@ -40,10 +41,7 @@ export class PartnerAppointmentService {
             id: typeof appointment?.id === "string" ? appointment.id : "",
             title:
               typeof appointment?.title === "string" ? appointment.title : "",
-            date:
-              typeof appointment?.date === "string"
-                ? appointment.date
-                : new Date().toISOString().slice(0, 10),
+            date: normalizeEventDateTime(appointment?.date),
             participants: Array.isArray(appointment?.participants)
               ? appointment.participants.map((participant) => ({
                   id: typeof participant?.id === "string" ? participant.id : "",
@@ -104,6 +102,7 @@ export class PartnerAppointmentService {
       (entry) => entry.id === appointment.id,
     );
 
+    appointment.date = normalizeEventDateTime(appointment.date);
     appointment._updatedAt = new Date().toISOString();
     if (!appointment._createdAt) {
       appointment._createdAt = appointment._updatedAt;

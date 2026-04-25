@@ -698,9 +698,13 @@ export default function VolunteerDetail(): JSX.Element {
                             className="text-muted"
                             style={{ fontSize: "0.85rem" }}
                           >
-                            {format(parseISO(meeting.date), "dd.MM.yyyy", {
-                              locale: de,
-                            })}
+                            {format(
+                              parseISO(meeting.date),
+                              "dd.MM.yyyy HH:mm",
+                              {
+                                locale: de,
+                              },
+                            )}
                           </div>
                         </div>
                         <span

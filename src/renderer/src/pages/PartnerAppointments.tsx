@@ -49,9 +49,13 @@ export default function PartnerAppointments(): JSX.Element {
       alert("Keine E-Mail-Adressen bei den Teilnehmern hinterlegt.");
       return;
     }
-    const formattedDate = format(parseISO(appointment.date), "dd.MM.yyyy", {
-      locale: de,
-    });
+    const formattedDate = format(
+      parseISO(appointment.date),
+      "dd.MM.yyyy HH:mm",
+      {
+        locale: de,
+      },
+    );
     const subject = encodeURIComponent(
       `${appointment.title} – ${formattedDate}`,
     );
@@ -74,7 +78,7 @@ export default function PartnerAppointments(): JSX.Element {
       return;
     }
     const to = emails.join(";");
-    const fmtDate = format(parseISO(appointment.date), "dd.MM.yyyy", {
+    const fmtDate = format(parseISO(appointment.date), "dd.MM.yyyy HH:mm", {
       locale: de,
     });
     const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(`${appointment.title} – ${fmtDate}`)}`;
@@ -125,7 +129,7 @@ export default function PartnerAppointments(): JSX.Element {
               onClick={() => navigate(`/appointments/${appointment.id}`)}
             >
               <div className="meeting-date">
-                {format(appointmentDate, "dd. MMM yyyy", { locale: de })}
+                {format(appointmentDate, "dd. MMM yyyy, HH:mm", { locale: de })}
                 {isToday && " (Heute)"}
               </div>
               <div className="meeting-title">

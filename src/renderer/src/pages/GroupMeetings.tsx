@@ -50,10 +50,16 @@ export default function GroupMeetings(): JSX.Element {
       alert("Keine E-Mail-Adressen bei den Teilnehmern hinterlegt.");
       return;
     }
-    const formattedDate = format(parseISO(meeting.date), "dd.MM.yyyy", {
-      locale: de,
-    });
-    const subject = encodeURIComponent(`${meeting.title} – ${formattedDate}`);
+    const formattedDateTime = format(
+      parseISO(meeting.date),
+      "dd.MM.yyyy HH:mm",
+      {
+        locale: de,
+      },
+    );
+    const subject = encodeURIComponent(
+      `${meeting.title} – ${formattedDateTime}`,
+    );
     const mailto = `mailto:${emails.map((e) => encodeURIComponent(e)).join(",")}?subject=${subject}`;
     window.api.openExternalUrl(mailto);
   };
@@ -77,7 +83,7 @@ export default function GroupMeetings(): JSX.Element {
       return;
     }
     const to = emails.join(";");
-    const fmtDate = format(parseISO(meeting.date), "dd.MM.yyyy", {
+    const fmtDate = format(parseISO(meeting.date), "dd.MM.yyyy HH:mm", {
       locale: de,
     });
     const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(`${meeting.title} – ${fmtDate}`)}`;
@@ -131,7 +137,7 @@ export default function GroupMeetings(): JSX.Element {
               onClick={() => navigate(`/meetings/${m.id}`)}
             >
               <div className="meeting-date">
-                {format(meetingDate, "dd. MMM yyyy", { locale: de })}
+                {format(meetingDate, "dd. MMM yyyy, HH:mm", { locale: de })}
                 {isToday && " (Heute)"}
               </div>
               <div className="meeting-title">{m.title}</div>

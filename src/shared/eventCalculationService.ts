@@ -17,6 +17,7 @@ import {
   GroupMeetingIndex,
   PartnerAppointmentIndex,
 } from "./types";
+import { normalizeEventDateTime } from "./dateTime";
 
 export interface UpcomingEvent {
   volunteerId: string;
@@ -427,7 +428,7 @@ export async function calculateUpcomingEvents(
           kind: "group-meeting",
           label: `Gruppentreffen${participantSuffix}`,
           daysUntil,
-          date: format(meetingDate, "yyyy-MM-dd"),
+          date: normalizeEventDateTime(meeting.date),
           meetingId: meeting.id,
           participants: meeting.participants.map((participant) => ({
             id: participant.id,
@@ -456,7 +457,7 @@ export async function calculateUpcomingEvents(
           kind: "partner-appointment",
           label: `Kooperationspartner-Termin${participantSuffix}`,
           daysUntil,
-          date: format(appointmentDate, "yyyy-MM-dd"),
+          date: normalizeEventDateTime(appointment.date),
           appointmentId: appointment.id,
           participants: appointment.participants.map((participant) => ({
             id: participant.id,

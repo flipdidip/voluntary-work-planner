@@ -32,6 +32,7 @@ import {
   UpcomingEvent,
 } from "@shared/eventCalculationService";
 import { DinoIconId, UserRole } from "@shared/types";
+import { getDatePart, normalizeEventDateTime } from "@shared/dateTime";
 import DinoIconBadge from "../components/DinoIcon";
 import "../components/DinoIcon.css";
 import "./UpcomingEvents.css";
@@ -141,7 +142,7 @@ export default function UpcomingEvents({
                 kind: "partner-appointment" as const,
                 label: `Kooperationspartner-Termin (${appointment.participants.length} Teilnehmer)`,
                 daysUntil,
-                date: appointment.date,
+                date: normalizeEventDateTime(appointment.date),
                 appointmentId: appointment.id,
                 participants: appointment.participants.map((participant) => ({
                   id: participant.id,
@@ -276,7 +277,7 @@ export default function UpcomingEvents({
   const eventsByDate = useMemo(() => {
     const map = new Map<string, UpcomingEvent[]>();
     for (const ev of filteredEvents) {
-      const key = ev.date; // already "yyyy-MM-dd"
+      const key = getDatePart(ev.date);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     }

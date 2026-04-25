@@ -5,6 +5,12 @@ import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { v4 as uuidv4 } from "uuid";
 import {
+  combineDateAndTime,
+  DEFAULT_EVENT_TIME,
+  getDatePart,
+  getTimePart,
+} from "@shared/dateTime";
+import {
   GroupMeeting,
   GroupMeetingAttendanceStatus,
   GroupMeetingParticipant,
@@ -38,6 +44,7 @@ export default function GroupMeetingNew(): JSX.Element {
   const [date, setDate] = useState(
     searchParams.get("date") || new Date().toISOString().split("T")[0],
   );
+  const [time, setTime] = useState(DEFAULT_EVENT_TIME);
   const [notes, setNotes] = useState("");
   const [participants, setParticipants] = useState<GroupMeetingParticipant[]>(
     [],
@@ -53,7 +60,8 @@ export default function GroupMeetingNew(): JSX.Element {
     const meeting = meetingsIndex.meetings.find((m) => m.id === id);
     if (meeting) {
       setTitle(meeting.title);
-      setDate(meeting.date);
+      setDate(getDatePart(meeting.date));
+      setTime(getTimePart(meeting.date));
       setNotes(meeting.notes || "");
       setParticipants(
         meeting.participants.map((participant) => ({
@@ -151,8 +159,9 @@ export default function GroupMeetingNew(): JSX.Element {
 
   const openMailto = (): void => {
     if (selectedEmails.length === 0) return;
+    const meetingDateTime = combineDateAndTime(date, time);
     const formattedDate = date
-      ? format(parseISO(date), "dd.MM.yyyy", { locale: de })
+      ? format(parseISO(meetingDateTime), "dd.MM.yyyy HH:mm", { locale: de })
       : "";
     const subject = encodeURIComponent(`${title.trim()} – ${formattedDate}`);
     const mailto = `mailto:${selectedEmails.map((e) => encodeURIComponent(e)).join(",")}?subject=${subject}`;
@@ -162,8 +171,9 @@ export default function GroupMeetingNew(): JSX.Element {
   const openOutlookWeb = (): void => {
     if (selectedEmails.length === 0) return;
     const to = selectedEmails.join(";");
+    const meetingDateTime = combineDateAndTime(date, time);
     const formattedDate = date
-      ? format(parseISO(date), "dd.MM.yyyy", { locale: de })
+      ? format(parseISO(meetingDateTime), "dd.MM.yyyy HH:mm", { locale: de })
       : "";
     const subject = `${title.trim()} – ${formattedDate}`;
     const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}`;
@@ -243,14 +253,14 @@ export default function GroupMeetingNew(): JSX.Element {
     e: React.FormEvent<HTMLFormElement>,
   ): Promise<void> => {
     e.preventDefault();
-    if (!title.trim() || !date) return;
+    if (!title.trim() || !date || !time) return;
 
     setSaving(true);
 
     const meeting: GroupMeeting = {
       id: isEdit ? id! : uuidv4(),
       title: title.trim(),
-      date,
+      date: combineDateAndTime(date, time),
       participants,
       notes: notes.trim() || undefined,
       _createdAt: "",
@@ -309,6 +319,17 @@ export default function GroupMeetingNew(): JSX.Element {
               name="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Uhrzeit *
+            <input
+              className="input"
+              type="time"
+              name="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
               required
             />
           </label>
