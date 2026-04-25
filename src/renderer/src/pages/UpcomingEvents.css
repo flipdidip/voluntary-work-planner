@@ -260,7 +260,16 @@
   align-items: center;
 }
 
+.cal-event-time {
+  flex-shrink: 0;
+  font-size: 0.64rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
 .cal-event-text {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
