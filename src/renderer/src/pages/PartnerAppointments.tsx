@@ -1,6 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, CalendarDays, Mail, Globe, Users2 } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  CalendarDays,
+  Mail,
+  Globe,
+  Users2,
+  CalendarClock,
+} from "lucide-react";
 import { format, parseISO, isSameDay, isBefore, startOfDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { usePartnerAppointments } from "../hooks/usePartnerAppointments";
@@ -15,6 +23,7 @@ export default function PartnerAppointments(): JSX.Element {
   const { index, loading, refresh } = usePartnerAppointments();
   const { index: partnerIndex } = usePartnerIndex();
   const navigate = useNavigate();
+  const [showPast, setShowPast] = useState(false);
 
   const appointments = useMemo(() => {
     if (!index) return [];
@@ -24,6 +33,16 @@ export default function PartnerAppointments(): JSX.Element {
   }, [index]);
 
   const today = startOfDay(new Date());
+
+  const visibleAppointments = useMemo(() => {
+    if (showPast) return appointments;
+    return appointments.filter((appointment) => {
+      const appointmentDate = parseISO(appointment.date);
+      return (
+        !isBefore(appointmentDate, today) || isSameDay(appointmentDate, today)
+      );
+    });
+  }, [appointments, showPast, today]);
 
   const handleDelete = async (
     e: React.MouseEvent,
@@ -102,14 +121,31 @@ export default function PartnerAppointments(): JSX.Element {
         </button>
       </div>
 
+      <div className="meeting-filters">
+        <span className="meeting-filters-label">Filter:</span>
+        <button
+          type="button"
+          className={`meeting-filter-chip ${showPast ? "active" : ""}`}
+          onClick={() => setShowPast((prev) => !prev)}
+          title="Aus: vergangene Termine ausblenden · Aktiv: alle Termine anzeigen"
+        >
+          <CalendarClock size={14} />
+          Vergangene: {showPast ? "Alle" : "Aus"}
+        </button>
+      </div>
+
       {loading && <p className="text-muted">Lade...</p>}
 
-      {!loading && appointments.length === 0 && (
-        <p className="text-muted empty-hint">Noch keine Termine erstellt.</p>
+      {!loading && visibleAppointments.length === 0 && (
+        <p className="text-muted empty-hint">
+          {showPast
+            ? "Noch keine Termine erstellt."
+            : "Keine kommenden Termine. Aktiviere den Filter, um vergangene zu sehen."}
+        </p>
       )}
 
       <div className="meeting-list">
-        {appointments.map((appointment) => {
+        {visibleAppointments.map((appointment) => {
           const appointmentDate = parseISO(appointment.date);
           const isToday = isSameDay(appointmentDate, today);
           const isPast = isBefore(appointmentDate, today) && !isToday;
