@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { GroupMeeting, GroupMeetingIndex } from "@shared/types";
+import { normalizeEventDateTime } from "@shared/dateTime";
 import { DataCryptoService } from "./dataCryptoService";
 
 /**
@@ -37,10 +38,7 @@ export class GroupMeetingService {
         ? parsed.meetings.map((meeting) => ({
             id: typeof meeting?.id === "string" ? meeting.id : "",
             title: typeof meeting?.title === "string" ? meeting.title : "",
-            date:
-              typeof meeting?.date === "string"
-                ? meeting.date
-                : new Date().toISOString().slice(0, 10),
+            date: normalizeEventDateTime(meeting?.date),
             participants: Array.isArray(meeting?.participants)
               ? meeting.participants.map((participant) => ({
                   id: typeof participant?.id === "string" ? participant.id : "",
@@ -100,6 +98,7 @@ export class GroupMeetingService {
     const index = this.readAll();
     const existingIdx = index.meetings.findIndex((m) => m.id === meeting.id);
 
+    meeting.date = normalizeEventDateTime(meeting.date);
     meeting._updatedAt = new Date().toISOString();
     if (!meeting._createdAt) {
       meeting._createdAt = meeting._updatedAt;

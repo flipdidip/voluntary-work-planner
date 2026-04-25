@@ -547,7 +547,7 @@ export interface GroupMeetingParticipant {
 export interface GroupMeeting {
   id: string;
   title: string;
-  date: string; // ISO date (YYYY-MM-DD)
+  date: string; // ISO date-time (YYYY-MM-DDTHH:mm), legacy YYYY-MM-DD supported
   participants: GroupMeetingParticipant[];
   notes?: string;
   _createdAt: string;
@@ -636,7 +636,7 @@ export interface PartnerAppointmentParticipant {
 export interface PartnerAppointment {
   id: string;
   title: string;
-  date: string;
+  date: string; // ISO date-time (YYYY-MM-DDTHH:mm), legacy YYYY-MM-DD supported
   participants: PartnerAppointmentParticipant[];
   notes?: string;
   _createdAt: string;
