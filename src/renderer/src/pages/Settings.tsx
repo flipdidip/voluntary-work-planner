@@ -9,10 +9,12 @@ import {
   Plus,
   Save,
   Shield,
+  ShieldAlert,
   Sun,
   Trash2,
 } from "lucide-react";
 import {
+  AuthorizedUserSummary,
   BusinessAuditEntry,
   EncryptionAuditEntry,
   EncryptionStatus,
@@ -30,6 +32,14 @@ const DATA_FOLDER_CHANGED_EVENT = "vwp:data-folder-changed";
 
 interface SettingsProps {
   userRole?: UserRole;
+}
+
+interface PendingRoleChange {
+  keyFingerprint: string;
+  userName: string;
+  machineName: string;
+  fromRole: UserRole;
+  toRole: UserRole;
 }
 
 export default function Settings({
@@ -60,6 +70,9 @@ export default function Settings({
     EnrollmentRequestSummary[]
   >([]);
   const [auditEntries, setAuditEntries] = useState<EncryptionAuditEntry[]>([]);
+  const [authorizedUsers, setAuthorizedUsers] = useState<
+    AuthorizedUserSummary[]
+  >([]);
   const [businessAuditEntries, setBusinessAuditEntries] = useState<
     BusinessAuditEntry[]
   >([]);
@@ -67,10 +80,18 @@ export default function Settings({
   const [requestActionFingerprint, setRequestActionFingerprint] = useState<
     string | null
   >(null);
+  const [roleUpdateFingerprint, setRoleUpdateFingerprint] = useState<
+    string | null
+  >(null);
   /** Tracks per-request role selection. Default is "primary". */
   const [requestRoles, setRequestRoles] = useState<Record<string, UserRole>>(
     {},
   );
+  const [authorizedUserRoles, setAuthorizedUserRoles] = useState<
+    Record<string, UserRole>
+  >({});
+  const [pendingRoleChange, setPendingRoleChange] =
+    useState<PendingRoleChange | null>(null);
   const [rotating, setRotating] = useState(false);
   const [processingDocument, setProcessingDocument] =
     useState<ProcessingActivitiesDocument | null>(null);
@@ -90,13 +111,19 @@ export default function Settings({
     encryptionStatus.authorized;
 
   const refreshEncryptionStatus = async (): Promise<void> => {
-    const [statusResult, requestsResult, auditResult, businessAuditResult] =
-      await Promise.allSettled([
-        window.api.getEncryptionStatus(),
-        window.api.getPendingEnrollments(),
-        window.api.getEncryptionAuditLog(),
-        window.api.getBusinessAuditLog(),
-      ]);
+    const [
+      statusResult,
+      requestsResult,
+      auditResult,
+      businessAuditResult,
+      authorizedUsersResult,
+    ] = await Promise.allSettled([
+      window.api.getEncryptionStatus(),
+      window.api.getPendingEnrollments(),
+      window.api.getEncryptionAuditLog(),
+      window.api.getBusinessAuditLog(),
+      window.api.getAuthorizedUsers(),
+    ]);
 
     if (statusResult.status === "fulfilled") {
       setEncryptionStatus(statusResult.value);
@@ -120,6 +147,12 @@ export default function Settings({
       setBusinessAuditEntries(businessAuditResult.value);
     } else {
       setBusinessAuditEntries([]);
+    }
+
+    if (authorizedUsersResult.status === "fulfilled") {
+      setAuthorizedUsers(authorizedUsersResult.value);
+    } else {
+      setAuthorizedUsers([]);
     }
   };
 
@@ -165,6 +198,10 @@ export default function Settings({
 
   const shortFingerprint = (fingerprint: string): string => {
     return `${fingerprint.slice(0, 12)}...${fingerprint.slice(-8)}`;
+  };
+
+  const formatRoleLabel = (role: UserRole): string => {
+    return role === "primary" ? "Vollzugriff" : "Nur Kooperationspartner";
   };
 
   const multilineToList = (value: string): string[] =>
@@ -324,6 +361,30 @@ export default function Settings({
       await refreshEncryptionStatus();
     } finally {
       setRequestActionFingerprint(null);
+    }
+  };
+
+  const handleUpdateAuthorizedUserRole = async (
+    keyFingerprint: string,
+    role: UserRole,
+  ): Promise<void> => {
+    setRoleUpdateFingerprint(keyFingerprint);
+    try {
+      const result = await window.api.updateAuthorizedUserRole(
+        keyFingerprint,
+        role,
+      );
+      if (!result.success) {
+        alert(result.error || "Berechtigung konnte nicht aktualisiert werden.");
+      }
+      await refreshEncryptionStatus();
+    } finally {
+      setRoleUpdateFingerprint(null);
+      setAuthorizedUserRoles((prev) => {
+        const next = { ...prev };
+        delete next[keyFingerprint];
+        return next;
+      });
     }
   };
 
@@ -687,6 +748,97 @@ export default function Settings({
               </div>
             )}
           </div>
+        )}
+
+        {!isPartnerOnly && encryptionStatus?.authorized && (
+          <details className="security-section audit-collapsible">
+            <summary className="audit-summary">
+              <span className="audit-summary-main">
+                <span className="security-section-header">
+                  <h3>Freigegebene Benutzer</h3>
+                  <span className="hint">
+                    Rollen können nur von Benutzern mit Vollzugriff geändert
+                    werden.
+                  </span>
+                </span>
+                <span className="audit-summary-hint" aria-hidden="true">
+                  Aufklappen
+                </span>
+              </span>
+            </summary>
+
+            <div className="audit-content">
+              {authorizedUsers.length === 0 ? (
+                <p className="hint">Keine freigegebenen Benutzer gefunden.</p>
+              ) : (
+                <div className="request-list">
+                  {authorizedUsers.map((user) => {
+                    const currentRole = user.role || "primary";
+                    const isBusy =
+                      roleUpdateFingerprint === user.keyFingerprint;
+                    const isCurrentUser =
+                      encryptionStatus.keyFingerprint === user.keyFingerprint;
+                    const selectedRole =
+                      authorizedUserRoles[user.keyFingerprint] || currentRole;
+
+                    return (
+                      <div key={user.keyFingerprint} className="request-item">
+                        <div className="request-meta">
+                          <strong>
+                            {user.userName}@{user.machineName}
+                          </strong>
+                          <span className="hint">
+                            Freigegeben am {formatTimestamp(user.addedAt)}
+                          </span>
+                          <span className="hint">
+                            Aktuelle Rolle:{" "}
+                            {currentRole === "primary"
+                              ? "Vollzugriff"
+                              : "Nur Kooperationspartner"}
+                            {isCurrentUser ? " (dieser Benutzer)" : ""}
+                          </span>
+                          <span className="hint">
+                            Fingerprint: {shortFingerprint(user.keyFingerprint)}
+                          </span>
+                        </div>
+                        <div className="request-actions">
+                          <select
+                            className="role-select"
+                            value={selectedRole}
+                            onChange={(event) => {
+                              const nextRole = event.target.value as UserRole;
+                              if (nextRole === currentRole) {
+                                return;
+                              }
+
+                              setAuthorizedUserRoles((prev) => ({
+                                ...prev,
+                                [user.keyFingerprint]: nextRole,
+                              }));
+
+                              setPendingRoleChange({
+                                keyFingerprint: user.keyFingerprint,
+                                userName: user.userName,
+                                machineName: user.machineName,
+                                fromRole: currentRole,
+                                toRole: nextRole,
+                              });
+                            }}
+                            disabled={isBusy}
+                          >
+                            <option value="primary">Vollzugriff</option>
+                            <option value="partner-only">
+                              Nur Kooperationspartner
+                            </option>
+                          </select>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </details>
         )}
 
         {!isPartnerOnly && encryptionStatus?.authorized && (
@@ -1576,6 +1728,84 @@ export default function Settings({
           <Save size={15} /> Speichern
         </button>
       </div>
+
+      {pendingRoleChange && (
+        <div
+          className="settings-confirm-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Berechtigungsänderung bestätigen"
+        >
+          <div className="settings-confirm-card">
+            <div className="settings-confirm-icon">
+              <ShieldAlert size={28} />
+            </div>
+
+            <h2>Berechtigung ändern?</h2>
+            <p className="settings-confirm-subtitle">
+              Bitte bestätigen Sie die Änderung für
+              <strong>
+                {" "}
+                {pendingRoleChange.userName}@{pendingRoleChange.machineName}
+              </strong>
+              .
+            </p>
+
+            <div className="settings-confirm-details">
+              <div>
+                <strong>Von:</strong>{" "}
+                {formatRoleLabel(pendingRoleChange.fromRole)}
+              </div>
+              <div>
+                <strong>Zu:</strong> {formatRoleLabel(pendingRoleChange.toRole)}
+              </div>
+              <div>
+                <strong>Fingerprint:</strong>{" "}
+                {shortFingerprint(pendingRoleChange.keyFingerprint)}
+              </div>
+            </div>
+
+            <ol className="settings-confirm-steps">
+              <li>Die neue Rolle wird sofort gespeichert.</li>
+              <li>
+                Die sichtbaren Bereiche und Berechtigungen des Benutzers werden
+                entsprechend angepasst.
+              </li>
+              <li>Die Änderung wird im Audit-Protokoll dokumentiert.</li>
+            </ol>
+
+            <div className="settings-confirm-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setAuthorizedUserRoles((prev) => {
+                    const next = { ...prev };
+                    delete next[pendingRoleChange.keyFingerprint];
+                    return next;
+                  });
+                  setPendingRoleChange(null);
+                }}
+                disabled={Boolean(roleUpdateFingerprint)}
+              >
+                Abbrechen
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  await handleUpdateAuthorizedUserRole(
+                    pendingRoleChange.keyFingerprint,
+                    pendingRoleChange.toRole,
+                  );
+                  setPendingRoleChange(null);
+                }}
+                disabled={Boolean(roleUpdateFingerprint)}
+              >
+                Änderung anwenden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

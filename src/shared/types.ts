@@ -703,6 +703,8 @@ export const IPC = {
   APPROVE_PENDING_ENROLLMENTS: "approve-pending-enrollments",
   APPROVE_ENROLLMENT: "approve-enrollment",
   REJECT_ENROLLMENT: "reject-enrollment",
+  GET_AUTHORIZED_USERS: "get-authorized-users",
+  UPDATE_AUTHORIZED_USER_ROLE: "update-authorized-user-role",
   ROTATE_ENCRYPTION_KEY: "rotate-encryption-key",
   SAVE_PROCESSING_ACTIVITIES: "save-processing-activities",
   EXPORT_PROCESSING_ACTIVITIES_MARKDOWN:
@@ -769,6 +771,14 @@ export interface EnrollmentRequestSummary {
   requestedAt: string;
 }
 
+export interface AuthorizedUserSummary {
+  keyFingerprint: string;
+  userName: string;
+  machineName: string;
+  addedAt: string;
+  role: UserRole;
+}
+
 export interface EncryptionAuditEntry {
   timestamp: string;
   actor: string;
@@ -778,6 +788,7 @@ export interface EncryptionAuditEntry {
     | "access-approved"
     | "access-approved-partner-only"
     | "access-rejected"
+    | "access-role-changed"
     | "key-rotated";
   target?: string;
   details?: string;
