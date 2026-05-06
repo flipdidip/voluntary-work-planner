@@ -491,6 +491,73 @@
   background: var(--color-surface-2);
 }
 
+.settings-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1220;
+  background: var(--color-overlay-bg-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(2px);
+}
+
+.settings-confirm-card {
+  width: min(680px, 100%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-confirm-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-access-pending-icon-fg);
+  background: var(--color-access-pending-icon-bg);
+}
+
+.settings-confirm-subtitle {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.settings-confirm-details {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+.settings-confirm-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.settings-confirm-actions {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 @media (max-width: 960px) {
   .processing-header {
     flex-direction: column;

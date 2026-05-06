@@ -8,6 +8,7 @@ import {
   BusinessAuditEntry,
   EncryptionStatus,
   EnrollmentRequestSummary,
+  AuthorizedUserSummary,
   ProcessingActivitiesDocument,
   UserRole,
   GroupMeeting,
@@ -68,6 +69,19 @@ const api = {
     pendingCount: number;
     error?: string;
   }> => ipcRenderer.invoke(IPC.REJECT_ENROLLMENT, keyFingerprint),
+
+  getAuthorizedUsers: (): Promise<AuthorizedUserSummary[]> =>
+    ipcRenderer.invoke(IPC.GET_AUTHORIZED_USERS),
+
+  updateAuthorizedUserRole: (
+    keyFingerprint: string,
+    role: UserRole,
+  ): Promise<{
+    success: boolean;
+    updated?: boolean;
+    error?: string;
+  }> =>
+    ipcRenderer.invoke(IPC.UPDATE_AUTHORIZED_USER_ROLE, keyFingerprint, role),
 
   rotateEncryptionKey: (): Promise<{
     success: boolean;

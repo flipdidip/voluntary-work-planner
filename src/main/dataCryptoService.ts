@@ -22,11 +22,12 @@ import {
 } from "crypto";
 import { userInfo } from "os";
 import {
+  AuthorizedUserSummary,
   EncryptionAuditEntry,
   EncryptionStatus,
   EnrollmentRequestSummary,
   UserRole,
-} from "@shared/types";
+} from "../shared/types";
 
 const CRYPTO_FOLDER = ".vwp-crypto";
 const MANIFEST_FILE = "manifest.json";
@@ -463,6 +464,7 @@ export class DataCryptoService {
     dek: Buffer;
     identity: UserIdentity;
     manifest: CryptoManifest;
+    currentUserEntry: WrappedDekEntry;
   } {
     const identity = this.ensureLocalUserIdentity();
     this.ensureCryptoFolders(dataPath);
@@ -493,7 +495,23 @@ export class DataCryptoService {
       myWrappedDek.wrappedDekB64,
     );
 
-    return { dek, identity, manifest };
+    return { dek, identity, manifest, currentUserEntry: myWrappedDek };
+  }
+
+  private ensureCurrentUserHasPrimaryRole(dataPath: string): {
+    identity: UserIdentity;
+    manifest: CryptoManifest;
+  } {
+    const { identity, manifest, currentUserEntry } =
+      this.getDekForCurrentUser(dataPath);
+    const currentRole = currentUserEntry.role || "primary";
+    if (currentRole !== "primary") {
+      throw new Error(
+        "Nur Benutzer mit Vollzugriff dürfen Berechtigungen ändern.",
+      );
+    }
+
+    return { identity, manifest };
   }
 
   getStatus(dataPath: string): EncryptionStatus {
@@ -579,6 +597,21 @@ export class DataCryptoService {
       .sort((left, right) => left.requestedAt.localeCompare(right.requestedAt));
   }
 
+  getAuthorizedUsers(dataPath: string): AuthorizedUserSummary[] {
+    if (!dataPath) return [];
+
+    const { manifest } = this.getDekForCurrentUser(dataPath);
+    return manifest.wrappedDekEntries
+      .map((entry) => ({
+        keyFingerprint: entry.keyFingerprint,
+        userName: entry.userName,
+        machineName: entry.machineName,
+        addedAt: entry.addedAt,
+        role: entry.role || "primary",
+      }))
+      .sort((left, right) => left.userName.localeCompare(right.userName));
+  }
+
   getAuditLog(dataPath: string, limit = 100): EncryptionAuditEntry[] {
     if (!dataPath) return [];
 
@@ -598,7 +631,9 @@ export class DataCryptoService {
     keyFingerprint: string,
     role: UserRole = "primary",
   ): { approved: boolean; pendingCount: number } {
-    const { dek, identity, manifest } = this.getDekForCurrentUser(dataPath);
+    const { identity, manifest } =
+      this.ensureCurrentUserHasPrimaryRole(dataPath);
+    const { dek } = this.getDekForCurrentUser(dataPath);
     const request = this.listEnrollmentRequests(dataPath).find(
       (entry) => entry.keyFingerprint === keyFingerprint,
     );
@@ -675,7 +710,7 @@ export class DataCryptoService {
     dataPath: string,
     keyFingerprint: string,
   ): { rejected: boolean; pendingCount: number } {
-    const { identity } = this.getDekForCurrentUser(dataPath);
+    const { identity } = this.ensureCurrentUserHasPrimaryRole(dataPath);
     const request = this.listEnrollmentRequests(dataPath).find(
       (entry) => entry.keyFingerprint === keyFingerprint,
     );
@@ -707,6 +742,50 @@ export class DataCryptoService {
       rejected: true,
       pendingCount: this.listEnrollmentRequests(dataPath).length,
     };
+  }
+
+  updateAuthorizedUserRole(
+    dataPath: string,
+    keyFingerprint: string,
+    role: UserRole,
+  ): { updated: boolean } {
+    const { identity, manifest } =
+      this.ensureCurrentUserHasPrimaryRole(dataPath);
+    const targetEntry = manifest.wrappedDekEntries.find(
+      (entry) => entry.keyFingerprint === keyFingerprint,
+    );
+
+    if (!targetEntry) {
+      return { updated: false };
+    }
+
+    const currentRole = targetEntry.role || "primary";
+    if (currentRole === role) {
+      return { updated: false };
+    }
+
+    if (currentRole === "primary" && role === "partner-only") {
+      const primaryCount = manifest.wrappedDekEntries.filter(
+        (entry) => (entry.role || "primary") === "primary",
+      ).length;
+      if (primaryCount <= 1) {
+        throw new Error(
+          "Mindestens ein Benutzer mit Vollzugriff muss erhalten bleiben.",
+        );
+      }
+    }
+
+    targetEntry.role = role;
+    this.writeManifest(dataPath, manifest);
+    this.appendAuditEntry(dataPath, {
+      timestamp: new Date().toISOString(),
+      actor: this.formatActor(identity),
+      action: "access-role-changed",
+      target: targetEntry.keyFingerprint,
+      details: `${targetEntry.userName}@${targetEntry.machineName} role changed from "${currentRole}" to "${role}".`,
+    });
+
+    return { updated: true };
   }
 
   rotateEncryptionKey(dataPath: string): { rotatedFileCount: number } {

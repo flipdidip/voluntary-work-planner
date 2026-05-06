@@ -426,6 +426,49 @@ export function registerVolunteerHandlers(
     }
   });
 
+  ipcMain.handle(IPC.GET_AUTHORIZED_USERS, () => {
+    const dataPath = settings.getDataFolderPath();
+    if (!dataPath) {
+      return [];
+    }
+
+    try {
+      return DataCryptoService.getInstance().getAuthorizedUsers(dataPath);
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle(
+    IPC.UPDATE_AUTHORIZED_USER_ROLE,
+    (_event, keyFingerprint: string, role: UserRole) => {
+      const dataPath = settings.getDataFolderPath();
+      if (!dataPath) {
+        return {
+          success: false,
+          error: "No data folder configured",
+        };
+      }
+
+      try {
+        const result = DataCryptoService.getInstance().updateAuthorizedUserRole(
+          dataPath,
+          keyFingerprint,
+          role,
+        );
+        return {
+          success: true,
+          updated: result.updated,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: String(error),
+        };
+      }
+    },
+  );
+
   ipcMain.handle(IPC.ROTATE_ENCRYPTION_KEY, () => {
     const dataPath = settings.getDataFolderPath();
     if (!dataPath) {
