@@ -1,3 +1,11 @@
+.volunteer-new {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(
+    100vh - var(--main-content-pad-y, 28px) - var(--main-content-pad-y, 28px)
+  );
+}
+
 .volunteer-new .form-header-row {
   display: flex;
   justify-content: space-between;
@@ -31,10 +39,12 @@
   margin-bottom: 28px;
 }
 
-.new-form {
+.volunteer-new .new-form {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 14px;
+  padding-bottom: 80px;
 }
 
 .new-form label {
@@ -52,16 +62,17 @@
   gap: 12px;
 }
 
-.new-form-actions {
+.volunteer-new .new-form-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 10px;
-  position: sticky;
-  bottom: calc(-1 * var(--main-content-pad-y, 28px) - 2px);
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-width, 240px);
   z-index: 5;
   background: var(--color-bg);
-  margin-inline: calc(-1 * var(--main-content-pad-x, 32px));
   padding: 10px var(--main-content-pad-x, 32px);
   border-top: 1px solid var(--color-border);
 }
