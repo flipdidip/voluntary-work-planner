@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Mail, Phone, Smartphone, X } from "lucide-react";
+import { Mail, Phone, Smartphone } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Snackbar from "./Snackbar";
 import "./ContactActions.css";
 
 interface ContactActionsProps {
@@ -73,24 +74,11 @@ export default function ContactActions({
         ))}
       </div>
       {notice && (
-        <div
-          className={`contact-snackbar contact-snackbar--${notice.type}`}
-          role={notice.type === "error" ? "alert" : "status"}
-          aria-live={notice.type === "error" ? "assertive" : "polite"}
-        >
-          <span className="contact-snackbar-icon" aria-hidden="true">
-            {notice.type === "success" ? <Check size={18} /> : <X size={18} />}
-          </span>
-          <span className="contact-snackbar-message">{notice.message}</span>
-          <button
-            type="button"
-            className="contact-snackbar-close"
-            aria-label="Meldung schließen"
-            onClick={() => setNotice(null)}
-          >
-            <X size={16} />
-          </button>
-        </div>
+        <Snackbar
+          message={notice.message}
+          type={notice.type}
+          onDismiss={() => setNotice(null)}
+        />
       )}
     </div>
   );

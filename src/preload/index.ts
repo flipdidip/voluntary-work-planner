@@ -141,6 +141,22 @@ const api = {
   getInternReadOnlyOverview: (): Promise<InternReadOnlyOverview> =>
     ipcRenderer.invoke(IPC.GET_INTERN_READ_ONLY_OVERVIEW),
 
+  addInternFileRecord: (
+    entityType: "volunteer" | "partner",
+    entityId: string,
+    title: string,
+    description: string,
+    sourcePath?: string,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(
+      IPC.ADD_INTERN_FILE_RECORD,
+      entityType,
+      entityId,
+      title,
+      description,
+      sourcePath,
+    ),
+
   getVolunteerContacts: (): Promise<VolunteerContact[]> =>
     ipcRenderer.invoke(IPC.GET_VOLUNTEER_CONTACTS),
 
