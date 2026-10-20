@@ -14,8 +14,9 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 
 - Ehrenamtsregister mit detaillierten Personen-, Kontakt- und Qualifikationsdaten.
 - Kooperationspartner-Verwaltung mit eigener Seite (gleiche Stammdaten, ohne Qualifikationsbereich).
-- Such- und sortierbare Kontaktuebersicht fuer Ehrenamtliche mit Telefonnummern und Aufgaben.
-- Oeffentlichkeitsarbeits-Uebersicht zu Bild- und Ton-Einwilligungen, durchsuchbar und nach Einwilligungsstatus sowie Personenkategorie filterbar.
+- Such- und sortierbare Kontaktuebersicht fuer Ehrenamtliche mit Telefon, Mobilnummer, E-Mail und Aufgaben; E-Mails koennen direkt geoeffnet werden.
+- Oeffentlichkeitsarbeits-Uebersicht mit Name, Telefon, Mobilnummer, E-Mail, Aufgaben und Bild-/Ton-Einwilligung, durchsuchbar und nach Einwilligungsstatus sowie Personenkategorie filterbar.
+- Vollzugriff-Benutzer koennen Ehrenamtliche und Kooperationspartner einzeln fuer die Oeffentlichkeitsarbeit freigeben. Neue und bestehende Datensaetze sind standardmaessig verborgen, bis sie ausdruecklich freigegeben werden.
 - Sortierung der Ehrenamtlichen- und Kooperationspartnerlisten nach Name und Eintrittsdatum.
 - Dateibasierte Speicherung in einem frei waehlbaren Ordner (lokal, OneDrive, SharePoint-Sync).
 - Verschluesselung ruhender Daten fuer Index, Ehrenamtsakten, Backups und Anhaenge.
@@ -40,13 +41,16 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Neue Rolle **Oeffentlichkeitsarbeit** mit einer eigenen, eingeschraenkten Uebersicht der Bild- und Ton-Einwilligungen von Ehrenamtlichen und Kooperationspartnern.
 - Die Oeffentlichkeitsarbeits-Uebersicht bietet Namenssuche, Sortierung sowie Ein-/Ausschlussfilter fuer Einwilligungsstufen und Personenkategorien.
 
-### Aktueller Entwicklungszweig (noch nicht als v1.6.0 veroeffentlicht)
+### Aktueller Entwicklungszweig (nach v1.7.0)
 
 - Ehrenamtliche und Kooperationspartner koennen nach Name und Eintrittsdatum sortiert werden.
 - Gruppen-Treffen und Kooperationspartner-Termine zeigen an, wer den jeweiligen Eintrag erstellt hat.
 - Das Geburtstagsfeld loest Aenderungen nur noch aus, wenn sich das Datum tatsaechlich geaendert hat.
 - Archivierte Ehrenamtliche und Kooperationspartner werden beim App-Start nach einer einstellbaren Frist automatisch geloescht. Die Frist betraegt standardmaessig sechs Monate.
 - Nach einer automatischen Loeschung erscheint eine In-App-Meldung im Anwendungsstil, die die Namen der geloeschten Datensaetze auffuehrt.
+- Die Kontaktuebersicht fuer Ehrenamtliche zeigt auch E-Mail-Adressen, verlinkt sie zum direkten Verfassen einer E-Mail und beruecksichtigt sie bei Suche und Sortierung.
+- Die Oeffentlichkeitsarbeits-Uebersicht zeigt nun zusaetzlich Telefon, Mobilnummer, E-Mail und Aufgaben.
+- Vollzugriff-Benutzer koennen in den Ehrenamtlichen- und Kooperationspartner-Datensaetzen unter **Freigaben** die Sichtbarkeit fuer Oeffentlichkeitsarbeit einzeln steuern. Die Freigabe ist standardmaessig deaktiviert; alte Datensaetze bleiben verborgen, bis Vollzugriff sie ausdruecklich freigibt. Benutzer mit der Rolle **Oeffentlichkeitsarbeit** sehen nur freigegebene Datensaetze und koennen die Freigabe nicht aendern.
 
 ## DSGVO / GDPR
 
@@ -174,8 +178,8 @@ Notes:
 | Role           | Sidebar Navigation                                                       | Accessible Pages                                                |
 | -------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------- |
 | `primary`      | Dashboard, Ereignisse, Ehrenamtliche, Gruppen Treffen, Kooperationspartner, Termine, Einstellungen | Alle Seiten ausser Ehrenamtliche Kontakte und Oeffentlichkeitsarbeit |
-| `partner-only` | Ereignisse, Ehrenamtliche Kontakte, Kooperationspartner, Termine, Einstellungen | Ehrenamtliche Kontakte, Kooperationspartner, Termine, Ereignisse und Einstellungen |
-| `public-relations` | Oeffentlichkeitsarbeit | Uebersicht der Bild- und Ton-Einwilligungen |
+| `partner-only` | Ereignisse, Ehrenamtliche Kontakte, Kooperationspartner, Termine, Einstellungen | Ehrenamtliche Kontakte (inkl. Telefon, Mobilnummer, E-Mail und Aufgaben), Kooperationspartner, Termine, Ereignisse und Einstellungen |
+| `public-relations` | Oeffentlichkeitsarbeit | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt- und Aufgabendaten sowie Bild- und Ton-Einwilligung |
 
 - The initial creator of a data folder always receives the `primary` role.
 - Every subsequent user is assigned a role by the approver at approval time.
