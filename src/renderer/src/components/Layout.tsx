@@ -54,12 +54,6 @@ const navItems = [
     primaryOnly: false,
   },
   {
-    to: "/settings",
-    label: "Einstellungen",
-    icon: Settings,
-    primaryOnly: false,
-  },
-  {
     to: "/public-relations",
     label: "Öffentlichkeitsarbeit",
     icon: Megaphone,
@@ -73,6 +67,12 @@ const navItems = [
     primaryOnly: true,
     internOnly: true,
   },
+  {
+    to: "/settings",
+    label: "Einstellungen",
+    icon: Settings,
+    primaryOnly: false,
+  },
 ];
 
 export default function Layout({
@@ -84,11 +84,14 @@ export default function Layout({
     userRole === "public-relations"
       ? navItems.filter(
           (item) =>
-            "publicRelationsOnly" in item && item.publicRelationsOnly === true,
+            item.to === "/settings" ||
+            ("publicRelationsOnly" in item && item.publicRelationsOnly === true),
         )
       : userRole === "intern-read-only"
       ? navItems.filter(
-          (item) => "internOnly" in item && item.internOnly === true,
+          (item) =>
+            item.to === "/settings" ||
+            ("internOnly" in item && item.internOnly === true),
         )
       : userRole === "partner-only"
       ? navItems.filter(

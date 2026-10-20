@@ -104,7 +104,7 @@ export default function Settings({
   const [exportingBusinessAudit, setExportingBusinessAudit] = useState(false);
   const [checkingFolder, setCheckingFolder] = useState(false);
   const [initializingFolder, setInitializingFolder] = useState(false);
-  const isPartnerOnly = userRole === "partner-only";
+  const isLimitedRole = userRole !== "primary";
   const folderNeedsInitialization =
     Boolean(dataPath) && encryptionStatus?.hasManifest === false;
   const canUseDataFolder =
@@ -655,7 +655,7 @@ export default function Settings({
               >
                 {checkingFolder ? "Prüfe..." : "Verbindung prüfen"}
               </button>
-              {!isPartnerOnly && (
+              {!isLimitedRole && (
                 <button
                   className="btn btn-primary"
                   onClick={handleInitializeFolder}
@@ -667,7 +667,7 @@ export default function Settings({
                 </button>
               )}
             </div>
-            {isPartnerOnly && (
+            {isLimitedRole && (
               <p className="hint" style={{ marginTop: "0.6rem" }}>
                 Die Initialisierung ist nur mit Vollzugriff möglich.
               </p>
@@ -675,7 +675,7 @@ export default function Settings({
           </div>
         )}
 
-        {!isPartnerOnly && encryptionStatus && encryptionStatus.authorized && (
+        {!isLimitedRole && encryptionStatus && encryptionStatus.authorized && (
           <div className="path-info" style={{ marginTop: "0.5rem" }}>
             <Info size={14} />
             <span>
@@ -694,7 +694,7 @@ export default function Settings({
           </div>
         )}
 
-        {!isPartnerOnly && encryptionStatus?.authorized && (
+        {!isLimitedRole && encryptionStatus?.authorized && (
           <div className="security-section">
             <div className="security-section-header">
               <h3>Zugriffsanfragen</h3>
@@ -777,7 +777,7 @@ export default function Settings({
           </div>
         )}
 
-        {!isPartnerOnly && encryptionStatus?.authorized && (
+        {!isLimitedRole && encryptionStatus?.authorized && (
           <details className="security-section audit-collapsible">
             <summary className="audit-summary">
               <span className="audit-summary-main">
@@ -872,7 +872,7 @@ export default function Settings({
           </details>
         )}
 
-        {!isPartnerOnly && encryptionStatus?.authorized && (
+        {!isLimitedRole && encryptionStatus?.authorized && (
           <div className="security-section">
             <div className="security-section-header">
               <h3>Schluesselrotation</h3>
@@ -893,7 +893,7 @@ export default function Settings({
           </div>
         )}
 
-        {!isPartnerOnly && encryptionStatus && (
+        {!isLimitedRole && encryptionStatus && (
           <details className="security-section audit-collapsible">
             <summary className="audit-summary">
               <span className="audit-summary-main">
@@ -974,7 +974,7 @@ export default function Settings({
         </div>
       </div>
 
-      {!isPartnerOnly && (
+      {!isLimitedRole && (
         <>
           {userRole === "primary" && (
             <div className="settings-card card">
@@ -1351,7 +1351,7 @@ export default function Settings({
         </div>
       </div>
 
-      {!isPartnerOnly && (
+      {!isLimitedRole && (
         <div className="settings-card card">
           <div className="processing-header">
             <div>

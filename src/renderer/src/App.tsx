@@ -309,6 +309,10 @@ export default function App(): JSX.Element {
                 element={<PublicRelations />}
               />
               <Route
+                path="/settings"
+                element={<Settings userRole={userRole} />}
+              />
+              <Route
                 path="*"
                 element={<Navigate to="/public-relations" replace />}
               />
@@ -322,6 +326,10 @@ export default function App(): JSX.Element {
               <Route
                 path="/intern-overview"
                 element={<InternOverview />}
+              />
+              <Route
+                path="/settings"
+                element={<Settings userRole={userRole} />}
               />
               <Route
                 path="*"
