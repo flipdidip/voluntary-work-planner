@@ -21,6 +21,8 @@ import {
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
 import DinoIconSelect from "../components/DinoIconSelect";
+import RecordAuditInfo from "../components/RecordAuditInfo";
+import AkteRecordForm from "../components/AkteRecordForm";
 import { useVolunteer, useVolunteerIndex } from "../hooks/useVolunteers";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
 import {
@@ -72,6 +74,11 @@ export default function VolunteerDetail(): JSX.Element {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [showFileRecordForm, setShowFileRecordForm] = useState(false);
+  const [editingFileRecord, setEditingFileRecord] =
+    useState<FileRecord | null>(null);
+  const [pendingAkteFileDeletes, setPendingAkteFileDeletes] = useState<
+    string[]
+  >([]);
   const [showRequirementForm, setShowRequirementForm] = useState(false);
   const [selectedRequirementType, setSelectedRequirementType] =
     useState<RequirementType | null>(null);
@@ -173,10 +180,27 @@ export default function VolunteerDetail(): JSX.Element {
     setSaving(false);
     if (result.success) {
       setForm(result.volunteer);
+      await deleteReplacedAkteFiles();
       setSuccessMsg("Gespeichert!");
       setTimeout(() => setSuccessMsg(null), 2500);
     } else {
       setError(result.message);
+    }
+  };
+
+  const deleteReplacedAkteFiles = async (): Promise<void> => {
+    const failedPaths: string[] = [];
+    for (const filePath of pendingAkteFileDeletes) {
+      try {
+        const result = await window.api.deleteFile(filePath);
+        if (!result.success) failedPaths.push(filePath);
+      } catch {
+        failedPaths.push(filePath);
+      }
+    }
+    setPendingAkteFileDeletes(failedPaths);
+    if (failedPaths.length > 0) {
+      setError("Ein oder mehrere ersetzte Akte-Anhänge konnten nicht gelöscht werden.");
     }
   };
 
@@ -196,6 +220,7 @@ export default function VolunteerDetail(): JSX.Element {
 
     setSaving(false);
     if (result.success) {
+      await deleteReplacedAkteFiles();
       navigate("/volunteers?status=archived");
     } else {
       setError(result.message);
@@ -228,19 +253,33 @@ export default function VolunteerDetail(): JSX.Element {
   // ── File Records (Akte) ───────────────────────────────
   const addFileRecord = (fileRecord: FileRecord): void => {
     const fileRecords = form.fileRecords || [];
-    update({ fileRecords: [...fileRecords, fileRecord] });
+    const existing = fileRecords.find((record) => record.id === fileRecord.id);
+    const existingFilePath = existing?.filePath;
+    if (existingFilePath && existingFilePath !== fileRecord.filePath) {
+      setPendingAkteFileDeletes((paths) =>
+        paths.includes(existingFilePath)
+          ? paths
+          : [...paths, existingFilePath],
+      );
+    }
+    update({
+      fileRecords: existing
+        ? fileRecords.map((record) =>
+            record.id === fileRecord.id ? fileRecord : record,
+          )
+        : [...fileRecords, fileRecord],
+    });
   };
 
   const removeFileRecord = async (fileRecordId: string): Promise<void> => {
     const fileRecords = form.fileRecords || [];
     const record = fileRecords.find((f) => f.id === fileRecordId);
 
-    if (record?.filePath) {
-      const result = await window.api.deleteFile(record.filePath);
-      if (!result.success) {
-        setError(`Fehler beim Löschen der Datei: ${result.error}`);
-        return;
-      }
+    const filePath = record?.filePath;
+    if (filePath) {
+      setPendingAkteFileDeletes((paths) =>
+        paths.includes(filePath) ? paths : [...paths, filePath],
+      );
     }
 
     update({ fileRecords: fileRecords.filter((f) => f.id !== fileRecordId) });
@@ -808,7 +847,10 @@ export default function VolunteerDetail(): JSX.Element {
             </h2>
             <button
               className="btn btn-secondary"
-              onClick={() => setShowFileRecordForm(true)}
+              onClick={() => {
+                setEditingFileRecord(null);
+                setShowFileRecordForm(true);
+              }}
             >
               <Upload size={15} /> Hinzufügen
             </button>
@@ -816,14 +858,20 @@ export default function VolunteerDetail(): JSX.Element {
 
           <p className="hint" style={{ marginBottom: "1rem" }}>
             Dokumentieren Sie wichtige Informationen und fügen Sie optional
-            Dateien hinzu.
+            Dateien hinzu. Übernehmen Sie die Änderungen anschließend mit
+            „Speichern“ am Seitenende.
           </p>
 
           {showFileRecordForm && (
-            <FileRecordForm
+            <AkteRecordForm
+              key={editingFileRecord?.id || "new"}
               volunteerId={form.id}
-              onAdd={addFileRecord}
-              onClose={() => setShowFileRecordForm(false)}
+              initialRecord={editingFileRecord}
+              onSave={addFileRecord}
+              onClose={() => {
+                setShowFileRecordForm(false);
+                setEditingFileRecord(null);
+              }}
             />
           )}
 
@@ -835,6 +883,10 @@ export default function VolunteerDetail(): JSX.Element {
               <FileRecordItem
                 key={record.id}
                 record={record}
+                onEdit={() => {
+                  setEditingFileRecord(record);
+                  setShowFileRecordForm(true);
+                }}
                 onRemove={() => removeFileRecord(record.id)}
                 onOpen={() =>
                   record.filePath && openFileRecord(record.filePath)
@@ -1118,142 +1170,19 @@ function ReminderItem({
 }
 
 // ──────────────────────────────────────────────────────────
-// FileRecordForm — inline sub-component
-// ──────────────────────────────────────────────────────────
-
-interface FileRecordFormProps {
-  volunteerId: string;
-  onAdd: (r: FileRecord) => void;
-  onClose: () => void;
-}
-
-function FileRecordForm({
-  volunteerId,
-  onAdd,
-  onClose,
-}: FileRecordFormProps): JSX.Element {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleSelectFile = async (): Promise<void> => {
-    const filePath = await window.api.selectFile();
-    if (filePath) {
-      setSelectedFilePath(filePath);
-    }
-  };
-
-  const handleAdd = async (): Promise<void> => {
-    if (!title.trim()) return;
-
-    setUploading(true);
-    let uploadResult = null;
-
-    if (selectedFilePath) {
-      uploadResult = await window.api.uploadFile(volunteerId, selectedFilePath);
-      if (!uploadResult.success) {
-        alert(`Fehler beim Hochladen: ${uploadResult.error}`);
-        setUploading(false);
-        return;
-      }
-    }
-
-    const fileRecord: FileRecord = {
-      id: uuidv4(),
-      title: title.trim(),
-      description: description.trim(),
-      fileName: uploadResult?.fileName,
-      filePath: uploadResult?.filePath,
-      fileSize: 0, // TODO: Get actual file size
-      uploadedAt: new Date().toISOString(),
-    };
-
-    onAdd(fileRecord);
-    setUploading(false);
-    onClose();
-  };
-
-  return (
-    <div className="file-record-form card">
-      <div className="file-record-form-header">
-        <h3>Neues Dokument</h3>
-        <button className="btn btn-ghost" onClick={onClose}>
-          <X size={16} />
-        </button>
-      </div>
-
-      <label>
-        Titel *
-        <input
-          className="input"
-          placeholder="z.B. Einverständniserklärung"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </label>
-
-      <label>
-        Beschreibung
-        <textarea
-          className="textarea"
-          placeholder="Optionale Beschreibung..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </label>
-
-      <label>
-        Datei (optional)
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <button
-            className="btn btn-secondary"
-            onClick={handleSelectFile}
-            type="button"
-          >
-            <Upload size={15} /> Datei auswählen
-          </button>
-          {selectedFilePath && (
-            <span
-              style={{
-                fontSize: "0.9em",
-                color: "var(--color-text-secondary)",
-              }}
-            >
-              {selectedFilePath.split(/[\\/]/).pop()}
-            </span>
-          )}
-        </div>
-      </label>
-
-      <div className="file-record-form-actions">
-        <button className="btn btn-secondary" onClick={onClose}>
-          Abbrechen
-        </button>
-        <button
-          className="btn btn-primary"
-          onClick={handleAdd}
-          disabled={uploading || !title.trim()}
-        >
-          <Upload size={15} /> {uploading ? "Hochladen..." : "Hinzufügen"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────────────────
 // FileRecordItem — display one file record
 // ──────────────────────────────────────────────────────────
 
 interface FileRecordItemProps {
   record: FileRecord;
+  onEdit: () => void;
   onRemove: () => void;
   onOpen: () => void;
 }
 
 function FileRecordItem({
   record,
+  onEdit,
   onRemove,
   onOpen,
 }: FileRecordItemProps): JSX.Element {
@@ -1280,8 +1209,16 @@ function FileRecordItem({
             </span>
           )}
         </div>
+        <RecordAuditInfo record={record} />
       </div>
       <div className="file-record-item-actions">
+        <button
+          className="btn btn-ghost"
+          title="Bearbeiten"
+          onClick={onEdit}
+        >
+          <Pencil size={15} /> Bearbeiten
+        </button>
         {record.fileName && record.filePath && (
           <button
             className="btn btn-ghost"
@@ -1676,6 +1613,7 @@ function RequirementItem({
         {requirement.notes && (
           <div className="requirement-item-notes">{requirement.notes}</div>
         )}
+        <RecordAuditInfo record={requirement} />
       </div>
       <div className="requirement-item-actions">
         <button className="btn btn-ghost" title="Bearbeiten" onClick={onEdit}>

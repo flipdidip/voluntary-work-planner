@@ -62,7 +62,16 @@ export interface ContactPerson {
   email?: string;
 }
 
-export interface FileRecord {
+export interface RecordAuditMetadata {
+  /** User identity that created this record; absent on legacy records. */
+  _createdBy?: string;
+  _createdAt?: string;
+  /** User identity and time of the latest edit; absent until edited. */
+  _updatedBy?: string;
+  _updatedAt?: string;
+}
+
+export interface FileRecord extends RecordAuditMetadata {
   id: string;
   title: string;
   description: string;
@@ -164,7 +173,7 @@ export const REQUIREMENT_DEFINITIONS: Record<
   },
 };
 
-export interface RequirementRecord {
+export interface RequirementRecord extends RecordAuditMetadata {
   requirementType: RequirementType;
   completedDate?: string; // ISO date (YYYY-MM-DD)
   mediaConsentLevel?: MediaConsentLevel; // only for bildundton; defaults to red for legacy records

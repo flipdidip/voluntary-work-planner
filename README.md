@@ -36,6 +36,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - In-App-Verwaltung des Verzeichnisses von Verarbeitungstaetigkeiten (Art. 30 DSGVO) inkl. Markdown-Export.
 - Automatische Loeschung archivierter Ehrenamtlicher und Kooperationspartner nach einer einstellbaren Frist (Standard: 6 Monate), mit einer In-App-Meldung inklusive Namen beim Start.
 - Anzeige, wer Gruppentreffen angelegt hat.
+- Erstellungs- und Änderungsnachweis für Qualifikationen und Akte-Einträge mit Benutzer und Zeitpunkt; bei älteren Einträgen ohne verfügbare Angaben werden diese als unbekannt angezeigt.
 
 ## Aenderungen in v1.6.0 und im aktuellen Entwicklungszweig
 

@@ -102,7 +102,8 @@ export default function Layout({
       : navItems.filter(
           (item) =>
             !("partnerOnly" in item && item.partnerOnly === true) &&
-            !("publicRelationsOnly" in item && item.publicRelationsOnly),
+            !("publicRelationsOnly" in item && item.publicRelationsOnly) &&
+            !("internOnly" in item && item.internOnly),
         );
   return (
     <div className="layout">
