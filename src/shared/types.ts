@@ -729,6 +729,7 @@ export const IPC = {
   INITIALIZE_DATA_FOLDER: "initialize-data-folder",
   GET_SETTINGS: "get-settings",
   SAVE_SETTINGS: "save-settings",
+  GET_STARTUP_DELETION_NOTICE: "get-startup-deletion-notice",
   GET_ENCRYPTION_STATUS: "get-encryption-status",
   GET_PENDING_ENROLLMENTS: "get-pending-enrollments",
   GET_ENCRYPTION_AUDIT_LOG: "get-encryption-audit-log",
@@ -788,6 +789,11 @@ export const IPC = {
   // App info
   GET_APP_VERSION: "get-app-version",
 } as const;
+
+export interface DeletedArchivedRecord {
+  name: string;
+  type: "volunteer" | "partner";
+}
 
 export interface EncryptionStatus {
   enabled: boolean;

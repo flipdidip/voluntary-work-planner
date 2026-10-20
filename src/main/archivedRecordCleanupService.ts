@@ -3,11 +3,12 @@ import { BusinessAuditService } from "./businessAuditService";
 import { DataCryptoService } from "./dataCryptoService";
 import { SettingsService } from "./settingsService";
 import { VolunteerFileService } from "./volunteerFileService";
-import { Volunteer } from "@shared/types";
+import { DeletedArchivedRecord, Volunteer } from "@shared/types";
 
 interface CleanupResult {
   deletedVolunteers: number;
   deletedPartners: number;
+  deletedRecords: DeletedArchivedRecord[];
 }
 
 function getArchivedSince(volunteer: Volunteer): Date | null {
@@ -40,7 +41,9 @@ export class ArchivedRecordCleanupService {
 
   run(now = new Date()): CleanupResult {
     const dataPath = this.settings.getDataFolderPath();
-    if (!dataPath) return { deletedVolunteers: 0, deletedPartners: 0 };
+    if (!dataPath) {
+      return { deletedVolunteers: 0, deletedPartners: 0, deletedRecords: [] };
+    }
 
     const cryptoService = DataCryptoService.getInstance();
     const encryptionStatus = cryptoService.getStatus(dataPath);
@@ -49,15 +52,18 @@ export class ArchivedRecordCleanupService {
       !encryptionStatus.authorized ||
       encryptionStatus.userRole !== "primary"
     ) {
-      return { deletedVolunteers: 0, deletedPartners: 0 };
+      return { deletedVolunteers: 0, deletedPartners: 0, deletedRecords: [] };
     }
 
-    const retentionMonths = this.settings.get().archivedDeletionAfterMonths;
-    const cutoff = subMonths(now, retentionMonths);
+    const cutoff = subMonths(
+      now,
+      this.settings.get().archivedDeletionAfterMonths,
+    );
     const auditService = new BusinessAuditService(dataPath, cryptoService);
     const result: CleanupResult = {
       deletedVolunteers: 0,
       deletedPartners: 0,
+      deletedRecords: [],
     };
 
     const collections = [
@@ -98,6 +104,10 @@ export class ArchivedRecordCleanupService {
 
         collection.fileService.deleteVolunteer(volunteer.id);
         result[collection.resultKey]++;
+        result.deletedRecords.push({
+          name: `${volunteer.firstName} ${volunteer.lastName}`.trim(),
+          type: collection.subjectType,
+        });
         try {
           auditService.append({
             action: collection.action,

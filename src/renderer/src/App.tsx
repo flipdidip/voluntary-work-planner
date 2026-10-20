@@ -26,8 +26,10 @@ import ReminderToast from "./components/ReminderToast";
 import ConsentDialog from "./components/ConsentDialog";
 import AccessPendingOverlay from "./components/AccessPendingOverlay";
 import PendingRequestsNoticeModal from "./components/PendingRequestsNoticeModal";
+import ArchivedRecordsDeletedModal from "./components/ArchivedRecordsDeletedModal";
 import { DueReminder } from "./hooks/useReminders";
 import {
+  DeletedArchivedRecord,
   EncryptionStatus,
   PRIVACY_POLICY_VERSION,
   UserRole,
@@ -49,6 +51,9 @@ export default function App(): JSX.Element {
     useState(false);
   const [hasShownPendingRequestsNotice, setHasShownPendingRequestsNotice] =
     useState(false);
+  const [deletedArchivedRecords, setDeletedArchivedRecords] = useState<
+    DeletedArchivedRecord[] | null
+  >(null);
   const [loading, setLoading] = useState(true);
 
   const refreshEncryptionStatus = useCallback(async (): Promise<void> => {
@@ -73,6 +78,9 @@ export default function App(): JSX.Element {
     });
 
     refreshEncryptionStatus();
+    window.api.getStartupDeletionNotice().then((records) => {
+      if (records.length > 0) setDeletedArchivedRecords(records);
+    });
 
     window.api.onReminderTriggered((reminders) => {
       setLiveReminders((prev) => [...prev, ...(reminders as DueReminder[])]);
@@ -271,6 +279,17 @@ export default function App(): JSX.Element {
           onDismiss={() => setShowPendingRequestsNotice(false)}
         />
       )}
+      {userRole === "primary" &&
+        encryptionStatus?.authorized &&
+        (!encryptionStatus.pendingRequestCount ||
+          (hasShownPendingRequestsNotice && !showPendingRequestsNotice)) &&
+        deletedArchivedRecords &&
+        deletedArchivedRecords.length > 0 && (
+          <ArchivedRecordsDeletedModal
+            records={deletedArchivedRecords}
+            onDismiss={() => setDeletedArchivedRecords(null)}
+          />
+        )}
       <Layout
         settingsBadgeCount={encryptionStatus?.pendingRequestCount || 0}
         userRole={userRole}
