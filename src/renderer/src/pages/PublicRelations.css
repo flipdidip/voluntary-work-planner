@@ -115,21 +115,34 @@
 
 .public-relations-table {
   width: 100%;
+  min-width: 900px;
   table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
 }
 
 .public-relations-column-category {
-  width: 22%;
+  width: 14%;
 }
 
 .public-relations-column-name {
-  width: 28%;
+  width: 18%;
+}
+
+.public-relations-column-phone {
+  width: 16%;
+}
+
+.public-relations-column-email {
+  width: 18%;
+}
+
+.public-relations-column-roles {
+  width: 18%;
 }
 
 .public-relations-column-consent {
-  width: 50%;
+  width: 16%;
 }
 
 .public-relations-table th,
@@ -173,7 +186,8 @@
 }
 
 .public-relations-name,
-.public-relations-organization {
+.public-relations-organization,
+.public-relations-detail {
   display: block;
 }
 
@@ -238,15 +252,27 @@
   }
 
   .public-relations-column-category {
-    width: 27%;
+    width: 14%;
   }
 
   .public-relations-column-name {
-    width: 30%;
+    width: 18%;
+  }
+
+  .public-relations-column-phone {
+    width: 16%;
+  }
+
+  .public-relations-column-email {
+    width: 18%;
+  }
+
+  .public-relations-column-roles {
+    width: 18%;
   }
 
   .public-relations-column-consent {
-    width: 43%;
+    width: 16%;
   }
 
   .public-relations-table th,
