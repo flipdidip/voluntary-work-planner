@@ -14,6 +14,9 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 
 - Ehrenamtsregister mit detaillierten Personen-, Kontakt- und Qualifikationsdaten.
 - Kooperationspartner-Verwaltung mit eigener Seite (gleiche Stammdaten, ohne Qualifikationsbereich).
+- Such- und sortierbare Kontaktuebersicht fuer Ehrenamtliche mit Telefonnummern und Aufgaben.
+- Oeffentlichkeitsarbeits-Uebersicht zu Bild- und Ton-Einwilligungen, durchsuchbar und nach Einwilligungsstatus sowie Personenkategorie filterbar.
+- Sortierung der Ehrenamtlichen- und Kooperationspartnerlisten nach Name und Eintrittsdatum.
 - Dateibasierte Speicherung in einem frei waehlbaren Ordner (lokal, OneDrive, SharePoint-Sync).
 - Verschluesselung ruhender Daten fuer Index, Ehrenamtsakten, Backups und Anhaenge.
 - Mehrbenutzer-Freigabeworkflow fuer gemeinsame Ordner (Anfrage -> Freigabe/Ablehnung).
@@ -26,6 +29,24 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Hell-/Dunkel-Modus mit automatischer Uebernahme der Systemeinstellung (konfigurierbar in den Einstellungen).
 - Optimistisches Locking zur Reduzierung von Ueberschreibkonflikten bei synchronisierter Mehrbenutzernutzung.
 - In-App-Verwaltung des Verzeichnisses von Verarbeitungstaetigkeiten (Art. 30 DSGVO) inkl. Markdown-Export.
+- Automatische Loeschung archivierter Ehrenamtlicher und Kooperationspartner nach einer einstellbaren Frist (Standard: 6 Monate), mit einer In-App-Meldung inklusive Namen beim Start.
+- Anzeige, wer Gruppen-Treffen und Kooperationspartner-Termine angelegt hat.
+
+## Aenderungen in v1.6.0 und im aktuellen Entwicklungszweig
+
+### v1.6.0
+
+- Neue Seite **Ehrenamtliche Kontakte** mit Suche nach Name, Telefonnummer und Aufgabe sowie Sortierung nach Name, Telefon, Mobilnummer und Aufgaben. Die Seite ist fuer die Rolle **Nur Kooperationspartner** verfuegbar.
+- Neue Rolle **Oeffentlichkeitsarbeit** mit einer eigenen, eingeschraenkten Uebersicht der Bild- und Ton-Einwilligungen von Ehrenamtlichen und Kooperationspartnern.
+- Die Oeffentlichkeitsarbeits-Uebersicht bietet Namenssuche, Sortierung sowie Ein-/Ausschlussfilter fuer Einwilligungsstufen und Personenkategorien.
+
+### Aktueller Entwicklungszweig (noch nicht als v1.6.0 veroeffentlicht)
+
+- Ehrenamtliche und Kooperationspartner koennen nach Name und Eintrittsdatum sortiert werden.
+- Gruppen-Treffen und Kooperationspartner-Termine zeigen an, wer den jeweiligen Eintrag erstellt hat.
+- Das Geburtstagsfeld loest Aenderungen nur noch aus, wenn sich das Datum tatsaechlich geaendert hat.
+- Archivierte Ehrenamtliche und Kooperationspartner werden beim App-Start nach einer einstellbaren Frist automatisch geloescht. Die Frist betraegt standardmaessig sechs Monate.
+- Nach einer automatischen Loeschung erscheint eine In-App-Meldung im Anwendungsstil, die die Namen der geloeschten Datensaetze auffuehrt.
 
 ## DSGVO / GDPR
 
@@ -152,8 +173,9 @@ Notes:
 
 | Role           | Sidebar Navigation                                                       | Accessible Pages                                                |
 | -------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| `primary`      | Dashboard, Ereignisse, Ehrenamtliche, Kooperationspartner, Einstellungen | All pages                                                       |
-| `partner-only` | Kooperationspartner, Einstellungen                                       | Kooperationspartner (Liste, Detail, Neu) and Einstellungen only |
+| `primary`      | Dashboard, Ereignisse, Ehrenamtliche, Gruppen Treffen, Kooperationspartner, Termine, Einstellungen | Alle Seiten ausser Ehrenamtliche Kontakte und Oeffentlichkeitsarbeit |
+| `partner-only` | Ereignisse, Ehrenamtliche Kontakte, Kooperationspartner, Termine, Einstellungen | Ehrenamtliche Kontakte, Kooperationspartner, Termine, Ereignisse und Einstellungen |
+| `public-relations` | Oeffentlichkeitsarbeit | Uebersicht der Bild- und Ton-Einwilligungen |
 
 - The initial creator of a data folder always receives the `primary` role.
 - Every subsequent user is assigned a role by the approver at approval time.
@@ -163,6 +185,7 @@ Notes:
 
 - Unauthorized user with pending request: blocking modal on all pages except Settings.
 - Authorized user with pending requests: startup notice modal.
+- Primary user after automatic deletion of archived records: in-app notice listing deleted names.
 - Settings nav item shows a badge with pending request count.
 
 ### Key Rotation
