@@ -10,6 +10,7 @@ import {
   GroupMeeting,
   PartnerAppointment,
   VolunteerContact,
+  PublicRelationsConsentOverview,
   createDefaultProcessingActivitiesDocument,
 } from "@shared/types";
 import { SettingsService } from "./settingsService";
@@ -589,6 +590,54 @@ export function registerVolunteerHandlers(
   });
 
   // Volunteer CRUD
+  ipcMain.handle(
+    IPC.GET_PUBLIC_RELATIONS_CONSENT_OVERVIEW,
+    (): PublicRelationsConsentOverview => {
+      const dataPath = settings.getDataFolderPath();
+      if (!dataPath) {
+        throw new Error("Kein Datenordner konfiguriert.");
+      }
+
+      const status = DataCryptoService.getInstance().getStatus(dataPath);
+      if (!status.authorized || status.userRole !== "public-relations") {
+        throw new Error(
+          "Diese Übersicht ist nur für Öffentlichkeitsarbeit verfügbar.",
+        );
+      }
+
+      const volunteerService = getFileService(settings);
+      const partnerService = getPartnerFileService(settings);
+      if (!volunteerService || !partnerService) {
+        throw new Error("Kein Datenordner konfiguriert.");
+      }
+
+      const toConsentEntries = (
+        entries: ReturnType<typeof volunteerService.readIndex>["volunteers"],
+      ) =>
+        entries.map(
+          ({
+            firstName,
+            lastName,
+            organization,
+            mediaConsentLevel,
+            requirementsStatus,
+          }) => ({
+            firstName,
+            lastName,
+            organization,
+            mediaConsentLevel: mediaConsentLevel ?? null,
+            consentDocumentStatus:
+              requirementsStatus?.bildundton ?? "missing",
+          }),
+        );
+
+      return {
+        volunteers: toConsentEntries(volunteerService.readIndex().volunteers),
+        partners: toConsentEntries(partnerService.readIndex().volunteers),
+      };
+    },
+  );
+
   ipcMain.handle(IPC.GET_VOLUNTEER_INDEX, () => {
     try {
       const svc = getFileService(settings);
@@ -596,8 +645,9 @@ export function registerVolunteerHandlers(
       const dataPath = settings.getDataFolderPath();
       if (
         dataPath &&
-        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
-          "partner-only"
+        ["partner-only", "public-relations"].includes(
+          DataCryptoService.getInstance().getStatus(dataPath).userRole || "",
+        )
       ) {
         return {
           _version: 0,
@@ -653,8 +703,9 @@ export function registerVolunteerHandlers(
       const dataPath = settings.getDataFolderPath();
       if (
         dataPath &&
-        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
-          "partner-only"
+        ["partner-only", "public-relations"].includes(
+          DataCryptoService.getInstance().getStatus(dataPath).userRole || "",
+        )
       ) {
         return null;
       }
@@ -735,6 +786,18 @@ export function registerVolunteerHandlers(
     try {
       const svc = getPartnerFileService(settings);
       if (!svc) return null;
+      const dataPath = settings.getDataFolderPath();
+      if (
+        dataPath &&
+        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
+          "public-relations"
+      ) {
+        return {
+          _version: 0,
+          _updatedAt: new Date().toISOString(),
+          volunteers: [],
+        };
+      }
       return svc.readIndex();
     } catch {
       return {
@@ -749,6 +812,14 @@ export function registerVolunteerHandlers(
     try {
       const svc = getPartnerFileService(settings);
       if (!svc) return null;
+      const dataPath = settings.getDataFolderPath();
+      if (
+        dataPath &&
+        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
+          "public-relations"
+      ) {
+        return null;
+      }
       return svc.readVolunteer(id);
     } catch {
       return null;

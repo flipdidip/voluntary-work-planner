@@ -7,6 +7,7 @@ import {
   Handshake,
   Users2,
   Phone,
+  Megaphone,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { UserRole } from "@shared/types";
@@ -64,6 +65,13 @@ const navItems = [
     icon: Settings,
     primaryOnly: false,
   },
+  {
+    to: "/public-relations",
+    label: "Öffentlichkeitsarbeit",
+    icon: Megaphone,
+    primaryOnly: true,
+    publicRelationsOnly: true,
+  },
 ];
 
 export default function Layout({
@@ -72,14 +80,21 @@ export default function Layout({
   userRole = "primary",
 }: LayoutProps): JSX.Element {
   const visibleNavItems =
-    userRole === "partner-only"
+    userRole === "public-relations"
+      ? navItems.filter(
+          (item) =>
+            "publicRelationsOnly" in item && item.publicRelationsOnly === true,
+        )
+      : userRole === "partner-only"
       ? navItems.filter(
           (item) =>
             !item.primaryOnly ||
             ("partnerOnly" in item && item.partnerOnly === true),
         )
       : navItems.filter(
-          (item) => !("partnerOnly" in item && item.partnerOnly === true),
+          (item) =>
+            !("partnerOnly" in item && item.partnerOnly === true) &&
+            !("publicRelationsOnly" in item && item.publicRelationsOnly),
         );
   return (
     <div className="layout">

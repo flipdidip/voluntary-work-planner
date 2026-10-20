@@ -201,7 +201,14 @@ export default function Settings({
   };
 
   const formatRoleLabel = (role: UserRole): string => {
-    return role === "primary" ? "Vollzugriff" : "Nur Kooperationspartner";
+    switch (role) {
+      case "primary":
+        return "Vollzugriff";
+      case "partner-only":
+        return "Nur Kooperationspartner";
+      case "public-relations":
+        return "Öffentlichkeitsarbeit";
+    }
   };
 
   const multilineToList = (value: string): string[] =>
@@ -722,6 +729,9 @@ export default function Settings({
                           <option value="partner-only">
                             Nur Kooperationspartner
                           </option>
+                          <option value="public-relations">
+                            Öffentlichkeitsarbeit
+                          </option>
                         </select>
                         <button
                           className="btn btn-primary"
@@ -792,9 +802,7 @@ export default function Settings({
                           </span>
                           <span className="hint">
                             Aktuelle Rolle:{" "}
-                            {currentRole === "primary"
-                              ? "Vollzugriff"
-                              : "Nur Kooperationspartner"}
+                            {formatRoleLabel(currentRole)}
                             {isCurrentUser ? " (dieser Benutzer)" : ""}
                           </span>
                           <span className="hint">
@@ -829,6 +837,9 @@ export default function Settings({
                             <option value="primary">Vollzugriff</option>
                             <option value="partner-only">
                               Nur Kooperationspartner
+                            </option>
+                            <option value="public-relations">
+                              Öffentlichkeitsarbeit
                             </option>
                           </select>
                         </div>
