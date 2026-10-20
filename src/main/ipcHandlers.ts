@@ -10,6 +10,8 @@ import {
   UserRole,
   GroupMeeting,
   VolunteerContact,
+  RequirementRecord,
+  RecordAuditMetadata,
   PublicRelationsConsentOverview,
   InternReadOnlyOverview,
   REQUIREMENT_DEFINITIONS,
@@ -25,6 +27,69 @@ import { DataCryptoService } from "./dataCryptoService";
 import { ProcessingActivitiesService } from "./processingActivitiesService";
 import { BusinessAuditService } from "./businessAuditService";
 import { GroupMeetingService } from "./groupMeetingService";
+
+const RECORD_AUDIT_FIELDS = new Set([
+  "_createdBy",
+  "_createdAt",
+  "_updatedBy",
+  "_updatedAt",
+]);
+
+function hasRecordContentChanged<T extends RecordAuditMetadata>(
+  incoming: T,
+  existing: T,
+): boolean {
+  const getContent = (record: T): string =>
+    JSON.stringify(
+      Object.fromEntries(
+        Object.entries(record)
+          .filter(([key]) => !RECORD_AUDIT_FIELDS.has(key))
+          .sort(([left], [right]) => left.localeCompare(right)),
+      ),
+    );
+
+  return getContent(incoming) !== getContent(existing);
+}
+
+function applyRecordAuditMetadata<T extends RecordAuditMetadata>(
+  incomingRecords: T[],
+  existingRecords: T[] | undefined,
+  getKey: (record: T) => string,
+  actor: string,
+  timestamp: string,
+): T[] {
+  const existingByKey = new Map(
+    (existingRecords || []).map((record) => [getKey(record), record]),
+  );
+
+  return incomingRecords.map((record) => {
+    const existing = existingByKey.get(getKey(record));
+    if (!existing) {
+      return {
+        ...record,
+        _createdBy: actor || undefined,
+        _createdAt: timestamp,
+        _updatedBy: undefined,
+        _updatedAt: undefined,
+      };
+    }
+
+    const auditedRecord = {
+      ...record,
+      _createdBy: existing._createdBy,
+      _createdAt: existing._createdAt,
+      _updatedBy: existing._updatedBy,
+      _updatedAt: existing._updatedAt,
+    };
+
+    if (hasRecordContentChanged(record, existing)) {
+      auditedRecord._updatedBy = actor || undefined;
+      auditedRecord._updatedAt = timestamp;
+    }
+
+    return auditedRecord;
+  });
+}
 
 function getValidatedDataFolder(settings: SettingsService) {
   const dataPath = settings.getDataFolderPath();
@@ -791,6 +856,7 @@ export function registerVolunteerHandlers(
         }
       }
 
+      const createdAt = new Date().toISOString();
       const fileRecord: FileRecord = {
         id: uuidv4(),
         title: title.trim(),
@@ -798,7 +864,9 @@ export function registerVolunteerHandlers(
         fileName: upload?.fileName,
         filePath: upload?.filePath,
         fileSize: upload?.fileSize,
-        uploadedAt: new Date().toISOString(),
+        uploadedAt: createdAt,
+        _createdBy: status.currentUser || undefined,
+        _createdAt: createdAt,
       };
       record.fileRecords = [...(record.fileRecords || []), fileRecord];
 
@@ -932,6 +1000,22 @@ export function registerVolunteerHandlers(
       const status = dataPath
         ? DataCryptoService.getInstance().getStatus(dataPath)
         : null;
+      const timestamp = new Date().toISOString();
+      const actor = status?.currentUser || "";
+      volunteer.fileRecords = applyRecordAuditMetadata(
+        volunteer.fileRecords || [],
+        existingBefore?.fileRecords,
+        (record: FileRecord) => record.id,
+        actor,
+        timestamp,
+      );
+      volunteer.requirements = applyRecordAuditMetadata(
+        volunteer.requirements || [],
+        existingBefore?.requirements,
+        (record: RequirementRecord) => record.requirementType,
+        actor,
+        timestamp,
+      );
       if (!status?.authorized || status.userRole !== "primary") {
         volunteer.publicRelationsVisible =
           existingBefore?.publicRelationsVisible === true;
@@ -1058,6 +1142,22 @@ export function registerVolunteerHandlers(
     const status = dataPath
       ? DataCryptoService.getInstance().getStatus(dataPath)
       : null;
+    const timestamp = new Date().toISOString();
+    const actor = status?.currentUser || "";
+    partner.fileRecords = applyRecordAuditMetadata(
+      partner.fileRecords || [],
+      existingBefore?.fileRecords,
+      (record: FileRecord) => record.id,
+      actor,
+      timestamp,
+    );
+    partner.requirements = applyRecordAuditMetadata(
+      partner.requirements || [],
+      existingBefore?.requirements,
+      (record: RequirementRecord) => record.requirementType,
+      actor,
+      timestamp,
+    );
     if (!status?.authorized || status.userRole !== "primary") {
       partner.publicRelationsVisible =
         existingBefore?.publicRelationsVisible === true;
