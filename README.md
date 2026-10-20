@@ -30,6 +30,8 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Vollstaendiges Aktivitaetsprotokoll fuer betriebliche Aktionen (z.B. Ehrenamtliche anlegen/aktualisieren/loeschen, Dateiaktionen, Art.-30-Aenderungen).
 - Rotation des Datenschluessels mit automatischer Neuverschluesselung verwalteter Datendateien.
 - Erinnerungssystem fuer Geburtstage, Jubilaeen, benutzerdefinierte Termine und Qualifikationsablauf.
+- Dashboard-Statistik mit frei waehlbarem Zeitraum (standardmaessig letztes Jahr): Anfragen und Anfrageherkunft, Aufnahmeprozess, Ehrenamt-Uebersicht, Beendigungsgruende und Gruppentreffen-Teilnahme.
+- Dashboard-Statistiken lassen sich als Gesamtuebersicht im CSV-Format exportieren. Jede Statistik-Karte kann inklusive Zeitraum als Bild in die Zwischenablage kopiert werden; eine Snackbar bestaetigt den Erfolg oder meldet Fehler.
 - Windows-Benachrichtigungen bei faelligen Erinnerungen plus In-App-Erinnerungsoberflaeche.
 - Hell-/Dunkel-Modus mit automatischer Uebernahme der Systemeinstellung (konfigurierbar in den Einstellungen).
 - Optimistisches Locking zur Reduzierung von Ueberschreibkonflikten bei synchronisierter Mehrbenutzernutzung.
@@ -52,6 +54,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Ehrenamtliche und Kooperationspartner koennen nach Name und Eintrittsdatum sortiert werden.
 - Gruppentreffen zeigen an, wer den jeweiligen Eintrag erstellt hat.
 - Gruppentreffen koennen mit mehreren verschluesselt gespeicherten Dokumenten versehen werden.
+- Das Dashboard bietet auswertbare Statistiken fuer einen frei waehlbaren Zeitraum (Voreinstellung: letztes Jahr), inklusive Anfragen, Aufnahmeprozess, Ehrenamtlichen, Beendigungsgruenden und Gruppentreffen-Teilnahme. Der Gesamtbericht kann als CSV exportiert und jede Statistik-Karte samt Zeitraum als Bild in die Zwischenablage kopiert werden.
 - Das Geburtstagsfeld loest Aenderungen nur noch aus, wenn sich das Datum tatsaechlich geaendert hat.
 - Die automatische Loeschung archivierter Ehrenamtlicher und Kooperationspartner kann in den Einstellungen aktiviert werden und ist standardmaessig deaktiviert. Die einstellbare Frist betraegt standardmaessig zwoelf Monate.
 - Nach einer automatischen Loeschung erscheint eine In-App-Meldung im Anwendungsstil, die die Namen der geloeschten Datensaetze auffuehrt.
