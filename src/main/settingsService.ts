@@ -30,7 +30,25 @@ export class SettingsService {
         const raw = readFileSync(this.settingsPath, "utf-8");
         // Merge with defaults so any fields added after the file was first
         // created will get their default values instead of being undefined.
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+        const stored = JSON.parse(raw) as Partial<AppSettings> & {
+          inactiveDeletionAfterMonths?: number;
+        };
+        const settings: AppSettings = {
+          ...DEFAULT_SETTINGS,
+          ...stored,
+          archivedDeletionAfterMonths:
+            stored.archivedDeletionAfterMonths ??
+            stored.inactiveDeletionAfterMonths ??
+            DEFAULT_SETTINGS.archivedDeletionAfterMonths,
+        };
+        if (
+          !Number.isInteger(settings.archivedDeletionAfterMonths) ||
+          settings.archivedDeletionAfterMonths < 1
+        ) {
+          settings.archivedDeletionAfterMonths =
+            DEFAULT_SETTINGS.archivedDeletionAfterMonths;
+        }
+        return settings;
       } catch {
         return { ...DEFAULT_SETTINGS };
       }
@@ -43,6 +61,16 @@ export class SettingsService {
   }
 
   set(partial: Partial<AppSettings>): void {
+    if (
+      partial.archivedDeletionAfterMonths !== undefined &&
+      (!Number.isInteger(partial.archivedDeletionAfterMonths) ||
+        partial.archivedDeletionAfterMonths < 1)
+    ) {
+      throw new Error(
+        "Die Aufbewahrungsdauer muss eine positive ganze Anzahl von Monaten sein.",
+      );
+    }
+
     this.settings = { ...this.settings, ...partial };
     writeFileSync(
       this.settingsPath,
