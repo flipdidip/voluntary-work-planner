@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Phone, Search } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Mail,
+  Phone,
+  Search,
+} from "lucide-react";
 import { VolunteerContact } from "@shared/types";
 import "./VolunteerContacts.css";
 
-type SortField = "name" | "phone" | "mobile" | "roles";
+type SortField = "name" | "phone" | "mobile" | "email" | "roles";
 
 export default function VolunteerContacts(): JSX.Element {
   const [contacts, setContacts] = useState<VolunteerContact[]>([]);
@@ -43,11 +50,13 @@ export default function VolunteerContacts(): JSX.Element {
         const phoneNumbers = `${contact.phone ?? ""} ${contact.mobile ?? ""}`.toLocaleLowerCase(
           "de",
         );
+        const email = (contact.email ?? "").toLocaleLowerCase("de");
         const roles = contact.roles.join(" ").toLocaleLowerCase("de");
         return (
           !normalizedQuery ||
           name.includes(normalizedQuery) ||
           phoneNumbers.includes(normalizedQuery) ||
+          email.includes(normalizedQuery) ||
           roles.includes(normalizedQuery)
         );
       })
@@ -97,7 +106,7 @@ export default function VolunteerContacts(): JSX.Element {
         <div>
           <h1>Ehrenamtliche Kontakte</h1>
           <p className="text-muted">
-            Namen und Telefonnummern aller Ehrenamtlichen
+            Namen, Kontaktdaten und Aufgaben aller Ehrenamtlichen
           </p>
         </div>
       </div>
@@ -113,8 +122,8 @@ export default function VolunteerContacts(): JSX.Element {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Name, Telefonnummer oder Aufgabe suchen..."
-          aria-label="Name, Telefonnummer oder Aufgabe suchen"
+          placeholder="Name, Kontaktdaten oder Aufgabe suchen..."
+          aria-label="Name, Kontaktdaten oder Aufgabe suchen"
         />
       </div>
 
@@ -139,6 +148,7 @@ export default function VolunteerContacts(): JSX.Element {
                     ["name", "Name"],
                     ["phone", "Telefon"],
                     ["mobile", "Mobil"],
+                    ["email", "E-Mail"],
                     ["roles", "Aufgaben"],
                   ] as const
                 ).map(([field, label]) => (
@@ -194,6 +204,19 @@ export default function VolunteerContacts(): JSX.Element {
                         >
                           <Phone size={15} aria-hidden="true" />
                           {contact.mobile}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      {contact.email ? (
+                        <a
+                          className="volunteer-contact-number"
+                          href={`mailto:${contact.email}`}
+                        >
+                          <Mail size={15} aria-hidden="true" />
+                          {contact.email}
                         </a>
                       ) : (
                         "—"
