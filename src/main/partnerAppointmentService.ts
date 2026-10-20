@@ -61,6 +61,10 @@ export class PartnerAppointmentService {
               typeof appointment?.notes === "string"
                 ? appointment.notes
                 : undefined,
+            _createdBy:
+              typeof appointment?._createdBy === "string"
+                ? appointment._createdBy
+                : undefined,
             _createdAt:
               typeof appointment?._createdAt === "string"
                 ? appointment._createdAt

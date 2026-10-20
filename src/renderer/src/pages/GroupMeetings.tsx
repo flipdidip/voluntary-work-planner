@@ -165,6 +165,9 @@ export default function GroupMeetings(): JSX.Element {
                 {isToday && " (Heute)"}
               </div>
               <div className="meeting-title">{m.title}</div>
+              <div className="text-muted" style={{ fontSize: "0.75rem" }}>
+                Erstellt von: {m._createdBy || "Unbekannt (Altbestand)"}
+              </div>
               <div className="meeting-participants">
                 {m.participants.map((p) => (
                   <span

@@ -347,6 +347,14 @@ export default function GroupMeetingNew(): JSX.Element {
           />
         </label>
 
+        {isEdit && (
+          <p className="text-muted" style={{ fontSize: "0.8rem" }}>
+            Erstellt von:{" "}
+            {meetingsIndex?.meetings.find((meeting) => meeting.id === id)
+              ?._createdBy || "Unbekannt (Altbestand)"}
+          </p>
+        )}
+
         {/* Participant picker */}
         <div className="participant-section">
           <h3>Teilnehmer</h3>

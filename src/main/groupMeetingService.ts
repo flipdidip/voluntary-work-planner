@@ -59,6 +59,10 @@ export class GroupMeetingService {
               : [],
             notes:
               typeof meeting?.notes === "string" ? meeting.notes : undefined,
+            _createdBy:
+              typeof meeting?._createdBy === "string"
+                ? meeting._createdBy
+                : undefined,
             _createdAt:
               typeof meeting?._createdAt === "string"
                 ? meeting._createdAt
