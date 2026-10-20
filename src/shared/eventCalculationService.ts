@@ -15,6 +15,7 @@ import {
   calculateRequirementExpiryDate,
   REQUIREMENT_DEFINITIONS,
   GroupMeetingIndex,
+  GroupMeetingParticipantType,
 } from "./types";
 import { normalizeEventDateTime } from "./dateTime";
 
@@ -46,7 +47,7 @@ export interface UpcomingEvent {
   /** For group-meeting kind: the meeting ID for navigation */
   meetingId?: string;
   /** Participants used for rendering optional avatars/icons in UI */
-  participants?: Array<{ id: string; type: "volunteer" | "partner" }>;
+  participants?: Array<{ id: string; type: GroupMeetingParticipantType }>;
 }
 
 /**

@@ -21,6 +21,7 @@ import GroupMeetings from "./pages/GroupMeetings";
 import GroupMeetingNew from "./pages/GroupMeetingNew";
 import PublicRelations from "./pages/PublicRelations";
 import InternOverview from "./pages/InternOverview";
+import Hauptamtliche from "./pages/Hauptamtliche";
 import ReminderToast from "./components/ReminderToast";
 import ConsentDialog from "./components/ConsentDialog";
 import AccessPendingOverlay from "./components/AccessPendingOverlay";
@@ -372,6 +373,7 @@ export default function App(): JSX.Element {
               <Route path="/meetings" element={<GroupMeetings />} />
               <Route path="/meetings/new" element={<GroupMeetingNew />} />
               <Route path="/meetings/:id" element={<GroupMeetingNew />} />
+              <Route path="/hauptamtliche" element={<Hauptamtliche />} />
               <Route path="/events" element={<UpcomingEvents />} />
               <Route
                 path="/settings"

@@ -18,6 +18,8 @@ import {
   VolunteerContact,
   PublicRelationsConsentOverview,
   InternReadOnlyOverview,
+  HauptamtlicheIndex,
+  Hauptamtliche,
 } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
@@ -175,6 +177,27 @@ const api = {
     ipcRenderer.invoke(IPC.SAVE_PARTNER, partner),
 
   deletePartner: (id: string) => ipcRenderer.invoke(IPC.DELETE_PARTNER, id),
+
+  // Hauptamtliche
+  getHauptamtliche: (): Promise<HauptamtlicheIndex> =>
+    ipcRenderer.invoke(IPC.GET_HAUPTAMTLICHE),
+
+  saveHauptamtliche: (
+    firstName: string,
+    lastName: string,
+    id?: string,
+  ): Promise<{
+    success: boolean;
+    person?: Hauptamtliche;
+    created?: boolean;
+    error?: string;
+  }> =>
+    ipcRenderer.invoke(IPC.SAVE_HAUPTAMTLICHE, firstName, lastName, id),
+
+  deleteHauptamtliche: (
+    id: string,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC.DELETE_HAUPTAMTLICHE, id),
 
   // Group meetings (Gruppen Treffen)
   getGroupMeetings: (): Promise<GroupMeetingIndex> =>

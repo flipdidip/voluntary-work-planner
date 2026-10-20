@@ -1,0 +1,130 @@
+.hauptamtliche-page .page-header {
+  margin-bottom: 20px;
+}
+
+.hauptamtliche-form-card,
+.hauptamtliche-list-card {
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.hauptamtliche-form-card h2,
+.hauptamtliche-list-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
+.hauptamtliche-form-card form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.hauptamtliche-form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hauptamtliche-form-row input {
+  width: 0;
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.hauptamtliche-form-row .input {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.hauptamtliche-list {
+  list-style: none;
+}
+
+.hauptamtliche-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hauptamtliche-list li:last-child {
+  border-bottom: 0;
+}
+
+.hauptamtliche-delete {
+  color: var(--color-danger);
+}
+
+.hauptamtliche-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hauptamtliche-error {
+  margin-bottom: 16px;
+  color: var(--color-danger);
+}
+
+.hauptamtliche-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--color-overlay-bg, rgba(0, 0, 0, 0.45));
+}
+
+.hauptamtliche-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.hauptamtliche-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hauptamtliche-dialog-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.hauptamtliche-dialog-body {
+  padding: 20px;
+  color: var(--color-text);
+}
+
+.hauptamtliche-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 700px) {
+  .hauptamtliche-form-row {
+    flex-wrap: wrap;
+  }
+
+  .hauptamtliche-form-row input {
+    flex-basis: 100%;
+  }
+}

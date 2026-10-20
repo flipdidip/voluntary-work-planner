@@ -15,6 +15,7 @@ import {
   RecordAuditMetadata,
   PublicRelationsConsentOverview,
   InternReadOnlyOverview,
+  HauptamtlicheIndex,
   REQUIREMENT_DEFINITIONS,
   calculateRequirementsStatus,
   createDefaultProcessingActivitiesDocument,
@@ -28,6 +29,7 @@ import { DataCryptoService } from "./dataCryptoService";
 import { ProcessingActivitiesService } from "./processingActivitiesService";
 import { BusinessAuditService } from "./businessAuditService";
 import { GroupMeetingService } from "./groupMeetingService";
+import { HauptamtlicheService } from "./hauptamtlicheService";
 
 const RECORD_AUDIT_FIELDS = new Set([
   "_createdBy",
@@ -195,6 +197,17 @@ function initializeFolderStructure(settings: SettingsService) {
   );
 
   writeEncryptedJsonIfMissing(
+    settings.getHauptamtlichePath(),
+    dataPath,
+    cryptoService,
+    {
+      _version: 1,
+      _updatedAt: now,
+      people: [],
+    },
+  );
+
+  writeEncryptedJsonIfMissing(
     join(dataPath, "processing-activities.json"),
     dataPath,
     cryptoService,
@@ -280,6 +293,19 @@ function getGroupMeetingService(
   );
 }
 
+function getHauptamtlicheService(
+  settings: SettingsService,
+): HauptamtlicheService | null {
+  const access = getValidatedDataFolder(settings);
+  if (!access) return null;
+
+  return new HauptamtlicheService(
+    access.dataPath,
+    settings.getHauptamtlichePath(),
+    access.cryptoService,
+  );
+}
+
 function appendBusinessAudit(
   settings: SettingsService,
   entry: Omit<BusinessAuditEntry, "timestamp" | "actor">,
@@ -310,6 +336,14 @@ export function registerVolunteerHandlers(
     if (isInternReadOnlyUser()) {
       throw new Error("Interne Mitarbeitende haben ausschließlich Lesezugriff.");
     }
+  };
+  const isPrimaryUser = (): boolean => {
+    const dataPath = settings.getDataFolderPath();
+    return Boolean(
+      dataPath &&
+        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
+          "primary",
+    );
   };
 
   // Settings
@@ -1203,6 +1237,73 @@ export function registerVolunteerHandlers(
       });
     } catch {
       return;
+    }
+  });
+
+  ipcMain.handle(IPC.GET_HAUPTAMTLICHE, (): HauptamtlicheIndex => {
+    if (!isPrimaryUser()) {
+      throw new Error("Diese Funktion ist nur im Vollzugriff verfügbar.");
+    }
+    const service = getHauptamtlicheService(settings);
+    if (!service) throw new Error("Kein Datenordner konfiguriert.");
+    return service.readAll();
+  });
+
+  ipcMain.handle(
+    IPC.SAVE_HAUPTAMTLICHE,
+    (_event, firstName: string, lastName: string, id?: string) => {
+      if (!isPrimaryUser()) {
+        return {
+          success: false,
+          error: "Diese Funktion ist nur im Vollzugriff verfügbar.",
+        };
+      }
+      try {
+        const service = getHauptamtlicheService(settings);
+        if (!service) {
+          return { success: false, error: "Kein Datenordner konfiguriert." };
+        }
+        const result = service.save(firstName, lastName, id);
+        appendBusinessAudit(settings, {
+          action: result.created
+            ? "hauptamtliche-created"
+            : "hauptamtliche-updated",
+          subjectType: "hauptamtliche",
+          subjectId: result.person.id,
+          details: `${result.person.firstName} ${result.person.lastName}`,
+        });
+        return { success: true, ...result };
+      } catch (error) {
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(IPC.DELETE_HAUPTAMTLICHE, (_event, id: string) => {
+    if (!isPrimaryUser()) {
+      return {
+        success: false,
+        error: "Diese Funktion ist nur im Vollzugriff verfügbar.",
+      };
+    }
+    try {
+      const service = getHauptamtlicheService(settings);
+      if (!service) {
+        return { success: false, error: "Kein Datenordner konfiguriert." };
+      }
+      const person = service.readAll().people.find((entry) => entry.id === id);
+      if (!person || !service.delete(id)) {
+        return { success: false, error: "Eintrag nicht gefunden." };
+      }
+      appendBusinessAudit(settings, {
+        action: "hauptamtliche-deleted",
+        subjectType: "hauptamtliche",
+        subjectId: id,
+        details: `${person.firstName} ${person.lastName}`,
+      });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
     }
   });
 

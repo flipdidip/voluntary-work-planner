@@ -286,6 +286,11 @@
   color: var(--color-badge-teal-fg);
 }
 
+.selected-participant-chip.type-hauptamtliche {
+  background: var(--color-badge-purple-bg);
+  color: var(--color-badge-purple-fg);
+}
+
 .participant-chip-remove {
   display: inline-flex;
   align-items: center;

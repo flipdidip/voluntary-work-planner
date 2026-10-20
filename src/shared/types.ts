@@ -609,11 +609,26 @@ export function createDefaultProcessingActivitiesDocument(): ProcessingActivitie
 // Group meetings (Gruppen Treffen)
 // ─────────────────────────────────────────────────
 
-export type GroupMeetingParticipantType = "volunteer" | "partner";
+export interface Hauptamtliche {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface HauptamtlicheIndex {
+  _version: number;
+  _updatedAt: string;
+  people: Hauptamtliche[];
+}
+
+export type GroupMeetingParticipantType =
+  | "volunteer"
+  | "partner"
+  | "hauptamtliche";
 export type GroupMeetingAttendanceStatus = "unknown" | "present" | "absent";
 
 export interface GroupMeetingParticipant {
-  id: string; // volunteer or partner ID
+  id: string; // volunteer, partner, or Hauptamtliche ID
   name: string; // display name (cached for index)
   type: GroupMeetingParticipantType;
   attendance?: GroupMeetingAttendanceStatus;
@@ -755,6 +770,11 @@ export const IPC = {
   SAVE_PARTNER: "save-partner",
   DELETE_PARTNER: "delete-partner",
 
+  // Hauptamtliche
+  GET_HAUPTAMTLICHE: "get-hauptamtliche",
+  SAVE_HAUPTAMTLICHE: "save-hauptamtliche",
+  DELETE_HAUPTAMTLICHE: "delete-hauptamtliche",
+
   // File attachments
   UPLOAD_FILE: "upload-file",
   DELETE_FILE: "delete-file",
@@ -837,6 +857,9 @@ export type BusinessAuditAction =
   | "partner-created"
   | "partner-updated"
   | "partner-deleted"
+  | "hauptamtliche-created"
+  | "hauptamtliche-updated"
+  | "hauptamtliche-deleted"
   | "file-uploaded"
   | "file-record-added"
   | "file-deleted"
@@ -855,6 +878,7 @@ export type BusinessAuditSubjectType =
   | "settings"
   | "volunteer"
   | "partner"
+  | "hauptamtliche"
   | "attachment"
   | "processing-activities"
   | "group-meeting"
