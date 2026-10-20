@@ -31,7 +31,7 @@ const navItems = [
     to: "/events",
     label: "Ereignisse",
     icon: Calendar,
-    primaryOnly: false,
+    primaryOnly: true,
   },
   { to: "/volunteers", label: "Ehrenamtliche", icon: Users, primaryOnly: true },
   {
@@ -50,12 +50,6 @@ const navItems = [
   {
     to: "/partners",
     label: "Kooperationspartner",
-    icon: Handshake,
-    primaryOnly: false,
-  },
-  {
-    to: "/appointments",
-    label: "Termine",
     icon: Handshake,
     primaryOnly: false,
   },

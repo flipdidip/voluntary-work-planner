@@ -7,7 +7,7 @@ export type VolunteerStatus = "active" | "inactive" | "archived";
 /**
  * Authorization role assigned to each user in the encrypted data folder.
  * - "primary"      → Full access to all features (volunteers, partners, settings, etc.)
- * - "partner-only" → Restricted view: can see Kooperationspartner, Termine, and volunteer contact details
+ * - "partner-only" → Restricted view: can see Kooperationspartner and volunteer contact details
  * - "public-relations" → Can see records explicitly shared by primary users, including names, contact details, tasks, and image/sound consent status
  * - "intern-read-only" → Can view only the contact details and qualifications of records explicitly shared by primary users
  *
@@ -692,68 +692,6 @@ export function calculateGroupMeetingParticipationStats(
 }
 
 // ─────────────────────────────────────────────────
-// Partner appointments (Termine)
-// ─────────────────────────────────────────────────
-
-export interface PartnerAppointmentParticipant {
-  id: string;
-  name: string;
-  attendance?: GroupMeetingAttendanceStatus;
-}
-
-export interface PartnerAppointment {
-  id: string;
-  title: string;
-  date: string; // ISO date-time (YYYY-MM-DDTHH:mm), legacy YYYY-MM-DD supported
-  participants: PartnerAppointmentParticipant[];
-  notes?: string;
-  /** User identity that created the appointment; absent on legacy records. */
-  _createdBy?: string;
-  _createdAt: string;
-  _updatedAt: string;
-}
-
-export interface PartnerAppointmentIndex {
-  _version: number;
-  _updatedAt: string;
-  appointments: PartnerAppointment[];
-}
-
-export function calculatePartnerAppointmentParticipationStats(
-  appointments: PartnerAppointment[],
-  participantId: string,
-): GroupMeetingParticipationStats {
-  const safeAppointments = Array.isArray(appointments) ? appointments : [];
-
-  const relevantParticipants = safeAppointments
-    .flatMap((appointment) =>
-      Array.isArray(appointment?.participants) ? appointment.participants : [],
-    )
-    .filter((participant) => participant?.id === participantId);
-
-  const invitedCount = relevantParticipants.length;
-  const presentCount = relevantParticipants.filter(
-    (participant) => getGroupMeetingAttendanceStatus(participant) === "present",
-  ).length;
-  const absentCount = relevantParticipants.filter(
-    (participant) => getGroupMeetingAttendanceStatus(participant) === "absent",
-  ).length;
-  const unknownCount = relevantParticipants.filter(
-    (participant) => getGroupMeetingAttendanceStatus(participant) === "unknown",
-  ).length;
-  const ratedCount = presentCount + absentCount;
-
-  return {
-    invitedCount,
-    presentCount,
-    absentCount,
-    unknownCount,
-    attendanceRate:
-      ratedCount > 0 ? Math.round((presentCount / ratedCount) * 100) : 0,
-  };
-}
-
-// ─────────────────────────────────────────────────
 // IPC channel names (type-safe)
 // ─────────────────────────────────────────────────
 
@@ -809,11 +747,6 @@ export const IPC = {
   GET_GROUP_MEETINGS: "get-group-meetings",
   SAVE_GROUP_MEETING: "save-group-meeting",
   DELETE_GROUP_MEETING: "delete-group-meeting",
-
-  // Partner appointments (Termine)
-  GET_PARTNER_APPOINTMENTS: "get-partner-appointments",
-  SAVE_PARTNER_APPOINTMENT: "save-partner-appointment",
-  DELETE_PARTNER_APPOINTMENT: "delete-partner-appointment",
 
   // Reminders
   GET_DUE_REMINDERS: "get-due-reminders",
@@ -892,6 +825,7 @@ export type BusinessAuditAction =
   | "group-meeting-created"
   | "group-meeting-updated"
   | "group-meeting-deleted"
+  // Retained for reading audit records created before partner appointments were removed.
   | "partner-appointment-created"
   | "partner-appointment-updated"
   | "partner-appointment-deleted";
@@ -903,6 +837,7 @@ export type BusinessAuditSubjectType =
   | "attachment"
   | "processing-activities"
   | "group-meeting"
+  // Retained for reading audit records created before partner appointments were removed.
   | "partner-appointment";
 
 export interface BusinessAuditEntry {

@@ -121,8 +121,4 @@ export class SettingsService {
     return join(this.settings.dataFolderPath, "meetings.json");
   }
 
-  // Partner appointments paths
-  getAppointmentsPath(): string {
-    return join(this.settings.dataFolderPath, "appointments.json");
-  }
 }

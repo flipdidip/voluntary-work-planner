@@ -67,11 +67,6 @@ function getEventKindInfo(kind: UpcomingEvent["kind"]) {
       label: "Gruppentreffen",
       color: "badge-teal",
     },
-    "partner-appointment": {
-      icon: <Handshake size={14} />,
-      label: "Kooperationspartner-Termin",
-      color: "badge-green",
-    },
   };
   return info[kind];
 }
@@ -96,14 +91,12 @@ export default function Dashboard(): JSX.Element {
       try {
         const settings = await window.api.getSettings();
         const meetingsIdx = await window.api.getGroupMeetings();
-        const appointmentsIdx = await window.api.getPartnerAppointments();
         const events = await calculateUpcomingEvents(
           index,
           settings,
           (id) => window.api.getVolunteer(id),
           { daysLimit: 30 },
           meetingsIdx,
-          appointmentsIdx,
         );
 
         if (!cancelled) {
@@ -325,11 +318,9 @@ export default function Dashboard(): JSX.Element {
                 key={`${ev.volunteerId}-${ev.date}`}
                 className="upcoming-item card"
                 onClick={() =>
-                  ev.appointmentId
-                    ? navigate(`/appointments/${ev.appointmentId}`)
-                    : ev.meetingId
-                      ? navigate(`/meetings/${ev.meetingId}`)
-                      : navigate(`/volunteers/${ev.volunteerId}`)
+                  ev.meetingId
+                    ? navigate(`/meetings/${ev.meetingId}`)
+                    : navigate(`/volunteers/${ev.volunteerId}`)
                 }
               >
                 <div

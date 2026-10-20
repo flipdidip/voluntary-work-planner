@@ -9,7 +9,6 @@ import {
   BusinessAuditEntry,
   UserRole,
   GroupMeeting,
-  PartnerAppointment,
   VolunteerContact,
   PublicRelationsConsentOverview,
   InternReadOnlyOverview,
@@ -26,7 +25,6 @@ import { DataCryptoService } from "./dataCryptoService";
 import { ProcessingActivitiesService } from "./processingActivitiesService";
 import { BusinessAuditService } from "./businessAuditService";
 import { GroupMeetingService } from "./groupMeetingService";
-import { PartnerAppointmentService } from "./partnerAppointmentService";
 
 function getValidatedDataFolder(settings: SettingsService) {
   const dataPath = settings.getDataFolderPath();
@@ -131,17 +129,6 @@ function initializeFolderStructure(settings: SettingsService) {
   );
 
   writeEncryptedJsonIfMissing(
-    settings.getAppointmentsPath(),
-    dataPath,
-    cryptoService,
-    {
-      _version: 1,
-      _updatedAt: now,
-      appointments: [],
-    },
-  );
-
-  writeEncryptedJsonIfMissing(
     join(dataPath, "processing-activities.json"),
     dataPath,
     cryptoService,
@@ -222,19 +209,6 @@ function getGroupMeetingService(
   return new GroupMeetingService(
     access.dataPath,
     settings.getMeetingsPath(),
-    access.cryptoService,
-  );
-}
-
-function getPartnerAppointmentService(
-  settings: SettingsService,
-): PartnerAppointmentService | null {
-  const access = getValidatedDataFolder(settings);
-  if (!access) return null;
-
-  return new PartnerAppointmentService(
-    access.dataPath,
-    settings.getAppointmentsPath(),
     access.cryptoService,
   );
 }
@@ -1205,90 +1179,6 @@ export function registerVolunteerHandlers(
       return;
     }
   });
-
-  // Partner appointments (Termine) CRUD
-  ipcMain.handle(IPC.GET_PARTNER_APPOINTMENTS, () => {
-    if (isInternReadOnlyUser()) {
-      return {
-        _version: 0,
-        _updatedAt: new Date().toISOString(),
-        appointments: [],
-      };
-    }
-    try {
-      const svc = getPartnerAppointmentService(settings);
-      if (!svc)
-        return {
-          _version: 0,
-          _updatedAt: new Date().toISOString(),
-          appointments: [],
-        };
-      return svc.readAll();
-    } catch {
-      return {
-        _version: 0,
-        _updatedAt: new Date().toISOString(),
-        appointments: [],
-      };
-    }
-  });
-
-  ipcMain.handle(
-    IPC.SAVE_PARTNER_APPOINTMENT,
-    (_event, appointment: PartnerAppointment) => {
-      assertNotInternReadOnlyUser();
-      try {
-        const svc = getPartnerAppointmentService(settings);
-        if (!svc) {
-          return { success: false, error: "Kein Datenordner konfiguriert." };
-        }
-
-        const existing = svc
-          .readAll()
-          .appointments.find((entry) => entry.id === appointment.id);
-        const isNew = !existing;
-        appointment._createdBy = existing
-          ? existing._createdBy
-          : DataCryptoService.getInstance()
-              .getStatus(settings.getDataFolderPath() || "").currentUser;
-        if (!appointment.id) {
-          appointment.id = uuidv4();
-        }
-
-        const saved = svc.save(appointment);
-        appendBusinessAudit(settings, {
-          action: isNew
-            ? "partner-appointment-created"
-            : "partner-appointment-updated",
-          subjectType: "partner-appointment",
-          subjectId: saved.id,
-          details: `${saved.title} (${saved.date})`,
-        });
-        return { success: true, appointment: saved };
-      } catch (error) {
-        return { success: false, error: String(error) };
-      }
-    },
-  );
-
-  ipcMain.handle(
-    IPC.DELETE_PARTNER_APPOINTMENT,
-    (_event, appointmentId: string) => {
-      assertNotInternReadOnlyUser();
-      try {
-        const svc = getPartnerAppointmentService(settings);
-        if (!svc) return;
-        svc.delete(appointmentId);
-        appendBusinessAudit(settings, {
-          action: "partner-appointment-deleted",
-          subjectType: "partner-appointment",
-          subjectId: appointmentId,
-        });
-      } catch {
-        return;
-      }
-    },
-  );
 
   // File attachments
   ipcMain.handle(IPC.SELECT_FILE, async (event) => {
