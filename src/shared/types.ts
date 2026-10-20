@@ -8,11 +8,20 @@ export type VolunteerStatus = "active" | "inactive" | "archived";
  * Authorization role assigned to each user in the encrypted data folder.
  * - "primary"      → Full access to all features (volunteers, partners, settings, etc.)
  * - "partner-only" → Restricted view: can see Kooperationspartner, Termine, and volunteer contact details
+ * - "public-relations" → Can see volunteer and partner names and image/sound consent status
  *
  * The initial creator of the folder always receives the "primary" role.
  * Every subsequent user is assigned a role at approval time.
  */
-export type UserRole = "primary" | "partner-only";
+export type UserRole = "primary" | "partner-only" | "public-relations";
+
+export function isUserRole(value: unknown): value is UserRole {
+  return (
+    value === "primary" ||
+    value === "partner-only" ||
+    value === "public-relations"
+  );
+}
 
 export type ReminderType = "birthday-round" | "birthday-every-year" | "custom";
 
@@ -393,6 +402,19 @@ export interface VolunteerIndex {
   volunteers: VolunteerIndexEntry[];
 }
 
+export interface PublicRelationsConsentEntry {
+  firstName: string;
+  lastName: string;
+  organization?: string;
+  mediaConsentLevel: MediaConsentLevel | null;
+  consentDocumentStatus: RequirementStatus;
+}
+
+export interface PublicRelationsConsentOverview {
+  volunteers: PublicRelationsConsentEntry[];
+  partners: PublicRelationsConsentEntry[];
+}
+
 export interface VolunteerContact {
   firstName: string;
   lastName: string;
@@ -721,6 +743,8 @@ export const IPC = {
 
   // Volunteers
   GET_VOLUNTEER_INDEX: "get-volunteer-index",
+  GET_PUBLIC_RELATIONS_CONSENT_OVERVIEW:
+    "get-public-relations-consent-overview",
   GET_VOLUNTEER_CONTACTS: "get-volunteer-contacts",
   GET_VOLUNTEER: "get-volunteer",
   SAVE_VOLUNTEER: "save-volunteer",

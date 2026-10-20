@@ -27,6 +27,7 @@ import {
   EncryptionStatus,
   EnrollmentRequestSummary,
   UserRole,
+  isUserRole,
 } from "../shared/types";
 
 const CRYPTO_FOLDER = ".vwp-crypto";
@@ -631,6 +632,10 @@ export class DataCryptoService {
     keyFingerprint: string,
     role: UserRole = "primary",
   ): { approved: boolean; pendingCount: number } {
+    if (!isUserRole(role)) {
+      throw new Error("Ungültige Benutzerrolle.");
+    }
+
     const { identity, manifest } =
       this.ensureCurrentUserHasPrimaryRole(dataPath);
     const { dek } = this.getDekForCurrentUser(dataPath);
@@ -749,6 +754,10 @@ export class DataCryptoService {
     keyFingerprint: string,
     role: UserRole,
   ): { updated: boolean } {
+    if (!isUserRole(role)) {
+      throw new Error("Ungültige Benutzerrolle.");
+    }
+
     const { identity, manifest } =
       this.ensureCurrentUserHasPrimaryRole(dataPath);
     const targetEntry = manifest.wrappedDekEntries.find(
@@ -764,7 +773,7 @@ export class DataCryptoService {
       return { updated: false };
     }
 
-    if (currentRole === "primary" && role === "partner-only") {
+    if (currentRole === "primary" && role !== "primary") {
       const primaryCount = manifest.wrappedDekEntries.filter(
         (entry) => (entry.role || "primary") === "primary",
       ).length;

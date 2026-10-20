@@ -21,6 +21,7 @@ import GroupMeetings from "./pages/GroupMeetings";
 import GroupMeetingNew from "./pages/GroupMeetingNew";
 import PartnerAppointments from "./pages/PartnerAppointments";
 import PartnerAppointmentNew from "./pages/PartnerAppointmentNew";
+import PublicRelations from "./pages/PublicRelations";
 import ReminderToast from "./components/ReminderToast";
 import ConsentDialog from "./components/ConsentDialog";
 import AccessPendingOverlay from "./components/AccessPendingOverlay";
@@ -42,6 +43,8 @@ export default function App(): JSX.Element {
   const [consentGiven, setConsentGiven] = useState<boolean | null>(null);
   const [encryptionStatus, setEncryptionStatus] =
     useState<EncryptionStatus | null>(null);
+  const [hasCheckedEncryptionStatus, setHasCheckedEncryptionStatus] =
+    useState(false);
   const [showPendingRequestsNotice, setShowPendingRequestsNotice] =
     useState(false);
   const [hasShownPendingRequestsNotice, setHasShownPendingRequestsNotice] =
@@ -54,6 +57,8 @@ export default function App(): JSX.Element {
       setEncryptionStatus(status);
     } catch {
       setEncryptionStatus(null);
+    } finally {
+      setHasCheckedEncryptionStatus(true);
     }
   }, []);
 
@@ -124,13 +129,14 @@ export default function App(): JSX.Element {
     if (!encryptionStatus) return;
 
     if (
+      userRole !== "public-relations" &&
       encryptionStatus.authorized &&
       encryptionStatus.pendingRequestCount > 0
     ) {
       setShowPendingRequestsNotice(true);
       setHasShownPendingRequestsNotice(true);
     }
-  }, [consentGiven, encryptionStatus, hasShownPendingRequestsNotice]);
+  }, [consentGiven, encryptionStatus, hasShownPendingRequestsNotice, userRole]);
 
   const handleConsentAccept = async (): Promise<void> => {
     await window.api.saveSettings({
@@ -185,9 +191,51 @@ export default function App(): JSX.Element {
     );
   }
 
+  if (!hasCheckedEncryptionStatus) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          fontSize: "1.2rem",
+          color: "var(--color-text-muted)",
+        }}
+      >
+        Berechtigungen werden geprüft...
+      </div>
+    );
+  }
+
+  if (!encryptionStatus) {
+    return (
+      <div
+        role="alert"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "12px",
+          height: "100vh",
+          color: "var(--color-text-muted)",
+        }}
+      >
+        <p>Berechtigungen konnten nicht geprüft werden.</p>
+        <button
+          className="btn btn-secondary"
+          onClick={() => void refreshEncryptionStatus()}
+        >
+          Erneut versuchen
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
-      {liveReminders.length > 0 && (
+      {userRole !== "public-relations" && liveReminders.length > 0 && (
         <ReminderToast reminders={liveReminders} onDismiss={dismissLive} />
       )}
       {showFolderSetupOverlay && (
@@ -211,7 +259,9 @@ export default function App(): JSX.Element {
           }}
         />
       )}
-      {showPendingRequestsNotice && encryptionStatus?.authorized && (
+      {userRole !== "public-relations" &&
+        showPendingRequestsNotice &&
+        encryptionStatus?.authorized && (
         <PendingRequestsNoticeModal
           pendingCount={encryptionStatus.pendingRequestCount}
           onOpenSettings={() => {
@@ -226,7 +276,22 @@ export default function App(): JSX.Element {
         userRole={userRole}
       >
         <Routes>
-          {userRole === "partner-only" ? (
+          {userRole === "public-relations" ? (
+            <>
+              <Route
+                path="/"
+                element={<Navigate to="/public-relations" replace />}
+              />
+              <Route
+                path="/public-relations"
+                element={<PublicRelations />}
+              />
+              <Route
+                path="*"
+                element={<Navigate to="/public-relations" replace />}
+              />
+            </>
+          ) : userRole === "partner-only" ? (
             <>
               <Route path="/" element={<Navigate to="/partners" replace />} />
               <Route path="/partners" element={<PartnerList />} />
