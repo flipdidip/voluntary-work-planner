@@ -83,6 +83,10 @@
   font-weight: 600;
 }
 
+.theme-settings-error {
+  color: var(--color-danger);
+}
+
 .info-grid {
   display: grid;
   grid-template-columns: 140px 1fr;

@@ -261,6 +261,7 @@ export function registerVolunteerHandlers(
               "privacyConsentGiven",
               "privacyConsentDate",
               "privacyConsentVersion",
+              "themeMode",
             ].some((allowedKey) => allowedKey === key),
         )
       ) {
@@ -286,7 +287,6 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.SELECT_DATA_FOLDER, async (event) => {
-    assertNotInternReadOnlyUser();
     const win = require("electron").BrowserWindow.fromWebContents(event.sender);
     const result = await dialog.showOpenDialog(win!, {
       title: "Datenordner auswählen (OneDrive / SharePoint Sync)",

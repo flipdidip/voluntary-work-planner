@@ -189,8 +189,8 @@ Notes:
 | -------------------- | ------------------ | ---------------- |
 | `primary`            | Dashboard, Ereignisse, Ehrenamtliche, Gruppen Treffen, Kooperationspartner, Einstellungen | Alle Verwaltungsseiten ausser Ehrenamtliche Kontakte, Oeffentlichkeitsarbeit und Interne Uebersicht |
 | `partner-only`       | Ehrenamtliche Kontakte, Kooperationspartner, Einstellungen | Ehrenamtliche Kontakte (Aufgaben und Kontaktsymbole fuer Telefon, Mobil und E-Mail), Kooperationspartner und Einstellungen |
-| `public-relations`   | Oeffentlichkeitsarbeit | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt, Aufgaben sowie Bild- und Ton-Einwilligung |
-| `intern-read-only`   | Interne Uebersicht | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt sowie Qualifikationen und Nachweisen. Neue Akte-Eintraege duerfen hinzugefuegt werden; bestehende Akten bleiben verborgen. |
+| `public-relations`   | Oeffentlichkeitsarbeit, Einstellungen | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt, Aufgaben sowie Bild- und Ton-Einwilligung; Darstellung und gemeinsamer Datenordner |
+| `intern-read-only`   | Interne Uebersicht, Einstellungen | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt sowie Qualifikationen und Nachweisen. Neue Akte-Eintraege duerfen hinzugefuegt werden; bestehende Akten bleiben verborgen. Darstellung und gemeinsamer Datenordner. |
 
 - The initial creator of a data folder always receives the `primary` role.
 - Every subsequent user is assigned a role by the approver at approval time.
