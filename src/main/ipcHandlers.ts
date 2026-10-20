@@ -9,6 +9,7 @@ import {
   BusinessAuditEntry,
   UserRole,
   GroupMeeting,
+  GroupMeetingAttachment,
   VolunteerContact,
   RequirementRecord,
   RecordAuditMetadata,
@@ -274,6 +275,7 @@ function getGroupMeetingService(
   return new GroupMeetingService(
     access.dataPath,
     settings.getMeetingsPath(),
+    settings.getGroupMeetingAttachmentsPath(),
     access.cryptoService,
   );
 }
@@ -1269,7 +1271,7 @@ export function registerVolunteerHandlers(
     try {
       const svc = getGroupMeetingService(settings);
       if (!svc) return;
-      svc.delete(meetingId);
+      if (!svc.delete(meetingId)) return;
       appendBusinessAudit(settings, {
         action: "group-meeting-deleted",
         subjectType: "group-meeting",
@@ -1279,6 +1281,98 @@ export function registerVolunteerHandlers(
       return;
     }
   });
+
+  ipcMain.handle(
+    IPC.UPLOAD_GROUP_MEETING_ATTACHMENT,
+    (
+      _event,
+      meetingId: string,
+      sourcePath: string,
+    ):
+      | { success: true; attachment: GroupMeetingAttachment }
+      | { success: false; error: string } => {
+      assertNotInternReadOnlyUser();
+      try {
+        const svc = getGroupMeetingService(settings);
+        if (!svc) {
+          return { success: false, error: "Kein Datenordner konfiguriert." };
+        }
+        const uploadedBy = DataCryptoService.getInstance()
+          .getStatus(settings.getDataFolderPath() || "")
+          .currentUser;
+        const result = svc.uploadAttachment(
+          meetingId,
+          sourcePath,
+          uploadedBy,
+        );
+        if (result.success) {
+          appendBusinessAudit(settings, {
+            action: "file-uploaded",
+            subjectType: "group-meeting",
+            subjectId: meetingId,
+            details: `${result.attachment.fileName} -> Gruppentreffen`,
+          });
+        }
+        return result;
+      } catch (error) {
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.OPEN_GROUP_MEETING_ATTACHMENT,
+    async (_event, meetingId: string, attachmentId: string, fileName: string) => {
+      assertNotInternReadOnlyUser();
+      try {
+        const svc = getGroupMeetingService(settings);
+        if (!svc) {
+          return { success: false, error: "Kein Datenordner konfiguriert." };
+        }
+        const result = await svc.openAttachment(
+          meetingId,
+          attachmentId,
+          fileName,
+        );
+        if (result.success) {
+          appendBusinessAudit(settings, {
+            action: "file-opened",
+            subjectType: "group-meeting",
+            subjectId: meetingId,
+            details: fileName,
+          });
+        }
+        return result;
+      } catch (error) {
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    IPC.DELETE_GROUP_MEETING_ATTACHMENT,
+    (_event, meetingId: string, attachmentId: string, fileName: string) => {
+      assertNotInternReadOnlyUser();
+      try {
+        const svc = getGroupMeetingService(settings);
+        if (!svc) {
+          return { success: false, error: "Kein Datenordner konfiguriert." };
+        }
+        const result = svc.deleteAttachment(meetingId, attachmentId);
+        if (result.success) {
+          appendBusinessAudit(settings, {
+            action: "file-deleted",
+            subjectType: "group-meeting",
+            subjectId: meetingId,
+            details: fileName,
+          });
+        }
+        return result;
+      } catch (error) {
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 
   // File attachments
   ipcMain.handle(IPC.SELECT_FILE, async (event) => {

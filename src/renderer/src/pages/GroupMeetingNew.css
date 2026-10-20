@@ -51,17 +51,115 @@
   border-top: 1px solid var(--color-border);
 }
 
-/* Participant picker */
-.participant-section {
+.meeting-created-by {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.section-heading-toggle,
+.meeting-attachments h3,
+.attendance-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.section-heading-toggle {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.section-heading-toggle span {
+  flex: 1;
+}
+
+.section-heading-toggle > svg:last-child {
+  transition: transform 0.15s;
+}
+
+.section-heading-toggle > svg:last-child.collapsed {
+  transform: rotate(-90deg);
+}
+
+.section-content {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.participant-section h3 {
+.meeting-attachments {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.meeting-attachments h3 {
+  display: flex;
+}
+
+.meeting-attachments p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+}
+
+.meeting-attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-text);
+  list-style: none;
+}
+
+.meeting-attachment-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+}
+
+.meeting-attachment-list li span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.meeting-attachment-list .attachment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meeting-attachment-list .attachment-details small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+
+.meeting-attachment-list .attachment-removed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Participant picker */
+.participant-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .participant-bulk-actions {
@@ -213,15 +311,6 @@
   border-top: 1px solid var(--color-border);
 }
 
-.email-actions-section h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-text);
-}
-
 .email-participant-list {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -314,6 +403,10 @@
   gap: 10px;
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
+}
+
+.attendance-section h3 {
+  display: flex;
 }
 
 .attendance-summary {

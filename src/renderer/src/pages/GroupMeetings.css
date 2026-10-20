@@ -86,6 +86,14 @@
   flex: 1;
 }
 
+.group-meetings-page .meeting-attachment-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
 .group-meetings-page .meeting-participants {
   display: flex;
   gap: 6px;
