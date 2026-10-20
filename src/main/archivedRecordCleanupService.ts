@@ -40,6 +40,11 @@ export class ArchivedRecordCleanupService {
   constructor(private settings: SettingsService) {}
 
   run(now = new Date()): CleanupResult {
+    const settings = this.settings.get();
+    if (!settings.enableArchivedRecordDeletion) {
+      return { deletedVolunteers: 0, deletedPartners: 0, deletedRecords: [] };
+    }
+
     const dataPath = this.settings.getDataFolderPath();
     if (!dataPath) {
       return { deletedVolunteers: 0, deletedPartners: 0, deletedRecords: [] };
@@ -55,10 +60,7 @@ export class ArchivedRecordCleanupService {
       return { deletedVolunteers: 0, deletedPartners: 0, deletedRecords: [] };
     }
 
-    const cutoff = subMonths(
-      now,
-      this.settings.get().archivedDeletionAfterMonths,
-    );
+    const cutoff = subMonths(now, settings.archivedDeletionAfterMonths);
     const auditService = new BusinessAuditService(dataPath, cryptoService);
     const result: CleanupResult = {
       deletedVolunteers: 0,

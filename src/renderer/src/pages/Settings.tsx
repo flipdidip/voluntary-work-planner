@@ -48,8 +48,10 @@ export default function Settings({
   const { themeMode, setThemeMode } = useTheme();
   const [dataPath, setDataPath] = useState("");
   const [interval, setInterval] = useState(60);
+  const [enableArchivedRecordDeletion, setEnableArchivedRecordDeletion] =
+    useState(false);
   const [archivedDeletionAfterMonths, setArchivedDeletionAfterMonths] =
-    useState(6);
+    useState(12);
   const [saved, setSaved] = useState(false);
   const [appVersion, setAppVersion] = useState("");
   const [enableYearlyBirthday, setEnableYearlyBirthday] = useState(true);
@@ -230,6 +232,7 @@ export default function Settings({
     loadProcessingActivities();
     window.api.getSettings().then((settings) => {
       setInterval(settings.reminderCheckIntervalMinutes);
+      setEnableArchivedRecordDeletion(settings.enableArchivedRecordDeletion);
       setArchivedDeletionAfterMonths(settings.archivedDeletionAfterMonths);
       setEnableYearlyBirthday(settings.enableYearlyBirthdayReminders);
       setConsentDate(settings.privacyConsentDate);
@@ -556,6 +559,7 @@ export default function Settings({
 
     await window.api.saveSettings({
       reminderCheckIntervalMinutes: interval,
+      enableArchivedRecordDeletion,
       archivedDeletionAfterMonths,
       enableYearlyBirthdayReminders: enableYearlyBirthday,
       enableRoundBirthdayReminders: enableRoundBirthday,
@@ -979,8 +983,18 @@ export default function Settings({
           {userRole === "primary" && (
             <div className="settings-card card">
               <h2>Automatische Löschung archivierter Datensätze</h2>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={enableArchivedRecordDeletion}
+                  onChange={(e) =>
+                    setEnableArchivedRecordDeletion(e.target.checked)
+                  }
+                />
+                <span>Automatische Löschung aktivieren</span>
+              </label>
               <label>
-                Nach wie vielen Monaten Inaktivität löschen?
+                Nach wie vielen Monaten Archivierung löschen?
                 <input
                   className="input interval-input"
                   type="number"
@@ -995,10 +1009,10 @@ export default function Settings({
                 />
               </label>
               <p className="hint">
-                Ehrenamtliche und Kooperationspartner mit dem Status
-                „Archiviert“ werden beim nächsten App-Start gelöscht, wenn sie
-                seit mindestens dieser Frist archiviert sind. Standard: 6
-                Monate.
+                {enableArchivedRecordDeletion
+                  ? "Ehrenamtliche und Kooperationspartner mit dem Status „Archiviert“ werden beim nächsten App-Start gelöscht, wenn sie seit mindestens dieser Frist archiviert sind."
+                  : "Die automatische Löschung ist inaktiv. Aktivieren Sie sie, damit archivierte Ehrenamtliche und Kooperationspartner beim nächsten App-Start nach Ablauf der Frist gelöscht werden."}{" "}
+                Standard: 12 Monate.
               </p>
             </div>
           )}
