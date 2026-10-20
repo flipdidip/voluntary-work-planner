@@ -15,6 +15,7 @@ import {
   GroupMeetingIndex,
   PartnerAppointment,
   PartnerAppointmentIndex,
+  VolunteerContact,
 } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
@@ -127,6 +128,9 @@ const api = {
 
   // Volunteers
   getVolunteerIndex: () => ipcRenderer.invoke(IPC.GET_VOLUNTEER_INDEX),
+
+  getVolunteerContacts: (): Promise<VolunteerContact[]> =>
+    ipcRenderer.invoke(IPC.GET_VOLUNTEER_CONTACTS),
 
   getVolunteer: (id: string) => ipcRenderer.invoke(IPC.GET_VOLUNTEER, id),
 

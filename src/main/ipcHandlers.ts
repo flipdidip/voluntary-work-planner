@@ -9,6 +9,7 @@ import {
   UserRole,
   GroupMeeting,
   PartnerAppointment,
+  VolunteerContact,
   createDefaultProcessingActivitiesDocument,
 } from "@shared/types";
 import { SettingsService } from "./settingsService";
@@ -592,6 +593,18 @@ export function registerVolunteerHandlers(
     try {
       const svc = getFileService(settings);
       if (!svc) return null;
+      const dataPath = settings.getDataFolderPath();
+      if (
+        dataPath &&
+        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
+          "partner-only"
+      ) {
+        return {
+          _version: 0,
+          _updatedAt: new Date().toISOString(),
+          volunteers: [],
+        };
+      }
       return svc.readIndex();
     } catch {
       return {
@@ -602,10 +615,49 @@ export function registerVolunteerHandlers(
     }
   });
 
+  ipcMain.handle(
+    IPC.GET_VOLUNTEER_CONTACTS,
+    (): VolunteerContact[] => {
+      const dataPath = settings.getDataFolderPath();
+      if (!dataPath) {
+        throw new Error("Kein Datenordner konfiguriert.");
+      }
+
+      const cryptoService = DataCryptoService.getInstance();
+      const status = cryptoService.getStatus(dataPath);
+      if (!status.authorized || status.userRole !== "partner-only") {
+        throw new Error(
+          "Diese Kontaktliste ist nur für Kooperationspartner verfügbar.",
+        );
+      }
+
+      const svc = getFileService(settings);
+      if (!svc) {
+        throw new Error("Kein Datenordner konfiguriert.");
+      }
+
+      return svc.readIndex().volunteers.map((volunteer) => ({
+        firstName: volunteer.firstName,
+        lastName: volunteer.lastName,
+        phone: volunteer.phone,
+        mobile: volunteer.mobile,
+        roles: volunteer.roles ?? [],
+      }));
+    },
+  );
+
   ipcMain.handle(IPC.GET_VOLUNTEER, (_event, id: string) => {
     try {
       const svc = getFileService(settings);
       if (!svc) return null;
+      const dataPath = settings.getDataFolderPath();
+      if (
+        dataPath &&
+        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
+          "partner-only"
+      ) {
+        return null;
+      }
       return svc.readVolunteer(id);
     } catch {
       return null;

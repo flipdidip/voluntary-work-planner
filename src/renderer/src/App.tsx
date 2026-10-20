@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import VolunteerList from "./pages/VolunteerList";
 import VolunteerDetail from "./pages/VolunteerDetail";
 import VolunteerNew from "./pages/VolunteerNew";
+import VolunteerContacts from "./pages/VolunteerContacts";
 import PartnerList from "./pages/PartnerList";
 import PartnerDetail from "./pages/PartnerDetail";
 import PartnerNew from "./pages/PartnerNew";
@@ -231,6 +232,10 @@ export default function App(): JSX.Element {
               <Route path="/partners" element={<PartnerList />} />
               <Route path="/partners/new" element={<PartnerNew />} />
               <Route path="/partners/:id" element={<PartnerDetail />} />
+              <Route
+                path="/volunteer-contacts"
+                element={<VolunteerContacts />}
+              />
               <Route path="/appointments" element={<PartnerAppointments />} />
               <Route
                 path="/appointments/new"

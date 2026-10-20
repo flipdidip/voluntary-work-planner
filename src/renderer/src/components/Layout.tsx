@@ -6,6 +6,7 @@ import {
   Calendar,
   Handshake,
   Users2,
+  Phone,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { UserRole } from "@shared/types";
@@ -32,6 +33,13 @@ const navItems = [
     primaryOnly: false,
   },
   { to: "/volunteers", label: "Ehrenamtliche", icon: Users, primaryOnly: true },
+  {
+    to: "/volunteer-contacts",
+    label: "Ehrenamtliche Kontakte",
+    icon: Phone,
+    primaryOnly: true,
+    partnerOnly: true,
+  },
   {
     to: "/meetings",
     label: "Gruppen Treffen",
@@ -65,8 +73,14 @@ export default function Layout({
 }: LayoutProps): JSX.Element {
   const visibleNavItems =
     userRole === "partner-only"
-      ? navItems.filter((item) => !item.primaryOnly)
-      : navItems;
+      ? navItems.filter(
+          (item) =>
+            !item.primaryOnly ||
+            ("partnerOnly" in item && item.partnerOnly === true),
+        )
+      : navItems.filter(
+          (item) => !("partnerOnly" in item && item.partnerOnly === true),
+        );
   return (
     <div className="layout">
       <aside className="sidebar">

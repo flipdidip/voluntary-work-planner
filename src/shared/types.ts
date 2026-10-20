@@ -7,7 +7,7 @@ export type VolunteerStatus = "active" | "inactive" | "archived";
 /**
  * Authorization role assigned to each user in the encrypted data folder.
  * - "primary"      → Full access to all features (volunteers, partners, settings, etc.)
- * - "partner-only" → Restricted view: can see the Kooperationspartner and Termine pages
+ * - "partner-only" → Restricted view: can see Kooperationspartner, Termine, and volunteer contact details
  *
  * The initial creator of the folder always receives the "primary" role.
  * Every subsequent user is assigned a role at approval time.
@@ -393,6 +393,14 @@ export interface VolunteerIndex {
   volunteers: VolunteerIndexEntry[];
 }
 
+export interface VolunteerContact {
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  mobile?: string;
+  roles: string[];
+}
+
 // ─────────────────────────────────────────────────
 // DSGVO processing activities (Art. 30)
 // ─────────────────────────────────────────────────
@@ -713,6 +721,7 @@ export const IPC = {
 
   // Volunteers
   GET_VOLUNTEER_INDEX: "get-volunteer-index",
+  GET_VOLUNTEER_CONTACTS: "get-volunteer-contacts",
   GET_VOLUNTEER: "get-volunteer",
   SAVE_VOLUNTEER: "save-volunteer",
   DELETE_VOLUNTEER: "delete-volunteer",
