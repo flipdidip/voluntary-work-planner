@@ -117,6 +117,11 @@
   color: var(--color-badge-teal-fg);
 }
 
+.group-meetings-page .participant-badge.type-hauptamtliche {
+  background: var(--color-badge-purple-bg);
+  color: var(--color-badge-purple-fg);
+}
+
 .group-meetings-page .meeting-attendance-summary {
   display: flex;
   gap: 6px;

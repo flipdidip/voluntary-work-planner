@@ -125,4 +125,8 @@ export class SettingsService {
     return join(this.settings.dataFolderPath, "group-meeting-attachments");
   }
 
+  getHauptamtlichePath(): string {
+    return join(this.settings.dataFolderPath, "hauptamtliche.json");
+  }
+
 }

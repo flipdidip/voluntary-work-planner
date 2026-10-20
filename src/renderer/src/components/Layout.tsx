@@ -6,6 +6,7 @@ import {
   Calendar,
   Handshake,
   Users2,
+  MessagesSquare,
   Phone,
   Megaphone,
 } from "lucide-react";
@@ -44,7 +45,13 @@ const navItems = [
   {
     to: "/meetings",
     label: "Gruppen Treffen",
-    icon: Users2,
+    icon: MessagesSquare,
+    primaryOnly: true,
+  },
+  {
+    to: "/hauptamtliche",
+    label: "Hauptamtliche",
+    icon: Users,
     primaryOnly: true,
   },
   {

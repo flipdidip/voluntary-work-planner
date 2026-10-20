@@ -59,7 +59,9 @@ export default function GroupMeetings(): JSX.Element {
       const source =
         p.type === "volunteer"
           ? volunteerIndex?.volunteers
-          : partnerIndex?.volunteers;
+          : p.type === "partner"
+            ? partnerIndex?.volunteers
+            : undefined;
       const entry = source?.find((v) => v.id === p.id);
       if (entry?.email?.trim()) emails.push(entry.email.trim());
     }
@@ -91,7 +93,9 @@ export default function GroupMeetings(): JSX.Element {
       const source =
         p.type === "volunteer"
           ? volunteerIndex?.volunteers
-          : partnerIndex?.volunteers;
+          : p.type === "partner"
+            ? partnerIndex?.volunteers
+            : undefined;
       const entry = source?.find((v) => v.id === p.id);
       if (entry?.email?.trim()) emails.push(entry.email.trim());
     }

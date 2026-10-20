@@ -29,14 +29,16 @@ import {
   GroupMeetingAttendanceStatus,
   GroupMeetingParticipant,
   GROUP_MEETING_ATTENDANCE_LABELS,
+  Hauptamtliche,
   VolunteerIndexEntry,
 } from "@shared/types";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
 import { usePartnerIndex } from "../hooks/usePartners";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
+import { useHauptamtliche } from "../hooks/useHauptamtliche";
 import "./GroupMeetingNew.css";
 
-type ParticipantTab = "volunteer" | "partner";
+type ParticipantTab = "volunteer" | "partner" | "hauptamtliche";
 
 const ATTENDANCE_STATUSES: GroupMeetingAttendanceStatus[] = [
   "present",
@@ -52,6 +54,7 @@ export default function GroupMeetingNew(): JSX.Element {
 
   const { index: volunteerIndex } = useVolunteerIndex();
   const { index: partnerIndex } = usePartnerIndex();
+  const { index: hauptamtlicheIndex } = useHauptamtliche();
   const { index: meetingsIndex } = useGroupMeetings();
 
   const [title, setTitle] = useState("");
@@ -116,6 +119,7 @@ export default function GroupMeetingNew(): JSX.Element {
       (partnerIndex?.volunteers ?? []).filter((v) => v.status !== "archived"),
     [partnerIndex],
   );
+  const hauptamtliche: Hauptamtliche[] = hauptamtlicheIndex?.people ?? [];
 
   const activeVolunteers = useMemo(
     () => volunteers.filter((entry) => entry.status === "active"),
@@ -127,15 +131,29 @@ export default function GroupMeetingNew(): JSX.Element {
     [partners],
   );
 
-  const currentList = activeTab === "volunteer" ? volunteers : partners;
+  const currentList =
+    activeTab === "volunteer"
+      ? volunteers
+      : activeTab === "partner"
+        ? partners
+        : [];
   const currentActiveList =
-    activeTab === "volunteer" ? activeVolunteers : activePartners;
+    activeTab === "volunteer"
+      ? activeVolunteers
+      : activeTab === "partner"
+        ? activePartners
+        : [];
 
   // ── E-Mail helpers ──
   const participantEmails = useMemo(() => {
     const emailMap: Record<string, string | undefined> = {};
     for (const p of participants) {
-      const source = p.type === "volunteer" ? volunteers : partners;
+      const source =
+        p.type === "volunteer"
+          ? volunteers
+          : p.type === "partner"
+            ? partners
+            : [];
       const entry = source.find((e) => e.id === p.id);
       emailMap[p.id] = entry?.email;
     }
@@ -203,17 +221,21 @@ export default function GroupMeetingNew(): JSX.Element {
   };
 
   const isParticipantSelected = (entryId: string): boolean =>
-    participants.some((p) => p.id === entryId);
+    participants.some((p) => p.id === entryId && p.type === activeTab);
 
-  const toggleParticipant = (entry: VolunteerIndexEntry): void => {
+  const toggleParticipant = (
+    entry: VolunteerIndexEntry | Hauptamtliche,
+  ): void => {
     if (isParticipantSelected(entry.id)) {
-      setParticipants((prev) => prev.filter((p) => p.id !== entry.id));
+      setParticipants((prev) =>
+        prev.filter((p) => p.id !== entry.id || p.type !== activeTab),
+      );
     } else {
       setParticipants((prev) => [
         ...prev,
         {
           id: entry.id,
-          name: `${entry.firstName} ${entry.lastName}`,
+          name: `${entry.firstName} ${entry.lastName}`.trim(),
           type: activeTab,
           attendance: "unknown",
         },
@@ -222,8 +244,31 @@ export default function GroupMeetingNew(): JSX.Element {
   };
 
   const selectAllActiveForTab = (): void => {
+    if (activeTab === "hauptamtliche") {
+      setParticipants((prev) => {
+        const existingIds = new Set(
+          prev
+            .filter((participant) => participant.type === activeTab)
+            .map((participant) => participant.id),
+        );
+        const additions = hauptamtliche
+          .filter((person) => !existingIds.has(person.id))
+          .map((person) => ({
+            id: person.id,
+            name: `${person.firstName} ${person.lastName}`,
+            type: activeTab,
+            attendance: "unknown" as const,
+          }));
+        return [...prev, ...additions];
+      });
+      return;
+    }
     setParticipants((prev) => {
-      const existingIds = new Set(prev.map((participant) => participant.id));
+      const existingIds = new Set(
+        prev
+          .filter((participant) => participant.type === activeTab)
+          .map((participant) => participant.id),
+      );
       const additions = currentActiveList
         .filter((entry) => !existingIds.has(entry.id))
         .map((entry) => ({
@@ -599,7 +644,9 @@ export default function GroupMeetingNew(): JSX.Element {
                       <div className="attendance-type-label">
                         {participant.type === "volunteer"
                           ? "Ehrenamtlich"
-                          : "Kooperationspartner"}
+                          : participant.type === "partner"
+                            ? "Kooperationspartner"
+                            : "Hauptamtlich"}
                       </div>
                     </div>
                     <div className="attendance-lights">
@@ -675,13 +722,22 @@ export default function GroupMeetingNew(): JSX.Element {
                   type="button"
                   className="btn btn-ghost"
                   onClick={selectAllActiveForTab}
-                  disabled={currentActiveList.length === 0}
+                  disabled={
+                    activeTab === "hauptamtliche"
+                      ? hauptamtliche.length === 0
+                      : currentActiveList.length === 0
+                  }
                 >
-                  Alle aktiven{" "}
-                  {activeTab === "volunteer"
-                    ? "Ehrenamtlichen"
-                    : "Kooperationspartner"}{" "}
-                  auswählen ({currentActiveList.length})
+                  {activeTab === "hauptamtliche"
+                    ? "Alle Hauptamtlichen auswählen"
+                    : `Alle aktiven ${
+                        activeTab === "volunteer"
+                          ? "Ehrenamtlichen"
+                          : "Kooperationspartner"
+                      } auswählen`}{" "}
+                  ({activeTab === "hauptamtliche"
+                    ? hauptamtliche.length
+                    : currentActiveList.length})
                 </button>
                 <button
                   type="button"
@@ -708,11 +764,40 @@ export default function GroupMeetingNew(): JSX.Element {
                 >
                   Kooperationspartner ({partners.length})
                 </button>
+                <button
+                  type="button"
+                  className={`participant-type-tab${activeTab === "hauptamtliche" ? " active" : ""}`}
+                  onClick={() => setActiveTab("hauptamtliche")}
+                >
+                  Hauptamtliche ({hauptamtliche.length})
+                </button>
               </div>
 
               {/* Pick list */}
               <div className="participant-picker-list">
-                {currentList.length === 0 && (
+                {activeTab === "hauptamtliche" ? (
+                  hauptamtliche.length === 0 ? (
+                    <div
+                      className="text-muted"
+                      style={{ padding: "12px", textAlign: "center" }}
+                    >
+                      Keine Hauptamtlichen vorhanden
+                    </div>
+                  ) : (
+                    hauptamtliche.map((person) => (
+                      <label key={person.id} className="participant-pick-item">
+                        <input
+                          type="checkbox"
+                          checked={isParticipantSelected(person.id)}
+                          onChange={() => toggleParticipant(person)}
+                        />
+                        <span className="participant-pick-name">
+                          {person.firstName} {person.lastName}
+                        </span>
+                      </label>
+                    ))
+                  )
+                ) : currentList.length === 0 ? (
                   <div
                     className="text-muted"
                     style={{ padding: "12px", textAlign: "center" }}
@@ -723,8 +808,7 @@ export default function GroupMeetingNew(): JSX.Element {
                       : "Kooperationspartner"}{" "}
                     vorhanden
                   </div>
-                )}
-                {currentList.map((entry) => (
+                ) : currentList.map((entry) => (
                   <label key={entry.id} className="participant-pick-item">
                     <input
                       type="checkbox"

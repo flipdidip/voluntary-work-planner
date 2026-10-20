@@ -63,9 +63,12 @@ export class GroupMeetingService {
                     typeof participant?.name === "string"
                       ? participant.name
                       : "",
-                  type: (participant?.type === "partner"
-                    ? "partner"
-                    : "volunteer") as "partner" | "volunteer",
+                  type:
+                    participant?.type === "partner"
+                      ? "partner"
+                      : participant?.type === "hauptamtliche"
+                        ? "hauptamtliche"
+                        : "volunteer",
                   attendance:
                     participant?.attendance === "present" ||
                     participant?.attendance === "absent" ||
