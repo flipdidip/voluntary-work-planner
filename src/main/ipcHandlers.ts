@@ -11,6 +11,9 @@ import {
   PartnerAppointment,
   VolunteerContact,
   PublicRelationsConsentOverview,
+  InternReadOnlyOverview,
+  REQUIREMENT_DEFINITIONS,
+  calculateRequirementsStatus,
   createDefaultProcessingActivitiesDocument,
 } from "@shared/types";
 import { SettingsService } from "./settingsService";
@@ -253,6 +256,20 @@ export function registerVolunteerHandlers(
   settings: SettingsService,
   onRemindersTriggered?: (reminders: DueReminder[]) => void,
 ): void {
+  const isInternReadOnlyUser = (): boolean => {
+    const dataPath = settings.getDataFolderPath();
+    return Boolean(
+      dataPath &&
+        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
+          "intern-read-only",
+    );
+  };
+  const assertNotInternReadOnlyUser = (): void => {
+    if (isInternReadOnlyUser()) {
+      throw new Error("Interne Mitarbeitende haben ausschließlich Lesezugriff.");
+    }
+  };
+
   // Settings
   ipcMain.handle(IPC.GET_DATA_PATH, () => settings.getDataFolderPath());
 
@@ -261,6 +278,19 @@ export function registerVolunteerHandlers(
   ipcMain.handle(
     IPC.SAVE_SETTINGS,
     (_event, partial: Partial<import("@shared/types").AppSettings>) => {
+      if (
+        isInternReadOnlyUser() &&
+        Object.keys(partial).some(
+          (key) =>
+            ![
+              "privacyConsentGiven",
+              "privacyConsentDate",
+              "privacyConsentVersion",
+            ].some((allowedKey) => allowedKey === key),
+        )
+      ) {
+        assertNotInternReadOnlyUser();
+      }
       settings.set(partial);
       appendBusinessAudit(settings, {
         action: "settings-saved",
@@ -272,6 +302,7 @@ export function registerVolunteerHandlers(
   );
 
   ipcMain.handle(IPC.SET_DATA_PATH, (_event, folderPath: string) => {
+    assertNotInternReadOnlyUser();
     settings.set({ dataFolderPath: folderPath });
     return {
       success: true,
@@ -280,6 +311,7 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.SELECT_DATA_FOLDER, async (event) => {
+    assertNotInternReadOnlyUser();
     const win = require("electron").BrowserWindow.fromWebContents(event.sender);
     const result = await dialog.showOpenDialog(win!, {
       title: "Datenordner auswählen (OneDrive / SharePoint Sync)",
@@ -293,6 +325,7 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.INITIALIZE_DATA_FOLDER, () => {
+    assertNotInternReadOnlyUser();
     return initializeFolderStructure(settings);
   });
 
@@ -500,6 +533,7 @@ export function registerVolunteerHandlers(
   ipcMain.handle(
     IPC.SAVE_PROCESSING_ACTIVITIES,
     (_event, document: ProcessingActivitiesDocument) => {
+      assertNotInternReadOnlyUser();
       try {
         const service = getProcessingActivitiesService(settings);
         if (!service) {
@@ -525,6 +559,7 @@ export function registerVolunteerHandlers(
   );
 
   ipcMain.handle(IPC.EXPORT_PROCESSING_ACTIVITIES_MARKDOWN, async (event) => {
+    assertNotInternReadOnlyUser();
     try {
       const service = getProcessingActivitiesService(settings);
       if (!service) {
@@ -560,6 +595,7 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.EXPORT_BUSINESS_AUDIT_MARKDOWN, async (event) => {
+    assertNotInternReadOnlyUser();
     try {
       const service = getBusinessAuditService(settings);
       if (!service) {
@@ -658,6 +694,59 @@ export function registerVolunteerHandlers(
     },
   );
 
+  ipcMain.handle(
+    IPC.GET_INTERN_READ_ONLY_OVERVIEW,
+    (): InternReadOnlyOverview => {
+      const dataPath = settings.getDataFolderPath();
+      if (!dataPath) {
+        throw new Error("Kein Datenordner konfiguriert.");
+      }
+
+      const status = DataCryptoService.getInstance().getStatus(dataPath);
+      if (!status.authorized || status.userRole !== "intern-read-only") {
+        throw new Error(
+          "Diese Übersicht ist nur für interne Mitarbeitende verfügbar.",
+        );
+      }
+
+      const volunteerService = getFileService(settings);
+      const partnerService = getPartnerFileService(settings);
+      if (!volunteerService || !partnerService) {
+        throw new Error("Kein Datenordner konfiguriert.");
+      }
+
+      const toInternEntries = (
+        entries: Volunteer[],
+      ): InternReadOnlyOverview["volunteers"] =>
+        entries
+          .filter((entry) => entry.internVisible === true)
+          .map((entry) => {
+            const requirementsStatus = calculateRequirementsStatus(entry);
+            return {
+              firstName: entry.firstName,
+              lastName: entry.lastName,
+              organization: entry.organization,
+              phone: entry.phone,
+              mobile: entry.mobile,
+              email: entry.email,
+              qualifications: (
+                Object.keys(REQUIREMENT_DEFINITIONS) as Array<
+                  keyof typeof REQUIREMENT_DEFINITIONS
+                >
+              ).map((requirementType) => ({
+                requirementType,
+                status: requirementsStatus[requirementType],
+              })),
+            };
+          });
+
+      return {
+        volunteers: toInternEntries(volunteerService.readAllVolunteers()),
+        partners: toInternEntries(partnerService.readAllVolunteers()),
+      };
+    },
+  );
+
   ipcMain.handle(IPC.GET_VOLUNTEER_INDEX, () => {
     try {
       const svc = getFileService(settings);
@@ -665,7 +754,7 @@ export function registerVolunteerHandlers(
       const dataPath = settings.getDataFolderPath();
       if (
         dataPath &&
-        ["partner-only", "public-relations"].includes(
+        ["partner-only", "public-relations", "intern-read-only"].includes(
           DataCryptoService.getInstance().getStatus(dataPath).userRole || "",
         )
       ) {
@@ -724,7 +813,7 @@ export function registerVolunteerHandlers(
       const dataPath = settings.getDataFolderPath();
       if (
         dataPath &&
-        ["partner-only", "public-relations"].includes(
+        ["partner-only", "public-relations", "intern-read-only"].includes(
           DataCryptoService.getInstance().getStatus(dataPath).userRole || "",
         )
       ) {
@@ -739,6 +828,13 @@ export function registerVolunteerHandlers(
   ipcMain.handle(
     IPC.SAVE_VOLUNTEER,
     (_event, volunteer: Volunteer): SaveResult => {
+      if (isInternReadOnlyUser()) {
+        return {
+          success: false,
+          reason: "io-error",
+          message: "Interne Mitarbeitende haben ausschließlich Lesezugriff.",
+        };
+      }
       let svc: VolunteerFileService | null = null;
       try {
         svc = getFileService(settings);
@@ -768,6 +864,7 @@ export function registerVolunteerHandlers(
       if (!status?.authorized || status.userRole !== "primary") {
         volunteer.publicRelationsVisible =
           existingBefore?.publicRelationsVisible === true;
+        volunteer.internVisible = existingBefore?.internVisible === true;
       }
 
       if (!volunteer.id) {
@@ -792,6 +889,7 @@ export function registerVolunteerHandlers(
   );
 
   ipcMain.handle(IPC.DELETE_VOLUNTEER, (_event, id: string) => {
+    assertNotInternReadOnlyUser();
     try {
       const svc = getFileService(settings);
       if (!svc) return;
@@ -818,8 +916,9 @@ export function registerVolunteerHandlers(
       const dataPath = settings.getDataFolderPath();
       if (
         dataPath &&
-        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
-          "public-relations"
+        ["public-relations", "intern-read-only"].includes(
+          DataCryptoService.getInstance().getStatus(dataPath).userRole || "",
+        )
       ) {
         return {
           _version: 0,
@@ -844,8 +943,9 @@ export function registerVolunteerHandlers(
       const dataPath = settings.getDataFolderPath();
       if (
         dataPath &&
-        DataCryptoService.getInstance().getStatus(dataPath).userRole ===
-          "public-relations"
+        ["public-relations", "intern-read-only"].includes(
+          DataCryptoService.getInstance().getStatus(dataPath).userRole || "",
+        )
       ) {
         return null;
       }
@@ -856,6 +956,13 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.SAVE_PARTNER, (_event, partner: Volunteer): SaveResult => {
+    if (isInternReadOnlyUser()) {
+      return {
+        success: false,
+        reason: "io-error",
+        message: "Interne Mitarbeitende haben ausschließlich Lesezugriff.",
+      };
+    }
     let svc: VolunteerFileService | null = null;
     try {
       svc = getPartnerFileService(settings);
@@ -883,6 +990,7 @@ export function registerVolunteerHandlers(
     if (!status?.authorized || status.userRole !== "primary") {
       partner.publicRelationsVisible =
         existingBefore?.publicRelationsVisible === true;
+      partner.internVisible = existingBefore?.internVisible === true;
     }
 
     if (!partner.id) {
@@ -906,6 +1014,7 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.DELETE_PARTNER, (_event, id: string) => {
+    assertNotInternReadOnlyUser();
     try {
       const svc = getPartnerFileService(settings);
       if (!svc) return;
@@ -926,6 +1035,13 @@ export function registerVolunteerHandlers(
 
   // Group meetings (Gruppen Treffen) CRUD
   ipcMain.handle(IPC.GET_GROUP_MEETINGS, () => {
+    if (isInternReadOnlyUser()) {
+      return {
+        _version: 0,
+        _updatedAt: new Date().toISOString(),
+        meetings: [],
+      };
+    }
     try {
       const svc = getGroupMeetingService(settings);
       if (!svc)
@@ -945,6 +1061,7 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.SAVE_GROUP_MEETING, (_event, meeting: GroupMeeting) => {
+    assertNotInternReadOnlyUser();
     try {
       const svc = getGroupMeetingService(settings);
       if (!svc) {
@@ -977,6 +1094,7 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.DELETE_GROUP_MEETING, (_event, meetingId: string) => {
+    assertNotInternReadOnlyUser();
     try {
       const svc = getGroupMeetingService(settings);
       if (!svc) return;
@@ -993,6 +1111,13 @@ export function registerVolunteerHandlers(
 
   // Partner appointments (Termine) CRUD
   ipcMain.handle(IPC.GET_PARTNER_APPOINTMENTS, () => {
+    if (isInternReadOnlyUser()) {
+      return {
+        _version: 0,
+        _updatedAt: new Date().toISOString(),
+        appointments: [],
+      };
+    }
     try {
       const svc = getPartnerAppointmentService(settings);
       if (!svc)
@@ -1014,6 +1139,7 @@ export function registerVolunteerHandlers(
   ipcMain.handle(
     IPC.SAVE_PARTNER_APPOINTMENT,
     (_event, appointment: PartnerAppointment) => {
+      assertNotInternReadOnlyUser();
       try {
         const svc = getPartnerAppointmentService(settings);
         if (!svc) {
@@ -1051,6 +1177,7 @@ export function registerVolunteerHandlers(
   ipcMain.handle(
     IPC.DELETE_PARTNER_APPOINTMENT,
     (_event, appointmentId: string) => {
+      assertNotInternReadOnlyUser();
       try {
         const svc = getPartnerAppointmentService(settings);
         if (!svc) return;
@@ -1068,6 +1195,7 @@ export function registerVolunteerHandlers(
 
   // File attachments
   ipcMain.handle(IPC.SELECT_FILE, async (event) => {
+    assertNotInternReadOnlyUser();
     const win = require("electron").BrowserWindow.fromWebContents(event.sender);
     const result = await dialog.showOpenDialog(win!, {
       title: "Datei auswählen",
@@ -1080,6 +1208,7 @@ export function registerVolunteerHandlers(
   ipcMain.handle(
     IPC.UPLOAD_FILE,
     async (_event, volunteerId: string, sourcePath: string) => {
+      assertNotInternReadOnlyUser();
       try {
         const svc = getFileService(settings);
         if (!svc) {
@@ -1102,6 +1231,7 @@ export function registerVolunteerHandlers(
   );
 
   ipcMain.handle(IPC.DELETE_FILE, (_event, filePath: string) => {
+    assertNotInternReadOnlyUser();
     try {
       const svc = getFileService(settings);
       if (!svc) {
@@ -1123,6 +1253,7 @@ export function registerVolunteerHandlers(
   });
 
   ipcMain.handle(IPC.OPEN_FILE, (_event, filePath: string) => {
+    assertNotInternReadOnlyUser();
     try {
       const svc = getFileService(settings);
       if (!svc) {
@@ -1145,6 +1276,7 @@ export function registerVolunteerHandlers(
 
   // Reminders
   ipcMain.handle(IPC.GET_DUE_REMINDERS, () => {
+    if (isInternReadOnlyUser()) return [];
     try {
       const svc = getFileService(settings);
       if (!svc) return [];
@@ -1168,6 +1300,7 @@ export function registerVolunteerHandlers(
   ipcMain.handle(
     IPC.DISMISS_REMINDER,
     (_event, volunteerId: string, reminderId: string) => {
+      assertNotInternReadOnlyUser();
       try {
         const svc = getFileService(settings);
         if (!svc) return;

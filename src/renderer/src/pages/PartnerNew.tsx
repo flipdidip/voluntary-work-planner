@@ -27,6 +27,7 @@ const EMPTY_PARTNER: Omit<
   joinedDate: new Date().toISOString().split("T")[0],
   roles: [],
   publicRelationsVisible: false,
+  internVisible: false,
   notes: "",
   reminders: [],
   fileRecords: [],
@@ -102,6 +103,8 @@ export default function PartnerNew({
       publicRelationsVisible:
         userRole === "primary" &&
         fd.get("publicRelationsVisible") === "on",
+      internVisible:
+        userRole === "primary" && fd.get("internVisible") === "on",
     };
 
     const result = await window.api.savePartner(partner);
@@ -235,6 +238,10 @@ export default function PartnerNew({
             <label className="public-relations-visibility-toggle">
               <input type="checkbox" name="publicRelationsVisible" />
               <strong>Für Öffentlichkeitsarbeit freigeben</strong>
+            </label>
+            <label className="public-relations-visibility-toggle">
+              <input type="checkbox" name="internVisible" />
+              <strong>Für interne Mitarbeitende freigeben (Lesezugriff)</strong>
             </label>
           </section>
         )}

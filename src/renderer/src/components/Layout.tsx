@@ -72,6 +72,13 @@ const navItems = [
     primaryOnly: true,
     publicRelationsOnly: true,
   },
+  {
+    to: "/intern-overview",
+    label: "Interne Übersicht",
+    icon: Users,
+    primaryOnly: true,
+    internOnly: true,
+  },
 ];
 
 export default function Layout({
@@ -84,6 +91,10 @@ export default function Layout({
       ? navItems.filter(
           (item) =>
             "publicRelationsOnly" in item && item.publicRelationsOnly === true,
+        )
+      : userRole === "intern-read-only"
+      ? navItems.filter(
+          (item) => "internOnly" in item && item.internOnly === true,
         )
       : userRole === "partner-only"
       ? navItems.filter(
