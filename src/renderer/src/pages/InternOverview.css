@@ -47,7 +47,7 @@
 
 .intern-overview-table {
   width: 100%;
-  min-width: 780px;
+  min-width: 900px;
   table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
@@ -58,15 +58,19 @@
 }
 
 .intern-overview-column-contacts {
-  width: 18%;
+  width: 16%;
 }
 
 .intern-overview-column-qualifications {
-  width: 43%;
+  width: 39%;
 }
 
 .intern-overview-column-category {
   width: 15%;
+}
+
+.intern-overview-column-akte {
+  width: 14%;
 }
 
 .intern-overview-table th,
@@ -79,6 +83,11 @@
 
 .intern-overview-table th:last-child,
 .intern-overview-table td:last-child {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.intern-overview-category {
   white-space: nowrap;
   overflow-wrap: normal;
 }
@@ -153,6 +162,65 @@
   background: var(--color-surface);
 }
 
+.intern-overview-add-file {
+  white-space: nowrap;
+}
+
+.intern-akte-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 45%);
+}
+
+.intern-akte-form {
+  display: flex;
+  width: min(560px, 100%);
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+}
+
+.intern-akte-form-header,
+.intern-akte-form-actions,
+.intern-akte-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.intern-akte-form-header h2,
+.intern-akte-form-header p {
+  margin: 0;
+}
+
+.intern-akte-form-header p,
+.intern-akte-file-row span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.intern-akte-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.intern-akte-form-actions {
+  justify-content: flex-end;
+}
+
+.intern-akte-error {
+  margin: 0;
+  color: var(--color-danger);
+}
+
 @media (max-width: 700px) {
   .intern-overview-page {
     padding: 20px 16px;
@@ -162,5 +230,13 @@
   .intern-overview-table td {
     padding: 10px 6px;
     font-size: 0.85rem;
+  }
+
+  .intern-akte-overlay {
+    padding: 12px;
+  }
+
+  .intern-akte-form {
+    padding: 18px;
   }
 }

@@ -435,6 +435,7 @@ export interface InternReadOnlyQualification {
 }
 
 export interface InternReadOnlyEntry {
+  id: string;
   firstName: string;
   lastName: string;
   organization?: string;
@@ -786,6 +787,7 @@ export const IPC = {
   GET_PUBLIC_RELATIONS_CONSENT_OVERVIEW:
     "get-public-relations-consent-overview",
   GET_INTERN_READ_ONLY_OVERVIEW: "get-intern-read-only-overview",
+  ADD_INTERN_FILE_RECORD: "add-intern-file-record",
   GET_VOLUNTEER_CONTACTS: "get-volunteer-contacts",
   GET_VOLUNTEER: "get-volunteer",
   SAVE_VOLUNTEER: "save-volunteer",
@@ -882,6 +884,7 @@ export type BusinessAuditAction =
   | "partner-updated"
   | "partner-deleted"
   | "file-uploaded"
+  | "file-record-added"
   | "file-deleted"
   | "file-opened"
   | "processing-activities-saved"

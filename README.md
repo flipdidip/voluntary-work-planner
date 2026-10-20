@@ -14,14 +14,18 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 
 - Ehrenamtsregister mit detaillierten Personen-, Kontakt- und Qualifikationsdaten.
 - Kooperationspartner-Verwaltung mit eigener Seite (gleiche Stammdaten, ohne Qualifikationsbereich).
-- Such- und sortierbare Kontaktuebersicht fuer Ehrenamtliche mit Telefon, Mobilnummer, E-Mail und Aufgaben; E-Mails koennen direkt geoeffnet werden.
+- Such- und sortierbare Kontaktuebersicht fuer Ehrenamtliche mit Aufgaben und einer gemeinsamen Kontaktspalte. Telefon, Mobilnummer und E-Mail werden als Symbole angezeigt; beim Darueberfahren wird der Wert gezeigt, beim Anklicken kopiert. Die Seite ist fuer Kooperationspartner verfuegbar.
 - Oeffentlichkeitsarbeits-Uebersicht mit Name, Telefon, Mobilnummer, E-Mail, Aufgaben und Bild-/Ton-Einwilligung, durchsuchbar und nach Einwilligungsstatus sowie Personenkategorie filterbar.
 - Vollzugriff-Benutzer koennen Ehrenamtliche und Kooperationspartner einzeln fuer die Oeffentlichkeitsarbeit freigeben. Neue und bestehende Datensaetze sind standardmaessig verborgen, bis sie ausdruecklich freigegeben werden.
+- Interne Uebersicht fuer interne Mitarbeitende mit freigegebenen Kontaktdaten sowie allen Qualifikationen und Nachweisen als farbige Statussymbole mit vollstaendigem Text beim Darueberfahren.
+- Vollzugriff-Benutzer koennen Ehrenamtliche und Kooperationspartner einzeln fuer interne Mitarbeitende freigeben. Die Freigabe ist standardmaessig deaktiviert.
+- Interne Mitarbeitende koennen neue Akte-Eintraege mit Titel, Beschreibung und optionalem Dateianhang zu freigegebenen Datensaetzen hinzufuegen. Bestehende Akte-Eintraege und Akteninhalte bleiben fuer diese Rolle verborgen.
+- Kontaktinformationen werden in der internen Uebersicht, der Oeffentlichkeitsarbeit und der Ehrenamtliche-Kontaktuebersicht als Telefon-, Mobil- und E-Mail-Symbole dargestellt. Der jeweilige Wert ist per Hover sichtbar und kann angeklickt in die Zwischenablage kopiert werden; eine Snackbar bestaetigt den Erfolg oder meldet einen Fehler.
 - Sortierung der Ehrenamtlichen- und Kooperationspartnerlisten nach Name und Eintrittsdatum.
 - Dateibasierte Speicherung in einem frei waehlbaren Ordner (lokal, OneDrive, SharePoint-Sync).
 - Verschluesselung ruhender Daten fuer Index, Ehrenamtsakten, Backups und Anhaenge.
 - Mehrbenutzer-Freigabeworkflow fuer gemeinsame Ordner (Anfrage -> Freigabe/Ablehnung).
-- Rollenbasierte Zugriffskontrolle: Vollzugriff (primary) oder eingeschraenkt auf Kooperationspartner (partner-only).
+- Rollenbasierte Zugriffskontrolle: Vollzugriff (primary), Kooperationspartner (partner-only), Oeffentlichkeitsarbeit (public-relations) und interne Mitarbeitende (intern-read-only).
 - Audit-Protokoll fuer sicherheitsrelevante Schluesselereignisse (Anfrage, Freigabe, Ablehnung, Rotation).
 - Vollstaendiges Aktivitaetsprotokoll fuer betriebliche Aktionen (z.B. Ehrenamtliche anlegen/aktualisieren/loeschen, Dateiaktionen, Art.-30-Aenderungen).
 - Rotation des Datenschluessels mit automatischer Neuverschluesselung verwalteter Datendateien.
@@ -37,7 +41,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 
 ### v1.6.0
 
-- Neue Seite **Ehrenamtliche Kontakte** mit Suche nach Name, Telefonnummer und Aufgabe sowie Sortierung nach Name, Telefon, Mobilnummer und Aufgaben. Die Seite ist fuer die Rolle **Nur Kooperationspartner** verfuegbar.
+- Seite **Ehrenamtliche Kontakte** fuer die Rolle **Nur Kooperationspartner**: Suche nach Name, Kontaktdaten und Aufgaben; Sortierung nach Name, Kontakt und Aufgaben.
 - Neue Rolle **Oeffentlichkeitsarbeit** mit einer eigenen, eingeschraenkten Uebersicht der Bild- und Ton-Einwilligungen von Ehrenamtlichen und Kooperationspartnern.
 - Die Oeffentlichkeitsarbeits-Uebersicht bietet Namenssuche, Sortierung sowie Ein-/Ausschlussfilter fuer Einwilligungsstufen und Personenkategorien.
 
@@ -48,9 +52,13 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Das Geburtstagsfeld loest Aenderungen nur noch aus, wenn sich das Datum tatsaechlich geaendert hat.
 - Archivierte Ehrenamtliche und Kooperationspartner werden beim App-Start nach einer einstellbaren Frist automatisch geloescht. Die Frist betraegt standardmaessig sechs Monate.
 - Nach einer automatischen Loeschung erscheint eine In-App-Meldung im Anwendungsstil, die die Namen der geloeschten Datensaetze auffuehrt.
-- Die Kontaktuebersicht fuer Ehrenamtliche zeigt auch E-Mail-Adressen, verlinkt sie zum direkten Verfassen einer E-Mail und beruecksichtigt sie bei Suche und Sortierung.
-- Die Oeffentlichkeitsarbeits-Uebersicht zeigt nun zusaetzlich Telefon, Mobilnummer, E-Mail und Aufgaben.
+- Die Ehrenamtliche-Kontaktuebersicht fuer Kooperationspartner bietet Suche und Sortierung nach Name, Kontakt und Aufgaben.
+- Die Oeffentlichkeitsarbeits-Uebersicht zeigt Telefon, Mobilnummer, E-Mail und Aufgaben.
 - Vollzugriff-Benutzer koennen in den Ehrenamtlichen- und Kooperationspartner-Datensaetzen unter **Freigaben** die Sichtbarkeit fuer Oeffentlichkeitsarbeit einzeln steuern. Die Freigabe ist standardmaessig deaktiviert; alte Datensaetze bleiben verborgen, bis Vollzugriff sie ausdruecklich freigibt. Benutzer mit der Rolle **Oeffentlichkeitsarbeit** sehen nur freigegebene Datensaetze und koennen die Freigabe nicht aendern.
+- Neue Rolle **Interne Mitarbeitende (nur Lesezugriff)** mit einer eigenen Uebersicht freigegebener Ehrenamtlicher und Kooperationspartner. Die Uebersicht zeigt Name, Kontakt sowie alle Qualifikationen und Nachweise im Ampelsystem; beim Darueberfahren wird die vollstaendige Bezeichnung und der Status angezeigt.
+- Vollzugriff-Benutzer koennen die Sichtbarkeit von Ehrenamtlichen und Kooperationspartnern fuer interne Mitarbeitende einzeln steuern. Die Freigabe ist standardmaessig deaktiviert und unabhaengig von der Oeffentlichkeitsarbeits-Freigabe.
+- Interne Mitarbeitende koennen zu freigegebenen Datensaetzen neue Akte-Eintraege mit Titel, Beschreibung und optionaler Datei hinzufuegen. Sie koennen weder bestehende Akte-Eintraege sehen noch Akteninhalte oeffnen oder bearbeiten.
+- Kontaktspalten in der Ehrenamtliche-Kontaktuebersicht, der Oeffentlichkeitsarbeit und der internen Uebersicht zeigen Telefon, Mobilnummer und E-Mail als Symbole. Hover zeigt den Kontaktwert; Klick kopiert ihn und zeigt eine Snackbar-Bestaetigung.
 
 ## DSGVO / GDPR
 
@@ -170,16 +178,19 @@ Notes:
 2. Additional user selects the same folder: app creates a pending access request.
 3. Authorized user approves request in Settings and selects a role:
    - **Vollzugriff (primary)** — full access to all features.
-   - **Nur Kooperationspartner (partner-only)** — restricted to the Kooperationspartner pages only.
+   - **Nur Kooperationspartner (partner-only)** — access to Kooperationspartner, Termine, Ereignisse and the Ehrenamtliche contact overview.
+   - **Oeffentlichkeitsarbeit (public-relations)** — access only to the separate public-relations overview and records shared for it.
+   - **Interne Mitarbeitende (intern-read-only)** — access only to the internal overview of explicitly shared records; may add new Akte entries but cannot view existing Akte contents.
 4. Newly approved user can access encrypted records according to their assigned role.
 
 ### User Roles
 
-| Role           | Sidebar Navigation                                                       | Accessible Pages                                                |
-| -------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| `primary`      | Dashboard, Ereignisse, Ehrenamtliche, Gruppen Treffen, Kooperationspartner, Termine, Einstellungen | Alle Seiten ausser Ehrenamtliche Kontakte und Oeffentlichkeitsarbeit |
-| `partner-only` | Ereignisse, Ehrenamtliche Kontakte, Kooperationspartner, Termine, Einstellungen | Ehrenamtliche Kontakte (inkl. Telefon, Mobilnummer, E-Mail und Aufgaben), Kooperationspartner, Termine, Ereignisse und Einstellungen |
-| `public-relations` | Oeffentlichkeitsarbeit | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt- und Aufgabendaten sowie Bild- und Ton-Einwilligung |
+| Role                 | Sidebar Navigation | Accessible Pages |
+| -------------------- | ------------------ | ---------------- |
+| `primary`            | Dashboard, Ereignisse, Ehrenamtliche, Gruppen Treffen, Kooperationspartner, Termine, Einstellungen | Alle Verwaltungsseiten ausser Ehrenamtliche Kontakte, Oeffentlichkeitsarbeit und Interne Uebersicht |
+| `partner-only`       | Ereignisse, Ehrenamtliche Kontakte, Kooperationspartner, Termine, Einstellungen | Ehrenamtliche Kontakte (Aufgaben und Kontaktsymbole fuer Telefon, Mobil und E-Mail), Kooperationspartner, Termine, Ereignisse und Einstellungen |
+| `public-relations`   | Oeffentlichkeitsarbeit | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt, Aufgaben sowie Bild- und Ton-Einwilligung |
+| `intern-read-only`   | Interne Uebersicht | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt sowie Qualifikationen und Nachweisen. Neue Akte-Eintraege duerfen hinzugefuegt werden; bestehende Akten bleiben verborgen. |
 
 - The initial creator of a data folder always receives the `primary` role.
 - Every subsequent user is assigned a role by the approver at approval time.

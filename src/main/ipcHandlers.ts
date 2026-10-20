@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import {
   IPC,
   Volunteer,
+  FileRecord,
   SaveResult,
   ProcessingActivitiesDocument,
   BusinessAuditEntry,
@@ -723,6 +724,7 @@ export function registerVolunteerHandlers(
           .map((entry) => {
             const requirementsStatus = calculateRequirementsStatus(entry);
             return {
+              id: entry.id,
               firstName: entry.firstName,
               lastName: entry.lastName,
               organization: entry.organization,
@@ -744,6 +746,101 @@ export function registerVolunteerHandlers(
         volunteers: toInternEntries(volunteerService.readAllVolunteers()),
         partners: toInternEntries(partnerService.readAllVolunteers()),
       };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.ADD_INTERN_FILE_RECORD,
+    (
+      _event,
+      entityType: "volunteer" | "partner",
+      entityId: string,
+      title: string,
+      description: string,
+      sourcePath?: string,
+    ): { success: boolean; error?: string } => {
+      const dataPath = settings.getDataFolderPath();
+      if (!dataPath) {
+        return { success: false, error: "Kein Datenordner konfiguriert." };
+      }
+
+      const status = DataCryptoService.getInstance().getStatus(dataPath);
+      if (!status.authorized || status.userRole !== "intern-read-only") {
+        return {
+          success: false,
+          error: "Nur interne Mitarbeitende dürfen Akte-Einträge hinzufügen.",
+        };
+      }
+
+      if (
+        !["volunteer", "partner"].includes(entityType) ||
+        typeof entityId !== "string" ||
+        !entityId.trim() ||
+        typeof title !== "string" ||
+        !title.trim() ||
+        typeof description !== "string"
+      ) {
+        return { success: false, error: "Ungültige Angaben für den Akte-Eintrag." };
+      }
+
+      const service =
+        entityType === "volunteer"
+          ? getFileService(settings)
+          : getPartnerFileService(settings);
+      if (!service) {
+        return { success: false, error: "Kein Datenordner konfiguriert." };
+      }
+
+      const sharedEntry = service
+        .readIndex()
+        .volunteers.find(
+          (entry) => entry.id === entityId && entry.internVisible === true,
+        );
+      const record = sharedEntry
+        ? service.readVolunteer(sharedEntry.id)
+        : null;
+      if (!record || record.internVisible !== true) {
+        return {
+          success: false,
+          error: "Der freigegebene Datensatz wurde nicht gefunden.",
+        };
+      }
+
+      let upload: ReturnType<typeof service.uploadFile> | undefined;
+      if (sourcePath) {
+        upload = service.uploadFile(entityId, sourcePath);
+        if (!upload.success) {
+          return {
+            success: false,
+            error: upload.error || "Die Datei konnte nicht hochgeladen werden.",
+          };
+        }
+      }
+
+      const fileRecord: FileRecord = {
+        id: uuidv4(),
+        title: title.trim(),
+        description: description.trim(),
+        fileName: upload?.fileName,
+        filePath: upload?.filePath,
+        fileSize: upload?.fileSize,
+        uploadedAt: new Date().toISOString(),
+      };
+      record.fileRecords = [...(record.fileRecords || []), fileRecord];
+
+      const saveResult = service.saveVolunteer(record);
+      if (!saveResult.success) {
+        if (upload?.filePath) service.deleteFile(upload.filePath);
+        return { success: false, error: saveResult.message };
+      }
+
+      appendBusinessAudit(settings, {
+        action: "file-record-added",
+        subjectType: entityType,
+        subjectId: entityId,
+        details: `Akte-Eintrag hinzugefügt: ${fileRecord.title}`,
+      });
+      return { success: true };
     },
   );
 
@@ -1195,7 +1292,6 @@ export function registerVolunteerHandlers(
 
   // File attachments
   ipcMain.handle(IPC.SELECT_FILE, async (event) => {
-    assertNotInternReadOnlyUser();
     const win = require("electron").BrowserWindow.fromWebContents(event.sender);
     const result = await dialog.showOpenDialog(win!, {
       title: "Datei auswählen",
