@@ -13,6 +13,7 @@ import { registerVolunteerHandlers } from "./ipcHandlers";
 import { SettingsService } from "./settingsService";
 import { ReminderScheduler } from "./reminderScheduler";
 import type { DueReminder } from "./reminderScheduler";
+import { ArchivedRecordCleanupService } from "./archivedRecordCleanupService";
 
 let mainWindow: BrowserWindow | null = null;
 let reminderScheduler: ReminderScheduler | null = null;
@@ -102,6 +103,35 @@ app.whenReady().then(() => {
 
   // Register all IPC handlers
   registerVolunteerHandlers(ipcMain, settings, emitReminders);
+
+  try {
+    const cleanupResult = new ArchivedRecordCleanupService(settings).run();
+    if (
+      cleanupResult.deletedVolunteers > 0 ||
+      cleanupResult.deletedPartners > 0
+    ) {
+      console.info(
+        `Automatically deleted ${cleanupResult.deletedVolunteers} archived volunteer(s) and ${cleanupResult.deletedPartners} archived partner(s).`,
+      );
+
+      if (Notification.isSupported()) {
+        const deletedCounts = [
+          cleanupResult.deletedVolunteers > 0 &&
+            `${cleanupResult.deletedVolunteers} ${cleanupResult.deletedVolunteers === 1 ? "Ehrenamtliche(r)" : "Ehrenamtliche"}`,
+          cleanupResult.deletedPartners > 0 &&
+            `${cleanupResult.deletedPartners} ${cleanupResult.deletedPartners === 1 ? "Kooperationspartner" : "Kooperationspartner"}`,
+        ].filter(Boolean);
+        const notification = new Notification({
+          title: "Archivierte Datensätze gelöscht",
+          body: `Beim Start automatisch gelöscht: ${deletedCounts.join(" und ")}.`,
+          icon: getNotificationIcon(),
+        });
+        notification.show();
+      }
+    }
+  } catch (error) {
+    console.error("Automatic archived record cleanup failed:", error);
+  }
 
   // Start reminder scheduler — checks every N minutes
   reminderScheduler = new ReminderScheduler(settings, emitReminders);

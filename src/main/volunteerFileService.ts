@@ -137,6 +137,12 @@ export class VolunteerFileService {
     }
   }
 
+  readAllVolunteers(): Volunteer[] {
+    return this.readIndex().volunteers
+      .map((entry) => this.readVolunteer(entry.id))
+      .filter((volunteer): volunteer is Volunteer => volunteer !== null);
+  }
+
   private writeIndex(index: VolunteerIndex): void {
     index._updatedAt = new Date().toISOString();
     this.writeJsonFile(this.indexPath, index);

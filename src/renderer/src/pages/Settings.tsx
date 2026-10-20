@@ -48,6 +48,8 @@ export default function Settings({
   const { themeMode, setThemeMode } = useTheme();
   const [dataPath, setDataPath] = useState("");
   const [interval, setInterval] = useState(60);
+  const [archivedDeletionAfterMonths, setArchivedDeletionAfterMonths] =
+    useState(6);
   const [saved, setSaved] = useState(false);
   const [appVersion, setAppVersion] = useState("");
   const [enableYearlyBirthday, setEnableYearlyBirthday] = useState(true);
@@ -226,6 +228,7 @@ export default function Settings({
     loadProcessingActivities();
     window.api.getSettings().then((settings) => {
       setInterval(settings.reminderCheckIntervalMinutes);
+      setArchivedDeletionAfterMonths(settings.archivedDeletionAfterMonths);
       setEnableYearlyBirthday(settings.enableYearlyBirthdayReminders);
       setConsentDate(settings.privacyConsentDate);
       setEnableRoundBirthday(settings.enableRoundBirthdayReminders);
@@ -536,6 +539,14 @@ export default function Settings({
   };
 
   const handleSave = async (): Promise<void> => {
+    if (
+      !Number.isInteger(archivedDeletionAfterMonths) ||
+      archivedDeletionAfterMonths < 1
+    ) {
+      alert("Die Aufbewahrungsdauer für archivierte Datensätze muss mindestens 1 Monat betragen.");
+      return;
+    }
+
     if (dataPath) {
       await window.api.setDataPath(dataPath);
       window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
@@ -543,6 +554,7 @@ export default function Settings({
 
     await window.api.saveSettings({
       reminderCheckIntervalMinutes: interval,
+      archivedDeletionAfterMonths,
       enableYearlyBirthdayReminders: enableYearlyBirthday,
       enableRoundBirthdayReminders: enableRoundBirthday,
       roundBirthdayYears: roundYears,
@@ -956,6 +968,33 @@ export default function Settings({
 
       {!isPartnerOnly && (
         <>
+          {userRole === "primary" && (
+            <div className="settings-card card">
+              <h2>Automatische Löschung archivierter Datensätze</h2>
+              <label>
+                Nach wie vielen Monaten Inaktivität löschen?
+                <input
+                  className="input interval-input"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={archivedDeletionAfterMonths}
+                  onChange={(e) =>
+                    setArchivedDeletionAfterMonths(
+                      Number.parseInt(e.target.value, 10) || 0,
+                    )
+                  }
+                />
+              </label>
+              <p className="hint">
+                Ehrenamtliche und Kooperationspartner mit dem Status
+                „Archiviert“ werden beim nächsten App-Start gelöscht, wenn sie
+                seit mindestens dieser Frist archiviert sind. Standard: 6
+                Monate.
+              </p>
+            </div>
+          )}
+
           <div className="settings-card card">
             <h2>Erinnerungen</h2>
             <label>
