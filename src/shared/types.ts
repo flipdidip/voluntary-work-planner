@@ -867,6 +867,7 @@ export type ThemeMode = "system" | "light" | "dark";
 export interface AppSettings {
   dataFolderPath: string;
   reminderCheckIntervalMinutes: number;
+  enableArchivedRecordDeletion: boolean;
   archivedDeletionAfterMonths: number;
   language: "de" | "en";
   themeMode: ThemeMode;
@@ -894,7 +895,8 @@ export const PRIVACY_POLICY_VERSION = "1.1";
 export const DEFAULT_SETTINGS: AppSettings = {
   dataFolderPath: "",
   reminderCheckIntervalMinutes: 60,
-  archivedDeletionAfterMonths: 6,
+  enableArchivedRecordDeletion: false,
+  archivedDeletionAfterMonths: 12,
   language: "de",
   themeMode: "system",
   enableYearlyBirthdayReminders: true,
