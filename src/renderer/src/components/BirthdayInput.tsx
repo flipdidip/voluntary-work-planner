@@ -46,7 +46,9 @@ export default function BirthdayInput({
         yearNum <= new Date().getFullYear()
       ) {
         const dateStr = `${year.padStart(4, "0")}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-        onChange(dateStr);
+        if (dateStr !== value) {
+          onChange(dateStr);
+        }
       }
     }
   }, [day, month, year, onChange]);
