@@ -10,6 +10,10 @@ import { UserPlus, Search, Mail, Phone, X } from "lucide-react";
 import MailDialog from "../components/MailDialog";
 import { useVolunteerIndex } from "../hooks/useVolunteers";
 import {
+  sortVolunteerEntries,
+  VolunteerListSortOption,
+} from "../utils/sortVolunteerEntries";
+import {
   VolunteerStatus,
   REQUIREMENT_DEFINITIONS,
   RequirementType,
@@ -63,6 +67,8 @@ export default function VolunteerList(): JSX.Element {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
+  const [sortOption, setSortOption] =
+    useState<VolunteerListSortOption>("name-asc");
   const [selectedStatus, setSelectedStatus] = useState<VolunteerStatus | null>(
     "archived",
   );
@@ -341,6 +347,11 @@ export default function VolunteerList(): JSX.Element {
     mediaConsentFilters,
   ]);
 
+  const sorted = useMemo(
+    () => sortVolunteerEntries(filtered, sortOption),
+    [filtered, sortOption],
+  );
+
   const cycleRole = (role: string) => {
     const isIncluded = includedRoles.includes(role);
     const isExcluded = excludedRoles.includes(role);
@@ -514,14 +525,34 @@ export default function VolunteerList(): JSX.Element {
         </div>
       </div>
 
-      <div className="search-bar">
-        <Search size={16} className="search-icon" />
-        <input
-          className="input search-input"
-          placeholder="Name oder Aufgabe suchen..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      <div className="list-search-sort-row">
+        <div className="search-bar">
+          <Search size={16} className="search-icon" />
+          <input
+            className="input search-input"
+            placeholder="Name oder Aufgabe suchen..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="filter-group list-sort-control">
+          <label className="filter-group-label" htmlFor="volunteer-sort">
+            Sortieren:
+          </label>
+          <select
+            id="volunteer-sort"
+            className="select"
+            value={sortOption}
+            onChange={(event) =>
+              setSortOption(event.target.value as VolunteerListSortOption)
+            }
+          >
+            <option value="name-asc">Name (A–Z)</option>
+            <option value="name-desc">Name (Z–A)</option>
+            <option value="joined-desc">Beitrittsdatum (neueste zuerst)</option>
+            <option value="joined-asc">Beitrittsdatum (älteste zuerst)</option>
+          </select>
+        </div>
       </div>
 
       <div className="filters-section">
@@ -675,7 +706,7 @@ export default function VolunteerList(): JSX.Element {
         {filtered.length === 0 && !loading && (
           <p className="empty-hint">Keine Einträge gefunden.</p>
         )}
-        {filtered.map((v) => {
+        {sorted.map((v) => {
           const age = v.dateOfBirth
             ? differenceInYears(new Date(), parseISO(v.dateOfBirth))
             : null;
