@@ -347,8 +347,17 @@ export class DataCryptoService {
     if (existsSync(indexPath)) {
       files.push(indexPath);
     }
+    const meetingsPath = join(dataPath, "meetings.json");
+    if (existsSync(meetingsPath)) {
+      files.push(meetingsPath);
+    }
 
-    for (const folderName of ["volunteers", "backups", "attachments"]) {
+    for (const folderName of [
+      "volunteers",
+      "backups",
+      "attachments",
+      "group-meeting-attachments",
+    ]) {
       files.push(...this.collectFilesRecursive(join(dataPath, folderName)));
     }
 

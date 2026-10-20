@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Users2, Mail, Globe, CalendarClock } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Users2,
+  Mail,
+  Globe,
+  CalendarClock,
+  Paperclip,
+} from "lucide-react";
 import { format, parseISO, isSameDay, isBefore, startOfDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
@@ -165,6 +173,14 @@ export default function GroupMeetings(): JSX.Element {
                 {isToday && " (Heute)"}
               </div>
               <div className="meeting-title">{m.title}</div>
+              {(m.attachments?.length || 0) > 0 && (
+                <span
+                  className="meeting-attachment-count"
+                  title={`${m.attachments?.length} Dokument(e)`}
+                >
+                  <Paperclip size={14} /> {m.attachments?.length}
+                </span>
+              )}
               <div className="text-muted" style={{ fontSize: "0.75rem" }}>
                 Erstellt von: {m._createdBy || "Unbekannt (Altbestand)"}
               </div>

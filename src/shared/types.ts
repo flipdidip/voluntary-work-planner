@@ -619,12 +619,21 @@ export interface GroupMeetingParticipant {
   attendance?: GroupMeetingAttendanceStatus;
 }
 
+export interface GroupMeetingAttachment {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  uploadedAt: string;
+  uploadedBy?: string;
+}
+
 export interface GroupMeeting {
   id: string;
   title: string;
   date: string; // ISO date-time (YYYY-MM-DDTHH:mm), legacy YYYY-MM-DD supported
   participants: GroupMeetingParticipant[];
   notes?: string;
+  attachments?: GroupMeetingAttachment[];
   /** User identity that created the meeting; absent on legacy records. */
   _createdBy?: string;
   _createdAt: string;
@@ -756,6 +765,9 @@ export const IPC = {
   GET_GROUP_MEETINGS: "get-group-meetings",
   SAVE_GROUP_MEETING: "save-group-meeting",
   DELETE_GROUP_MEETING: "delete-group-meeting",
+  UPLOAD_GROUP_MEETING_ATTACHMENT: "upload-group-meeting-attachment",
+  OPEN_GROUP_MEETING_ATTACHMENT: "open-group-meeting-attachment",
+  DELETE_GROUP_MEETING_ATTACHMENT: "delete-group-meeting-attachment",
 
   // Reminders
   GET_DUE_REMINDERS: "get-due-reminders",

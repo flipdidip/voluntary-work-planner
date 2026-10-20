@@ -13,6 +13,7 @@ import {
   ProcessingActivitiesDocument,
   UserRole,
   GroupMeeting,
+  GroupMeetingAttachment,
   GroupMeetingIndex,
   VolunteerContact,
   PublicRelationsConsentOverview,
@@ -186,6 +187,43 @@ const api = {
 
   deleteGroupMeeting: (meetingId: string): Promise<void> =>
     ipcRenderer.invoke(IPC.DELETE_GROUP_MEETING, meetingId),
+
+  uploadGroupMeetingAttachment: (
+    meetingId: string,
+    sourcePath: string,
+  ): Promise<
+    | { success: true; attachment: GroupMeetingAttachment }
+    | { success: false; error: string }
+  > =>
+    ipcRenderer.invoke(
+      IPC.UPLOAD_GROUP_MEETING_ATTACHMENT,
+      meetingId,
+      sourcePath,
+    ),
+
+  openGroupMeetingAttachment: (
+    meetingId: string,
+    attachmentId: string,
+    fileName: string,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(
+      IPC.OPEN_GROUP_MEETING_ATTACHMENT,
+      meetingId,
+      attachmentId,
+      fileName,
+    ),
+
+  deleteGroupMeetingAttachment: (
+    meetingId: string,
+    attachmentId: string,
+    fileName: string,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(
+      IPC.DELETE_GROUP_MEETING_ATTACHMENT,
+      meetingId,
+      attachmentId,
+      fileName,
+    ),
 
   // File attachments
   selectFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.SELECT_FILE),
