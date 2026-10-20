@@ -640,8 +640,20 @@ export function registerVolunteerHandlers(
         );
 
       return {
-        volunteers: toConsentEntries(volunteerService.readIndex().volunteers),
-        partners: toConsentEntries(partnerService.readIndex().volunteers),
+        volunteers: toConsentEntries(
+          volunteerService
+            .readIndex()
+            .volunteers.filter(
+              (entry) => entry.publicRelationsVisible === true,
+            ),
+        ),
+        partners: toConsentEntries(
+          partnerService
+            .readIndex()
+            .volunteers.filter(
+              (entry) => entry.publicRelationsVisible === true,
+            ),
+        ),
       };
     },
   );
@@ -749,6 +761,14 @@ export function registerVolunteerHandlers(
       const existingBefore = volunteer.id
         ? svc.readVolunteer(volunteer.id)
         : null;
+      const dataPath = settings.getDataFolderPath();
+      const status = dataPath
+        ? DataCryptoService.getInstance().getStatus(dataPath)
+        : null;
+      if (!status?.authorized || status.userRole !== "primary") {
+        volunteer.publicRelationsVisible =
+          existingBefore?.publicRelationsVisible === true;
+      }
 
       if (!volunteer.id) {
         volunteer.id = uuidv4();
@@ -856,6 +876,14 @@ export function registerVolunteerHandlers(
     }
 
     const existingBefore = partner.id ? svc.readVolunteer(partner.id) : null;
+    const dataPath = settings.getDataFolderPath();
+    const status = dataPath
+      ? DataCryptoService.getInstance().getStatus(dataPath)
+      : null;
+    if (!status?.authorized || status.userRole !== "primary") {
+      partner.publicRelationsVisible =
+        existingBefore?.publicRelationsVisible === true;
+    }
 
     if (!partner.id) {
       partner.id = uuidv4();

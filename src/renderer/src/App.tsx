@@ -314,8 +314,14 @@ export default function App(): JSX.Element {
             <>
               <Route path="/" element={<Navigate to="/partners" replace />} />
               <Route path="/partners" element={<PartnerList />} />
-              <Route path="/partners/new" element={<PartnerNew />} />
-              <Route path="/partners/:id" element={<PartnerDetail />} />
+              <Route
+                path="/partners/new"
+                element={<PartnerNew userRole={userRole} />}
+              />
+              <Route
+                path="/partners/:id"
+                element={<PartnerDetail userRole={userRole} />}
+              />
               <Route
                 path="/volunteer-contacts"
                 element={<VolunteerContacts />}

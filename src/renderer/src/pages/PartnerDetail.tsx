@@ -20,6 +20,7 @@ import { usePartner, usePartnerIndex } from "../hooks/usePartners";
 import { useGroupMeetings } from "../hooks/useGroupMeetings";
 import { usePartnerAppointments } from "../hooks/usePartnerAppointments";
 import {
+  UserRole,
   Volunteer,
   Reminder,
   ReminderType,
@@ -42,7 +43,11 @@ const STATUS_OPTIONS: { value: VolunteerStatus; label: string }[] = [
   { value: "archived", label: "Archiviert" },
 ];
 
-export default function PartnerDetail(): JSX.Element {
+export default function PartnerDetail({
+  userRole = "primary",
+}: {
+  userRole?: UserRole;
+}): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { partner: initial, loading } = usePartner(id);
@@ -547,6 +552,21 @@ export default function PartnerDetail(): JSX.Element {
               suggestions={roleSuggestions}
             />
           </label>
+          {userRole === "primary" && (
+            <section className="record-permissions">
+              <h3>Freigaben</h3>
+              <label className="public-relations-visibility-toggle">
+                <input
+                  type="checkbox"
+                  checked={form.publicRelationsVisible === true}
+                  onChange={(event) =>
+                    update({ publicRelationsVisible: event.target.checked })
+                  }
+                />
+                <strong>Für Öffentlichkeitsarbeit freigeben</strong>
+              </label>
+            </section>
+          )}
           <label className="mt">
             Notizen
             <textarea

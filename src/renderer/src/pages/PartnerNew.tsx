@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { Volunteer } from "@shared/types";
+import { UserRole, Volunteer } from "@shared/types";
 import { v4 as uuidv4 } from "uuid";
 import RolesInput from "../components/RolesInput";
 import { usePartnerIndex } from "../hooks/usePartners";
@@ -26,13 +26,18 @@ const EMPTY_PARTNER: Omit<
   statusLog: [],
   joinedDate: new Date().toISOString().split("T")[0],
   roles: [],
+  publicRelationsVisible: false,
   notes: "",
   reminders: [],
   fileRecords: [],
   requirements: [], // Partners don't use requirements
 };
 
-export default function PartnerNew(): JSX.Element {
+export default function PartnerNew({
+  userRole = "primary",
+}: {
+  userRole?: UserRole;
+}): JSX.Element {
   const navigate = useNavigate();
   const { index } = usePartnerIndex();
   const [firstName, setFirstName] = useState("");
@@ -94,6 +99,9 @@ export default function PartnerNew(): JSX.Element {
       status: (fd.get("status") as Volunteer["status"]) ?? "active",
       joinedDate: (fd.get("joinedDate") as string) || undefined,
       roles: roles,
+      publicRelationsVisible:
+        userRole === "primary" &&
+        fd.get("publicRelationsVisible") === "on",
     };
 
     const result = await window.api.savePartner(partner);
@@ -221,6 +229,15 @@ export default function PartnerNew(): JSX.Element {
           Kooperationsbereich / Aufgaben
           <RolesInput value={roles} onChange={setRoles} />
         </label>
+        {userRole === "primary" && (
+          <section className="record-permissions">
+            <h3>Freigaben</h3>
+            <label className="public-relations-visibility-toggle">
+              <input type="checkbox" name="publicRelationsVisible" />
+              <strong>Für Öffentlichkeitsarbeit freigeben</strong>
+            </label>
+          </section>
+        )}
         <label>
           Beitritt
           <input
