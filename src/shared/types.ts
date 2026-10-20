@@ -8,7 +8,7 @@ export type VolunteerStatus = "active" | "inactive" | "archived";
  * Authorization role assigned to each user in the encrypted data folder.
  * - "primary"      → Full access to all features (volunteers, partners, settings, etc.)
  * - "partner-only" → Restricted view: can see Kooperationspartner, Termine, and volunteer contact details
- * - "public-relations" → Can see volunteer and partner names and image/sound consent status
+ * - "public-relations" → Can see volunteer and partner names, contact details, tasks, and image/sound consent status
  *
  * The initial creator of the folder always receives the "primary" role.
  * Every subsequent user is assigned a role at approval time.
@@ -406,6 +406,10 @@ export interface PublicRelationsConsentEntry {
   firstName: string;
   lastName: string;
   organization?: string;
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  roles: string[];
   mediaConsentLevel: MediaConsentLevel | null;
   consentDocumentStatus: RequirementStatus;
 }

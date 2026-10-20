@@ -134,8 +134,8 @@ export default function PublicRelations(): JSX.Element {
         <div>
           <h1>Öffentlichkeitsarbeit</h1>
           <p>
-            Übersicht der Ehrenamtlichen und Kooperationspartner mit ihrem
-            Einverständnis zu Bild und Ton.
+            Kontaktdaten, Aufgaben und Einverständnis zu Bild und Ton von
+            Ehrenamtlichen und Kooperationspartnern.
           </p>
         </div>
       </header>
@@ -218,6 +218,9 @@ export default function PublicRelations(): JSX.Element {
               <table className="public-relations-table">
                 <colgroup>
                   <col className="public-relations-column-name" />
+                  <col className="public-relations-column-phone" />
+                  <col className="public-relations-column-email" />
+                  <col className="public-relations-column-roles" />
                   <col className="public-relations-column-consent" />
                   <col className="public-relations-column-category" />
                 </colgroup>
@@ -253,6 +256,9 @@ export default function PublicRelations(): JSX.Element {
                         )}
                       </button>
                     </th>
+                    <th scope="col">Telefon</th>
+                    <th scope="col">E-Mail</th>
+                    <th scope="col">Aufgaben</th>
                     <th scope="col">Einverständnis Bild und Ton</th>
                     <th
                       scope="col"
@@ -298,6 +304,23 @@ export default function PublicRelations(): JSX.Element {
                             {entry.organization}
                           </span>
                         )}
+                      </td>
+                      <td>
+                        {entry.phone && (
+                          <span className="public-relations-detail">
+                            Tel.: {entry.phone}
+                          </span>
+                        )}
+                        {entry.mobile && (
+                          <span className="public-relations-detail">
+                            Mobil: {entry.mobile}
+                          </span>
+                        )}
+                        {!entry.phone && !entry.mobile && "–"}
+                      </td>
+                      <td>{entry.email || "–"}</td>
+                      <td>
+                        {entry.roles.length > 0 ? entry.roles.join(", ") : "–"}
                       </td>
                       <td>
                         {entry.mediaConsentLevel ? (
