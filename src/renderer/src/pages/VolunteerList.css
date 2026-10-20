@@ -13,6 +13,14 @@
 
 .search-bar {
   position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.list-search-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
@@ -79,6 +87,20 @@
   font-weight: 500;
   color: var(--color-text-muted);
   white-space: nowrap;
+}
+
+.list-sort-control .select {
+  width: auto;
+}
+
+@media (max-width: 600px) {
+  .list-search-sort-row {
+    flex-wrap: wrap;
+  }
+
+  .list-search-sort-row .search-bar {
+    flex-basis: 100%;
+  }
 }
 
 .filter-chips {
