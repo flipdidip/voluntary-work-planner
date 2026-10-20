@@ -26,6 +26,10 @@
   margin-bottom: 0;
 }
 
+.stats-grid--volunteers {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .stat-card {
   cursor: pointer;
   display: flex;

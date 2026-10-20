@@ -36,6 +36,7 @@ interface MailDialogProps {
 }
 
 const STATUS_LABELS: Record<VolunteerStatus, string> = {
+  requested: "Angefragt",
   active: "Aktiv",
   inactive: "Inaktiv",
   archived: "Archiviert",

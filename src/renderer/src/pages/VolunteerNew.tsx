@@ -5,6 +5,7 @@ import { Volunteer } from "@shared/types";
 import { v4 as uuidv4 } from "uuid";
 import BirthdayInput from "../components/BirthdayInput";
 import RolesInput from "../components/RolesInput";
+import { useVolunteerIndex } from "../hooks/useVolunteers";
 import "./VolunteerNew.css";
 
 const EMPTY_VOLUNTEER: Omit<
@@ -34,8 +35,16 @@ const EMPTY_VOLUNTEER: Omit<
 
 export default function VolunteerNew(): JSX.Element {
   const navigate = useNavigate();
+  const { index } = useVolunteerIndex();
   const [dateOfBirth, setDateOfBirth] = useState<string | undefined>(undefined);
   const [roles, setRoles] = useState<string[]>([]);
+  const requestOrigins = Array.from(
+    new Set(
+      (index?.volunteers ?? [])
+        .map((volunteer) => volunteer.requestOrigin?.trim())
+        .filter((origin): origin is string => Boolean(origin)),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "de"));
 
   const handleCreate = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -56,6 +65,8 @@ export default function VolunteerNew(): JSX.Element {
       email: (fd.get("email") as string) || undefined,
       status: (fd.get("status") as Volunteer["status"]) ?? "active",
       joinedDate: (fd.get("joinedDate") as string) || undefined,
+      requestOrigin:
+        ((fd.get("requestOrigin") as string) || "").trim() || undefined,
       roles: roles,
       publicRelationsVisible: fd.get("publicRelationsVisible") === "on",
       internVisible: fd.get("internVisible") === "on",
@@ -87,6 +98,7 @@ export default function VolunteerNew(): JSX.Element {
           <label className="status-select-label">
             Status
             <select className="select" name="status" defaultValue="active">
+              <option value="requested">Angefragt</option>
               <option value="active">Aktiv</option>
               <option value="inactive">Inaktiv</option>
             </select>
@@ -123,6 +135,20 @@ export default function VolunteerNew(): JSX.Element {
         <label>
           Aufgaben
           <RolesInput value={roles} onChange={setRoles} />
+        </label>
+        <label>
+          Herkunft der Anfrage
+          <input
+            className="input"
+            name="requestOrigin"
+            list="volunteer-request-origins"
+            autoComplete="off"
+          />
+          <datalist id="volunteer-request-origins">
+            {requestOrigins.map((origin) => (
+              <option key={origin} value={origin} />
+            ))}
+          </datalist>
         </label>
         <section className="record-permissions">
           <h3>Freigaben</h3>

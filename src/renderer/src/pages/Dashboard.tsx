@@ -12,6 +12,7 @@ import {
   CheckCircle,
   Users2,
   Handshake,
+  UserPlus,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
@@ -121,7 +122,9 @@ export default function Dashboard(): JSX.Element {
     index?.volunteers.filter((v) => v.status === "active").length ?? 0;
   const inactiveCount =
     index?.volunteers.filter((v) => v.status === "inactive").length ?? 0;
-  const totalCount = activeCount + inactiveCount;
+  const requestedCount =
+    index?.volunteers.filter((v) => v.status === "requested").length ?? 0;
+  const totalCount = activeCount + inactiveCount + requestedCount;
 
   const partnerActiveCount =
     partnerIndex?.volunteers.filter((v) => v.status === "active").length ?? 0;
@@ -246,7 +249,17 @@ export default function Dashboard(): JSX.Element {
             <Users size={18} /> Ehrenamtliche ({totalCount})
           </h2>
           {loading && <p className="text-muted">Lade...</p>}
-          <div className="stats-grid stats-grid--compact">
+          <div className="stats-grid stats-grid--compact stats-grid--volunteers">
+            <div
+              className="stat-card card"
+              onClick={() => navigate("/volunteers?status=requested")}
+            >
+              <div className="stat-icon stat-icon--blue">
+                <UserPlus size={20} />
+              </div>
+              <div className="stat-value">{requestedCount}</div>
+              <div className="stat-label">Angefragt</div>
+            </div>
             <div
               className="stat-card card"
               onClick={() => navigate("/volunteers?status=active")}

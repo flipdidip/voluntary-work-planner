@@ -163,8 +163,8 @@ const api = {
 
   getVolunteer: (id: string) => ipcRenderer.invoke(IPC.GET_VOLUNTEER, id),
 
-  saveVolunteer: (volunteer: Volunteer) =>
-    ipcRenderer.invoke(IPC.SAVE_VOLUNTEER, volunteer),
+  saveVolunteer: (volunteer: Volunteer, statusChangeReason?: string) =>
+    ipcRenderer.invoke(IPC.SAVE_VOLUNTEER, volunteer, statusChangeReason),
 
   deleteVolunteer: (id: string) => ipcRenderer.invoke(IPC.DELETE_VOLUNTEER, id),
 

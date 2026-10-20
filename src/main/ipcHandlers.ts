@@ -1002,7 +1002,11 @@ export function registerVolunteerHandlers(
 
   ipcMain.handle(
     IPC.SAVE_VOLUNTEER,
-    (_event, volunteer: Volunteer): SaveResult => {
+    (
+      _event,
+      volunteer: Volunteer,
+      statusChangeReason?: string,
+    ): SaveResult => {
       if (isInternReadOnlyUser()) {
         return {
           success: false,
@@ -1065,7 +1069,7 @@ export function registerVolunteerHandlers(
         volunteer._updatedAt = new Date().toISOString();
       }
 
-      const result = svc.saveVolunteer(volunteer);
+      const result = svc.saveVolunteer(volunteer, statusChangeReason, true);
       if (result.success) {
         appendBusinessAudit(settings, {
           action: existingBefore ? "volunteer-updated" : "volunteer-created",
