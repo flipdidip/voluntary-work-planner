@@ -540,6 +540,16 @@ export default function VolunteerDetail(): JSX.Element {
               />
               <strong>Für Öffentlichkeitsarbeit freigeben</strong>
             </label>
+            <label className="public-relations-visibility-toggle">
+              <input
+                type="checkbox"
+                checked={form.internVisible === true}
+                onChange={(event) =>
+                  update({ internVisible: event.target.checked })
+                }
+              />
+              <strong>Für interne Mitarbeitende freigeben (Lesezugriff)</strong>
+            </label>
           </section>
           <label className="mt">
             Notizen

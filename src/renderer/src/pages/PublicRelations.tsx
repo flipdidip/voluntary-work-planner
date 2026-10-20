@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
+import ContactActions from "../components/ContactActions";
 import {
   getMediaConsentDescription,
   MediaConsentLevel,
@@ -218,9 +219,7 @@ export default function PublicRelations(): JSX.Element {
               <table className="public-relations-table">
                 <colgroup>
                   <col className="public-relations-column-name" />
-                  <col className="public-relations-column-phone" />
-                  <col className="public-relations-column-mobile" />
-                  <col className="public-relations-column-email" />
+                  <col className="public-relations-column-contacts" />
                   <col className="public-relations-column-roles" />
                   <col className="public-relations-column-consent" />
                   <col className="public-relations-column-category" />
@@ -257,9 +256,7 @@ export default function PublicRelations(): JSX.Element {
                         )}
                       </button>
                     </th>
-                    <th scope="col">Telefon</th>
-                    <th scope="col">Mobil</th>
-                    <th scope="col">E-Mail</th>
+                    <th scope="col">Kontakt</th>
                     <th scope="col">Aufgaben</th>
                     <th scope="col">Einverständnis Bild und Ton</th>
                     <th
@@ -307,9 +304,13 @@ export default function PublicRelations(): JSX.Element {
                           </span>
                         )}
                       </td>
-                      <td>{entry.phone || "–"}</td>
-                      <td>{entry.mobile || "–"}</td>
-                      <td>{entry.email || "–"}</td>
+                      <td>
+                        <ContactActions
+                          phone={entry.phone}
+                          mobile={entry.mobile}
+                          email={entry.email}
+                        />
+                      </td>
                       <td>
                         {entry.roles.length > 0 ? entry.roles.join(", ") : "–"}
                       </td>

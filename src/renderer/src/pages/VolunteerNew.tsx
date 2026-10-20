@@ -25,6 +25,7 @@ const EMPTY_VOLUNTEER: Omit<
   joinedDate: new Date().toISOString().split("T")[0],
   roles: [],
   publicRelationsVisible: false,
+  internVisible: false,
   notes: "",
   reminders: [],
   fileRecords: [],
@@ -57,6 +58,7 @@ export default function VolunteerNew(): JSX.Element {
       joinedDate: (fd.get("joinedDate") as string) || undefined,
       roles: roles,
       publicRelationsVisible: fd.get("publicRelationsVisible") === "on",
+      internVisible: fd.get("internVisible") === "on",
     };
 
     const result = await window.api.saveVolunteer(volunteer);
@@ -127,6 +129,10 @@ export default function VolunteerNew(): JSX.Element {
           <label className="public-relations-visibility-toggle">
             <input type="checkbox" name="publicRelationsVisible" />
             <strong>Für Öffentlichkeitsarbeit freigeben</strong>
+          </label>
+          <label className="public-relations-visibility-toggle">
+            <input type="checkbox" name="internVisible" />
+            <strong>Für interne Mitarbeitende freigeben (Lesezugriff)</strong>
           </label>
         </section>
         <label>

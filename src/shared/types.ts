@@ -9,17 +9,23 @@ export type VolunteerStatus = "active" | "inactive" | "archived";
  * - "primary"      → Full access to all features (volunteers, partners, settings, etc.)
  * - "partner-only" → Restricted view: can see Kooperationspartner, Termine, and volunteer contact details
  * - "public-relations" → Can see records explicitly shared by primary users, including names, contact details, tasks, and image/sound consent status
+ * - "intern-read-only" → Can view only the contact details and qualifications of records explicitly shared by primary users
  *
  * The initial creator of the folder always receives the "primary" role.
  * Every subsequent user is assigned a role at approval time.
  */
-export type UserRole = "primary" | "partner-only" | "public-relations";
+export type UserRole =
+  | "primary"
+  | "partner-only"
+  | "public-relations"
+  | "intern-read-only";
 
 export function isUserRole(value: unknown): value is UserRole {
   return (
     value === "primary" ||
     value === "partner-only" ||
-    value === "public-relations"
+    value === "public-relations" ||
+    value === "intern-read-only"
   );
 }
 
@@ -362,6 +368,7 @@ export interface Volunteer {
   dinoIconId?: DinoIconId;
   roles: string[]; // e.g. ['Sterbebegleitung', 'Fahrdienst']
   publicRelationsVisible?: boolean;
+  internVisible?: boolean;
   notes: string;
 
   // Reminders attached to this volunteer
@@ -393,6 +400,7 @@ export interface VolunteerIndexEntry {
   status: VolunteerStatus;
   roles: string[];
   publicRelationsVisible?: boolean;
+  internVisible?: boolean;
   _updatedAt: string;
   requirementsStatus: RequirementStatusSummary;
   mediaConsentLevel?: MediaConsentLevel | null;
@@ -419,6 +427,26 @@ export interface PublicRelationsConsentEntry {
 export interface PublicRelationsConsentOverview {
   volunteers: PublicRelationsConsentEntry[];
   partners: PublicRelationsConsentEntry[];
+}
+
+export interface InternReadOnlyQualification {
+  requirementType: RequirementType;
+  status: RequirementStatus;
+}
+
+export interface InternReadOnlyEntry {
+  firstName: string;
+  lastName: string;
+  organization?: string;
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  qualifications: InternReadOnlyQualification[];
+}
+
+export interface InternReadOnlyOverview {
+  volunteers: InternReadOnlyEntry[];
+  partners: InternReadOnlyEntry[];
 }
 
 export interface VolunteerContact {
@@ -757,6 +785,7 @@ export const IPC = {
   GET_VOLUNTEER_INDEX: "get-volunteer-index",
   GET_PUBLIC_RELATIONS_CONSENT_OVERVIEW:
     "get-public-relations-consent-overview",
+  GET_INTERN_READ_ONLY_OVERVIEW: "get-intern-read-only-overview",
   GET_VOLUNTEER_CONTACTS: "get-volunteer-contacts",
   GET_VOLUNTEER: "get-volunteer",
   SAVE_VOLUNTEER: "save-volunteer",

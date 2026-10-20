@@ -18,6 +18,7 @@ import {
   PartnerAppointmentIndex,
   VolunteerContact,
   PublicRelationsConsentOverview,
+  InternReadOnlyOverview,
 } from "@shared/types";
 
 // Expose a safe, typed API to the renderer via window.api
@@ -136,6 +137,9 @@ const api = {
 
   getPublicRelationsConsentOverview: (): Promise<PublicRelationsConsentOverview> =>
     ipcRenderer.invoke(IPC.GET_PUBLIC_RELATIONS_CONSENT_OVERVIEW),
+
+  getInternReadOnlyOverview: (): Promise<InternReadOnlyOverview> =>
+    ipcRenderer.invoke(IPC.GET_INTERN_READ_ONLY_OVERVIEW),
 
   getVolunteerContacts: (): Promise<VolunteerContact[]> =>
     ipcRenderer.invoke(IPC.GET_VOLUNTEER_CONTACTS),

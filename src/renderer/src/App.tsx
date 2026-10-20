@@ -22,6 +22,7 @@ import GroupMeetingNew from "./pages/GroupMeetingNew";
 import PartnerAppointments from "./pages/PartnerAppointments";
 import PartnerAppointmentNew from "./pages/PartnerAppointmentNew";
 import PublicRelations from "./pages/PublicRelations";
+import InternOverview from "./pages/InternOverview";
 import ReminderToast from "./components/ReminderToast";
 import ConsentDialog from "./components/ConsentDialog";
 import AccessPendingOverlay from "./components/AccessPendingOverlay";
@@ -138,6 +139,7 @@ export default function App(): JSX.Element {
 
     if (
       userRole !== "public-relations" &&
+      userRole !== "intern-read-only" &&
       encryptionStatus.authorized &&
       encryptionStatus.pendingRequestCount > 0
     ) {
@@ -243,7 +245,9 @@ export default function App(): JSX.Element {
 
   return (
     <>
-      {userRole !== "public-relations" && liveReminders.length > 0 && (
+      {userRole !== "public-relations" &&
+        userRole !== "intern-read-only" &&
+        liveReminders.length > 0 && (
         <ReminderToast reminders={liveReminders} onDismiss={dismissLive} />
       )}
       {showFolderSetupOverlay && (
@@ -268,6 +272,7 @@ export default function App(): JSX.Element {
         />
       )}
       {userRole !== "public-relations" &&
+        userRole !== "intern-read-only" &&
         showPendingRequestsNotice &&
         encryptionStatus?.authorized && (
         <PendingRequestsNoticeModal
@@ -308,6 +313,21 @@ export default function App(): JSX.Element {
               <Route
                 path="*"
                 element={<Navigate to="/public-relations" replace />}
+              />
+            </>
+          ) : userRole === "intern-read-only" ? (
+            <>
+              <Route
+                path="/"
+                element={<Navigate to="/intern-overview" replace />}
+              />
+              <Route
+                path="/intern-overview"
+                element={<InternOverview />}
+              />
+              <Route
+                path="*"
+                element={<Navigate to="/intern-overview" replace />}
               />
             </>
           ) : userRole === "partner-only" ? (

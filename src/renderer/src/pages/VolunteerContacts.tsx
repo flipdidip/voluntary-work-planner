@@ -3,14 +3,13 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Mail,
-  Phone,
   Search,
 } from "lucide-react";
 import { VolunteerContact } from "@shared/types";
+import ContactActions from "../components/ContactActions";
 import "./VolunteerContacts.css";
 
-type SortField = "name" | "phone" | "mobile" | "email" | "roles";
+type SortField = "name" | "contacts" | "roles";
 
 export default function VolunteerContacts(): JSX.Element {
   const [contacts, setContacts] = useState<VolunteerContact[]>([]);
@@ -47,16 +46,15 @@ export default function VolunteerContacts(): JSX.Element {
         const name = `${contact.firstName} ${contact.lastName}`.toLocaleLowerCase(
           "de",
         );
-        const phoneNumbers = `${contact.phone ?? ""} ${contact.mobile ?? ""}`.toLocaleLowerCase(
-          "de",
-        );
-        const email = (contact.email ?? "").toLocaleLowerCase("de");
+        const contactDetails =
+          `${contact.phone ?? ""} ${contact.mobile ?? ""} ${contact.email ?? ""}`.toLocaleLowerCase(
+            "de",
+          );
         const roles = contact.roles.join(" ").toLocaleLowerCase("de");
         return (
           !normalizedQuery ||
           name.includes(normalizedQuery) ||
-          phoneNumbers.includes(normalizedQuery) ||
-          email.includes(normalizedQuery) ||
+          contactDetails.includes(normalizedQuery) ||
           roles.includes(normalizedQuery)
         );
       })
@@ -64,17 +62,17 @@ export default function VolunteerContacts(): JSX.Element {
         const leftValue =
           sortField === "name"
             ? `${left.lastName} ${left.firstName}`
-            : sortField === "roles"
-              ? left.roles.join(", ")
-            : (left[sortField] ?? "");
+            : sortField === "contacts"
+              ? `${left.phone ?? ""} ${left.mobile ?? ""} ${left.email ?? ""}`
+              : left.roles.join(", ");
         const rightValue =
           sortField === "name"
             ? `${right.lastName} ${right.firstName}`
-            : sortField === "roles"
-              ? right.roles.join(", ")
-            : (right[sortField] ?? "");
+            : sortField === "contacts"
+              ? `${right.phone ?? ""} ${right.mobile ?? ""} ${right.email ?? ""}`
+              : right.roles.join(", ");
         const comparison = leftValue.localeCompare(rightValue, "de", {
-          numeric: sortField === "phone" || sortField === "mobile",
+          numeric: false,
           sensitivity: "base",
         });
         return sortAscending ? comparison : -comparison;
@@ -146,9 +144,7 @@ export default function VolunteerContacts(): JSX.Element {
                 {(
                   [
                     ["name", "Name"],
-                    ["phone", "Telefon"],
-                    ["mobile", "Mobil"],
-                    ["email", "E-Mail"],
+                    ["contacts", "Kontakt"],
                     ["roles", "Aufgaben"],
                   ] as const
                 ).map(([field, label]) => (
@@ -184,43 +180,11 @@ export default function VolunteerContacts(): JSX.Element {
                   <tr key={`${name}-${index}`}>
                     <td>{name}</td>
                     <td>
-                      {contact.phone ? (
-                        <a
-                          className="volunteer-contact-number"
-                          href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`}
-                        >
-                          <Phone size={15} aria-hidden="true" />
-                          {contact.phone}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td>
-                      {contact.mobile ? (
-                        <a
-                          className="volunteer-contact-number"
-                          href={`tel:${contact.mobile.replace(/[^\d+]/g, "")}`}
-                        >
-                          <Phone size={15} aria-hidden="true" />
-                          {contact.mobile}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td>
-                      {contact.email ? (
-                        <a
-                          className="volunteer-contact-number"
-                          href={`mailto:${contact.email}`}
-                        >
-                          <Mail size={15} aria-hidden="true" />
-                          {contact.email}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
+                      <ContactActions
+                        phone={contact.phone}
+                        mobile={contact.mobile}
+                        email={contact.email}
+                      />
                     </td>
                     <td>
                       {contact.roles.length > 0

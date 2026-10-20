@@ -210,6 +210,8 @@ export default function Settings({
         return "Nur Kooperationspartner";
       case "public-relations":
         return "Öffentlichkeitsarbeit";
+      case "intern-read-only":
+        return "Interne Mitarbeitende (nur Lesezugriff)";
     }
   };
 
@@ -744,6 +746,9 @@ export default function Settings({
                           <option value="public-relations">
                             Öffentlichkeitsarbeit
                           </option>
+                          <option value="intern-read-only">
+                            Interne Mitarbeitende (nur Lesezugriff)
+                          </option>
                         </select>
                         <button
                           className="btn btn-primary"
@@ -852,6 +857,9 @@ export default function Settings({
                             </option>
                             <option value="public-relations">
                               Öffentlichkeitsarbeit
+                            </option>
+                            <option value="intern-read-only">
+                              Interne Mitarbeitende (nur Lesezugriff)
                             </option>
                           </select>
                         </div>
