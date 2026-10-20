@@ -424,6 +424,7 @@ export interface VolunteerContact {
   lastName: string;
   phone?: string;
   mobile?: string;
+  email?: string;
   roles: string[];
 }
 

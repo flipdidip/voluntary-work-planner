@@ -699,6 +699,7 @@ export function registerVolunteerHandlers(
         lastName: volunteer.lastName,
         phone: volunteer.phone,
         mobile: volunteer.mobile,
+        email: volunteer.email,
         roles: volunteer.roles ?? [],
       }));
     },
