@@ -766,6 +766,7 @@ export const IPC = {
   EXPORT_PROCESSING_ACTIVITIES_MARKDOWN:
     "export-processing-activities-markdown",
   EXPORT_BUSINESS_AUDIT_MARKDOWN: "export-business-audit-markdown",
+  COPY_WINDOW_RECT_TO_CLIPBOARD: "copy-window-rect-to-clipboard",
 
   // Volunteers
   GET_VOLUNTEER_INDEX: "get-volunteer-index",
