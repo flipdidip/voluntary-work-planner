@@ -19,8 +19,6 @@ import Settings from "./pages/Settings";
 import UpcomingEvents from "./pages/UpcomingEvents";
 import GroupMeetings from "./pages/GroupMeetings";
 import GroupMeetingNew from "./pages/GroupMeetingNew";
-import PartnerAppointments from "./pages/PartnerAppointments";
-import PartnerAppointmentNew from "./pages/PartnerAppointmentNew";
 import PublicRelations from "./pages/PublicRelations";
 import InternOverview from "./pages/InternOverview";
 import ReminderToast from "./components/ReminderToast";
@@ -346,19 +344,6 @@ export default function App(): JSX.Element {
                 path="/volunteer-contacts"
                 element={<VolunteerContacts />}
               />
-              <Route path="/appointments" element={<PartnerAppointments />} />
-              <Route
-                path="/appointments/new"
-                element={<PartnerAppointmentNew />}
-              />
-              <Route
-                path="/appointments/:id"
-                element={<PartnerAppointmentNew />}
-              />
-              <Route
-                path="/events"
-                element={<UpcomingEvents userRole={userRole} />}
-              />
               <Route
                 path="/settings"
                 element={<Settings userRole={userRole} />}
@@ -379,19 +364,7 @@ export default function App(): JSX.Element {
               <Route path="/meetings" element={<GroupMeetings />} />
               <Route path="/meetings/new" element={<GroupMeetingNew />} />
               <Route path="/meetings/:id" element={<GroupMeetingNew />} />
-              <Route path="/appointments" element={<PartnerAppointments />} />
-              <Route
-                path="/appointments/new"
-                element={<PartnerAppointmentNew />}
-              />
-              <Route
-                path="/appointments/:id"
-                element={<PartnerAppointmentNew />}
-              />
-              <Route
-                path="/events"
-                element={<UpcomingEvents userRole={userRole} />}
-              />
+              <Route path="/events" element={<UpcomingEvents />} />
               <Route
                 path="/settings"
                 element={<Settings userRole={userRole} />}

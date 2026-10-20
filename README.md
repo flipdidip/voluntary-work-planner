@@ -35,7 +35,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Optimistisches Locking zur Reduzierung von Ueberschreibkonflikten bei synchronisierter Mehrbenutzernutzung.
 - In-App-Verwaltung des Verzeichnisses von Verarbeitungstaetigkeiten (Art. 30 DSGVO) inkl. Markdown-Export.
 - Automatische Loeschung archivierter Ehrenamtlicher und Kooperationspartner nach einer einstellbaren Frist (Standard: 6 Monate), mit einer In-App-Meldung inklusive Namen beim Start.
-- Anzeige, wer Gruppen-Treffen und Kooperationspartner-Termine angelegt hat.
+- Anzeige, wer Gruppentreffen angelegt hat.
 
 ## Aenderungen in v1.6.0 und im aktuellen Entwicklungszweig
 
@@ -48,7 +48,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 ### Aktueller Entwicklungszweig (nach v1.7.0)
 
 - Ehrenamtliche und Kooperationspartner koennen nach Name und Eintrittsdatum sortiert werden.
-- Gruppen-Treffen und Kooperationspartner-Termine zeigen an, wer den jeweiligen Eintrag erstellt hat.
+- Gruppentreffen zeigen an, wer den jeweiligen Eintrag erstellt hat.
 - Das Geburtstagsfeld loest Aenderungen nur noch aus, wenn sich das Datum tatsaechlich geaendert hat.
 - Archivierte Ehrenamtliche und Kooperationspartner werden beim App-Start nach einer einstellbaren Frist automatisch geloescht. Die Frist betraegt standardmaessig sechs Monate.
 - Nach einer automatischen Loeschung erscheint eine In-App-Meldung im Anwendungsstil, die die Namen der geloeschten Datensaetze auffuehrt.
@@ -178,7 +178,7 @@ Notes:
 2. Additional user selects the same folder: app creates a pending access request.
 3. Authorized user approves request in Settings and selects a role:
    - **Vollzugriff (primary)** — full access to all features.
-   - **Nur Kooperationspartner (partner-only)** — access to Kooperationspartner, Termine, Ereignisse and the Ehrenamtliche contact overview.
+   - **Nur Kooperationspartner (partner-only)** — access to Kooperationspartner and the Ehrenamtliche contact overview.
    - **Oeffentlichkeitsarbeit (public-relations)** — access only to the separate public-relations overview and records shared for it.
    - **Interne Mitarbeitende (intern-read-only)** — access only to the internal overview of explicitly shared records; may add new Akte entries but cannot view existing Akte contents.
 4. Newly approved user can access encrypted records according to their assigned role.
@@ -187,8 +187,8 @@ Notes:
 
 | Role                 | Sidebar Navigation | Accessible Pages |
 | -------------------- | ------------------ | ---------------- |
-| `primary`            | Dashboard, Ereignisse, Ehrenamtliche, Gruppen Treffen, Kooperationspartner, Termine, Einstellungen | Alle Verwaltungsseiten ausser Ehrenamtliche Kontakte, Oeffentlichkeitsarbeit und Interne Uebersicht |
-| `partner-only`       | Ereignisse, Ehrenamtliche Kontakte, Kooperationspartner, Termine, Einstellungen | Ehrenamtliche Kontakte (Aufgaben und Kontaktsymbole fuer Telefon, Mobil und E-Mail), Kooperationspartner, Termine, Ereignisse und Einstellungen |
+| `primary`            | Dashboard, Ereignisse, Ehrenamtliche, Gruppen Treffen, Kooperationspartner, Einstellungen | Alle Verwaltungsseiten ausser Ehrenamtliche Kontakte, Oeffentlichkeitsarbeit und Interne Uebersicht |
+| `partner-only`       | Ehrenamtliche Kontakte, Kooperationspartner, Einstellungen | Ehrenamtliche Kontakte (Aufgaben und Kontaktsymbole fuer Telefon, Mobil und E-Mail), Kooperationspartner und Einstellungen |
 | `public-relations`   | Oeffentlichkeitsarbeit | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt, Aufgaben sowie Bild- und Ton-Einwilligung |
 | `intern-read-only`   | Interne Uebersicht | Freigegebene Ehrenamtliche und Kooperationspartner mit Kontakt sowie Qualifikationen und Nachweisen. Neue Akte-Eintraege duerfen hinzugefuegt werden; bestehende Akten bleiben verborgen. |
 

@@ -14,8 +14,6 @@ import {
   UserRole,
   GroupMeeting,
   GroupMeetingIndex,
-  PartnerAppointment,
-  PartnerAppointmentIndex,
   VolunteerContact,
   PublicRelationsConsentOverview,
   InternReadOnlyOverview,
@@ -188,21 +186,6 @@ const api = {
 
   deleteGroupMeeting: (meetingId: string): Promise<void> =>
     ipcRenderer.invoke(IPC.DELETE_GROUP_MEETING, meetingId),
-
-  // Partner appointments (Termine)
-  getPartnerAppointments: (): Promise<PartnerAppointmentIndex> =>
-    ipcRenderer.invoke(IPC.GET_PARTNER_APPOINTMENTS),
-
-  savePartnerAppointment: (
-    appointment: PartnerAppointment,
-  ): Promise<{
-    success: boolean;
-    appointment?: PartnerAppointment;
-    error?: string;
-  }> => ipcRenderer.invoke(IPC.SAVE_PARTNER_APPOINTMENT, appointment),
-
-  deletePartnerAppointment: (appointmentId: string): Promise<void> =>
-    ipcRenderer.invoke(IPC.DELETE_PARTNER_APPOINTMENT, appointmentId),
 
   // File attachments
   selectFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.SELECT_FILE),

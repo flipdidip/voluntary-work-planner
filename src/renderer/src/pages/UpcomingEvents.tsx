@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Users2,
-  Handshake,
 } from "lucide-react";
 import {
   format,
@@ -31,7 +30,7 @@ import {
   calculateUpcomingEvents,
   UpcomingEvent,
 } from "@shared/eventCalculationService";
-import { DinoIconId, UserRole } from "@shared/types";
+import { DinoIconId } from "@shared/types";
 import { getDatePart, normalizeEventDateTime } from "@shared/dateTime";
 import DinoIconBadge from "../components/DinoIcon";
 import "../components/DinoIcon.css";
@@ -80,18 +79,12 @@ function getEventKindInfo(kind: UpcomingEvent["kind"]) {
       label: "Gruppentreffen",
       color: "badge-teal",
     },
-    "partner-appointment": {
-      icon: <Handshake size={12} />,
-      label: "Kooperationspartner-Termin",
-      color: "badge-green",
-    },
   };
   return info[kind];
 }
 
 function getEventTimeLabel(event: UpcomingEvent): string | null {
-  const isTimedEvent =
-    event.kind === "group-meeting" || event.kind === "partner-appointment";
+  const isTimedEvent = event.kind === "group-meeting";
 
   if (!isTimedEvent) {
     return null;
@@ -101,17 +94,8 @@ function getEventTimeLabel(event: UpcomingEvent): string | null {
   return match ? match[1] : null;
 }
 
-interface UpcomingEventsProps {
-  userRole?: UserRole;
-}
-
-type PartnerFilterMode = "off" | "include" | "exclude";
-
 function getEventSortMinutes(event: UpcomingEvent): number | null {
-  const isTimedEvent =
-    event.kind === "group-meeting" || event.kind === "partner-appointment";
-
-  if (!isTimedEvent) {
+  if (event.kind !== "group-meeting") {
     return null;
   }
 
@@ -129,24 +113,18 @@ function getEventSortMinutes(event: UpcomingEvent): number | null {
   return hours * 60 + minutes;
 }
 
-export default function UpcomingEvents({
-  userRole = "primary",
-}: UpcomingEventsProps): JSX.Element {
+export default function UpcomingEvents(): JSX.Element {
   const navigate = useNavigate();
   const { index, loading } = useVolunteerIndex();
   const { index: partnerIndex } = usePartnerIndex();
-  const isPartnerOnly = userRole === "partner-only";
-  const hasFullAccess = userRole === "primary";
   const [events, setEvents] = useState<UpcomingEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(() =>
     startOfMonth(new Date()),
   );
-  const [partnerFilterMode, setPartnerFilterMode] =
-    useState<PartnerFilterMode>("off");
 
   useEffect(() => {
-    if (!isPartnerOnly && !index) {
+    if (!index) {
       setEventsLoading(false);
       return;
     }
@@ -156,52 +134,14 @@ export default function UpcomingEvents({
     const loadEvents = async (): Promise<void> => {
       try {
         setEventsLoading(true);
-        const appointmentsIdx = await window.api.getPartnerAppointments();
-
-        if (isPartnerOnly) {
-          const today = new Date();
-          const partnerEvents = appointmentsIdx.appointments
-            .map((appointment) => {
-              const appointmentDate = new Date(appointment.date);
-              const daysUntil = Math.floor(
-                (appointmentDate.setHours(0, 0, 0, 0) -
-                  new Date(today.setHours(0, 0, 0, 0)).getTime()) /
-                  (1000 * 60 * 60 * 24),
-              );
-
-              return {
-                volunteerId: appointment.id,
-                volunteerName: appointment.title,
-                eventType: "reminder" as const,
-                kind: "partner-appointment" as const,
-                label: `Kooperationspartner-Termin (${appointment.participants.length} Teilnehmer)`,
-                daysUntil,
-                date: normalizeEventDateTime(appointment.date),
-                appointmentId: appointment.id,
-                participants: appointment.participants.map((participant) => ({
-                  id: participant.id,
-                  type: "partner" as const,
-                })),
-              };
-            })
-            .sort((a, b) => a.daysUntil - b.daysUntil);
-
-          if (!cancelled) {
-            setEvents(partnerEvents);
-            setEventsLoading(false);
-          }
-          return;
-        }
-
         const settings = await window.api.getSettings();
         const meetingsIdx = await window.api.getGroupMeetings();
         const result = await calculateUpcomingEvents(
-          index!,
+          index,
           settings,
           (id) => window.api.getVolunteer(id),
           { includePastInMonth: currentMonth },
           meetingsIdx,
-          appointmentsIdx,
         );
 
         if (!cancelled) {
@@ -222,7 +162,7 @@ export default function UpcomingEvents({
     return () => {
       cancelled = true;
     };
-  }, [index, isPartnerOnly, currentMonth]);
+  }, [index, currentMonth]);
 
   // Build calendar grid days for the current month view
   const calendarDays = useMemo(() => {
@@ -232,17 +172,6 @@ export default function UpcomingEvents({
     const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentMonth]);
-
-  const filteredEvents = useMemo(() => {
-    if (partnerFilterMode === "off") {
-      return events;
-    }
-
-    return events.filter((event) => {
-      const isPartnerEvent = event.kind === "partner-appointment";
-      return partnerFilterMode === "include" ? isPartnerEvent : !isPartnerEvent;
-    });
-  }, [events, partnerFilterMode]);
 
   const dinoIconByParticipantId = useMemo(() => {
     const iconMap = new Map<string, DinoIconId>();
@@ -310,7 +239,7 @@ export default function UpcomingEvents({
   // Group events by date string for quick lookup
   const eventsByDate = useMemo(() => {
     const map = new Map<string, UpcomingEvent[]>();
-    for (const ev of filteredEvents) {
+    for (const ev of events) {
       const key = getDatePart(ev.date);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
@@ -342,58 +271,28 @@ export default function UpcomingEvents({
     }
 
     return map;
-  }, [filteredEvents]);
+  }, [events]);
 
   const today = new Date();
 
   const goToPreviousMonth = (): void => setCurrentMonth((m) => subMonths(m, 1));
   const goToNextMonth = (): void => setCurrentMonth((m) => addMonths(m, 1));
   const goToToday = (): void => setCurrentMonth(startOfMonth(new Date()));
-  const cyclePartnerFilter = (): void => {
-    setPartnerFilterMode((prev) => {
-      if (prev === "off") return "include";
-      if (prev === "include") return "exclude";
-      return "off";
-    });
-  };
-
   return (
     <div className="upcoming-events-page">
       <div className="page-header">
         <h1>Kommende Ereignisse</h1>
         <p className="text-muted">
-          {isPartnerOnly
-            ? "Monatsübersicht der Kooperationspartner-Termine"
-            : "Monatsübersicht aller Geburtstage, Erinnerungen und Termine"}
+          Monatsübersicht aller Geburtstage, Erinnerungen und Gruppentreffen
         </p>
       </div>
 
-      {((!isPartnerOnly && loading) || eventsLoading) && (
+      {(loading || eventsLoading) && (
         <p className="text-muted">Lade...</p>
       )}
 
-      {!((!isPartnerOnly && loading) || eventsLoading) && (
+      {!(loading || eventsLoading) && (
         <>
-          {hasFullAccess && (
-            <div className="cal-filters">
-              <span className="cal-filters-label">Filter:</span>
-              <button
-                className={`cal-filter-chip ${partnerFilterMode === "include" ? "active" : partnerFilterMode === "exclude" ? "exclude" : ""}`}
-                onClick={cyclePartnerFilter}
-                type="button"
-                title="Aus: alle Ereignisse · Aktiv: nur Kooperationspartner · Ausschließen: nur Nicht-Kooperationspartner"
-              >
-                <Handshake size={14} />
-                Kooperationspartner:{" "}
-                {partnerFilterMode === "include"
-                  ? "Nur"
-                  : partnerFilterMode === "exclude"
-                    ? "Ohne"
-                    : "Alle"}
-              </button>
-            </div>
-          )}
-
           {/* Calendar navigation */}
           <div className="cal-nav">
             <button
@@ -443,30 +342,14 @@ export default function UpcomingEvents({
                     <span className="cal-day-number">{format(day, "d")}</span>
                     <button
                       className="cal-day-add-btn"
-                      title={
-                        isPartnerOnly
-                          ? "Neuen Termin erstellen"
-                          : "Neues Gruppentreffen erstellen"
-                      }
-                      aria-label={
-                        isPartnerOnly
-                          ? "Neuen Termin erstellen"
-                          : "Neues Gruppentreffen erstellen"
-                      }
+                      title="Neues Gruppentreffen erstellen"
+                      aria-label="Neues Gruppentreffen erstellen"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(
-                          isPartnerOnly
-                            ? `/appointments/new?date=${dateKey}`
-                            : `/meetings/new?date=${dateKey}`,
-                        );
+                        navigate(`/meetings/new?date=${dateKey}`);
                       }}
                     >
-                      {isPartnerOnly ? (
-                        <Handshake size={14} />
-                      ) : (
-                        <Users2 size={14} />
-                      )}
+                      <Users2 size={14} />
                     </button>
                   </div>
                   {dayEvents.length > 0 && (
@@ -475,8 +358,7 @@ export default function UpcomingEvents({
                         const kindInfo = getEventKindInfo(ev.kind);
                         const eventTimeLabel = getEventTimeLabel(ev);
                         const dinoIcons =
-                          ev.kind === "group-meeting" ||
-                          ev.kind === "partner-appointment"
+                          ev.kind === "group-meeting"
                             ? getEventDinoParticipants(ev)
                             : [];
                         return (
@@ -485,11 +367,9 @@ export default function UpcomingEvents({
                             className={`cal-event-pill ${kindInfo.color}`}
                             title={`${eventTimeLabel ? `${eventTimeLabel} · ` : ""}${ev.volunteerName} – ${ev.label}`}
                             onClick={() =>
-                              ev.appointmentId
-                                ? navigate(`/appointments/${ev.appointmentId}`)
-                                : ev.meetingId
-                                  ? navigate(`/meetings/${ev.meetingId}`)
-                                  : navigate(`/volunteers/${ev.volunteerId}`)
+                              ev.meetingId
+                                ? navigate(`/meetings/${ev.meetingId}`)
+                                : navigate(`/volunteers/${ev.volunteerId}`)
                             }
                           >
                             <span className="cal-event-icon">
