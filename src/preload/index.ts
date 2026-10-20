@@ -7,6 +7,7 @@ import {
   EncryptionAuditEntry,
   BusinessAuditEntry,
   EncryptionStatus,
+  DeletedArchivedRecord,
   EnrollmentRequestSummary,
   AuthorizedUserSummary,
   ProcessingActivitiesDocument,
@@ -25,6 +26,9 @@ const api = {
   getDataPath: (): Promise<string> => ipcRenderer.invoke(IPC.GET_DATA_PATH),
 
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.GET_SETTINGS),
+
+  getStartupDeletionNotice: (): Promise<DeletedArchivedRecord[]> =>
+    ipcRenderer.invoke(IPC.GET_STARTUP_DELETION_NOTICE),
 
   saveSettings: (
     partial: Partial<AppSettings>,

@@ -1,0 +1,32 @@
+.archived-deleted-card {
+  max-height: min(80vh, 720px);
+  overflow: auto;
+}
+
+.archived-deleted-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.archived-deleted-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+}
+
+.archived-deleted-list li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.archived-deleted-type {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
