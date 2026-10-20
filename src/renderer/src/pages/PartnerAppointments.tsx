@@ -174,6 +174,10 @@ export default function PartnerAppointments(): JSX.Element {
                   <span>{appointment.title}</span>
                 </div>
               </div>
+              <div className="text-muted" style={{ fontSize: "0.75rem" }}>
+                Erstellt von:{" "}
+                {appointment._createdBy || "Unbekannt (Altbestand)"}
+              </div>
               <div className="meeting-participants">
                 {appointment.participants.map((participant) => (
                   <span

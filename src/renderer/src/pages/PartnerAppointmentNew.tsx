@@ -366,6 +366,15 @@ export default function PartnerAppointmentNew(): JSX.Element {
           />
         </label>
 
+        {isEdit && (
+          <p className="text-muted" style={{ fontSize: "0.8rem" }}>
+            Erstellt von:{" "}
+            {appointmentsIndex?.appointments.find(
+              (entry) => entry.id === id,
+            )?._createdBy || "Unbekannt (Altbestand)"}
+          </p>
+        )}
+
         <div className="participant-section">
           <h3>Kooperationspartner</h3>
 

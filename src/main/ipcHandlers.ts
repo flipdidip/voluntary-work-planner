@@ -914,7 +914,14 @@ export function registerVolunteerHandlers(
         return { success: false, error: "Kein Datenordner konfiguriert." };
       }
 
-      const isNew = !meeting._createdAt;
+      const existing = svc
+        .readAll()
+        .meetings.find((entry) => entry.id === meeting.id);
+      const isNew = !existing;
+      meeting._createdBy = existing
+        ? existing._createdBy
+        : DataCryptoService.getInstance()
+            .getStatus(settings.getDataFolderPath() || "").currentUser;
       if (!meeting.id) {
         meeting.id = uuidv4();
       }
@@ -976,7 +983,14 @@ export function registerVolunteerHandlers(
           return { success: false, error: "Kein Datenordner konfiguriert." };
         }
 
-        const isNew = !appointment._createdAt;
+        const existing = svc
+          .readAll()
+          .appointments.find((entry) => entry.id === appointment.id);
+        const isNew = !existing;
+        appointment._createdBy = existing
+          ? existing._createdBy
+          : DataCryptoService.getInstance()
+              .getStatus(settings.getDataFolderPath() || "").currentUser;
         if (!appointment.id) {
           appointment.id = uuidv4();
         }

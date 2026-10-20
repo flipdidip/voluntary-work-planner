@@ -580,6 +580,8 @@ export interface GroupMeeting {
   date: string; // ISO date-time (YYYY-MM-DDTHH:mm), legacy YYYY-MM-DD supported
   participants: GroupMeetingParticipant[];
   notes?: string;
+  /** User identity that created the meeting; absent on legacy records. */
+  _createdBy?: string;
   _createdAt: string;
   _updatedAt: string;
 }
@@ -669,6 +671,8 @@ export interface PartnerAppointment {
   date: string; // ISO date-time (YYYY-MM-DDTHH:mm), legacy YYYY-MM-DD supported
   participants: PartnerAppointmentParticipant[];
   notes?: string;
+  /** User identity that created the appointment; absent on legacy records. */
+  _createdBy?: string;
   _createdAt: string;
   _updatedAt: string;
 }
