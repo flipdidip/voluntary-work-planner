@@ -219,6 +219,7 @@ export default function PublicRelations(): JSX.Element {
                 <colgroup>
                   <col className="public-relations-column-name" />
                   <col className="public-relations-column-phone" />
+                  <col className="public-relations-column-mobile" />
                   <col className="public-relations-column-email" />
                   <col className="public-relations-column-roles" />
                   <col className="public-relations-column-consent" />
@@ -257,6 +258,7 @@ export default function PublicRelations(): JSX.Element {
                       </button>
                     </th>
                     <th scope="col">Telefon</th>
+                    <th scope="col">Mobil</th>
                     <th scope="col">E-Mail</th>
                     <th scope="col">Aufgaben</th>
                     <th scope="col">Einverständnis Bild und Ton</th>
@@ -305,19 +307,8 @@ export default function PublicRelations(): JSX.Element {
                           </span>
                         )}
                       </td>
-                      <td>
-                        {entry.phone && (
-                          <span className="public-relations-detail">
-                            Tel.: {entry.phone}
-                          </span>
-                        )}
-                        {entry.mobile && (
-                          <span className="public-relations-detail">
-                            Mobil: {entry.mobile}
-                          </span>
-                        )}
-                        {!entry.phone && !entry.mobile && "–"}
-                      </td>
+                      <td>{entry.phone || "–"}</td>
+                      <td>{entry.mobile || "–"}</td>
                       <td>{entry.email || "–"}</td>
                       <td>
                         {entry.roles.length > 0 ? entry.roles.join(", ") : "–"}

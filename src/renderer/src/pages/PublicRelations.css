@@ -122,15 +122,19 @@
 }
 
 .public-relations-column-category {
-  width: 14%;
+  width: 12%;
 }
 
 .public-relations-column-name {
-  width: 18%;
+  width: 16%;
 }
 
 .public-relations-column-phone {
-  width: 16%;
+  width: 12%;
+}
+
+.public-relations-column-mobile {
+  width: 12%;
 }
 
 .public-relations-column-email {
@@ -138,11 +142,11 @@
 }
 
 .public-relations-column-roles {
-  width: 18%;
+  width: 16%;
 }
 
 .public-relations-column-consent {
-  width: 16%;
+  width: 14%;
 }
 
 .public-relations-table th,
@@ -252,15 +256,19 @@
   }
 
   .public-relations-column-category {
-    width: 14%;
+    width: 12%;
   }
 
   .public-relations-column-name {
-    width: 18%;
+    width: 16%;
   }
 
   .public-relations-column-phone {
-    width: 16%;
+    width: 12%;
+  }
+
+  .public-relations-column-mobile {
+    width: 12%;
   }
 
   .public-relations-column-email {
@@ -268,11 +276,11 @@
   }
 
   .public-relations-column-roles {
-    width: 18%;
+    width: 16%;
   }
 
   .public-relations-column-consent {
-    width: 16%;
+    width: 14%;
   }
 
   .public-relations-table th,
