@@ -296,6 +296,14 @@ const api = {
   openExternalUrl: (url: string): Promise<void> =>
     ipcRenderer.invoke(IPC.OPEN_EXTERNAL_URL, url),
 
+  copyWindowRectToClipboard: (rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): Promise<void> =>
+    ipcRenderer.invoke(IPC.COPY_WINDOW_RECT_TO_CLIPBOARD, rect),
+
   // App
   getAppVersion: (): Promise<string> => ipcRenderer.invoke(IPC.GET_APP_VERSION),
 };

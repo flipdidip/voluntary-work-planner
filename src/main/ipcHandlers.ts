@@ -1,4 +1,4 @@
-import { IpcMain, dialog } from "electron";
+import { BrowserWindow, clipboard, IpcMain, dialog } from "electron";
 import { v4 as uuidv4 } from "uuid";
 import {
   IPC,
@@ -375,6 +375,35 @@ export function registerVolunteerHandlers(
         details: `Felder aktualisiert: ${Object.keys(partial).join(", ") || "(keine)"}`,
       });
       return { success: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC.COPY_WINDOW_RECT_TO_CLIPBOARD,
+    async (event, rect: { x: number; y: number; width: number; height: number }) => {
+      const values = [rect?.x, rect?.y, rect?.width, rect?.height];
+      if (
+        values.some((value) => !Number.isFinite(value)) ||
+        rect.x < 0 ||
+        rect.y < 0 ||
+        rect.width <= 0 ||
+        rect.height <= 0 ||
+        rect.width > 5000 ||
+        rect.height > 5000
+      ) {
+        throw new Error("Ungültiger Bildausschnitt.");
+      }
+
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (!window || window.isDestroyed()) {
+        throw new Error("Das App-Fenster ist nicht verfügbar.");
+      }
+
+      const image = await window.webContents.capturePage(rect);
+      if (image.isEmpty()) {
+        throw new Error("Der Bildausschnitt konnte nicht erstellt werden.");
+      }
+      clipboard.writeImage(image);
     },
   );
 
