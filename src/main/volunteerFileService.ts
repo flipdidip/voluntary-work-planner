@@ -96,6 +96,8 @@ export class VolunteerFileService {
           dinoIconId: volunteer.dinoIconId,
           status: volunteer.status,
           roles: volunteer.roles,
+          publicRelationsVisible:
+            volunteer.publicRelationsVisible === true,
           _updatedAt: volunteer._updatedAt,
           requirementsStatus: calculateRequirementsStatus(volunteer),
           mediaConsentLevel: getVolunteerMediaConsentLevel(
@@ -108,6 +110,8 @@ export class VolunteerFileService {
           entry.organization !== normalizedEntry.organization ||
           entry.contactPerson !== normalizedEntry.contactPerson ||
           entry.dinoIconId !== normalizedEntry.dinoIconId ||
+          entry.publicRelationsVisible !==
+            normalizedEntry.publicRelationsVisible ||
           entry.mediaConsentLevel !== normalizedEntry.mediaConsentLevel ||
           JSON.stringify(entry.requirementsStatus) !==
             JSON.stringify(normalizedEntry.requirementsStatus)
@@ -164,6 +168,7 @@ export class VolunteerFileService {
       dinoIconId: volunteer.dinoIconId,
       status: volunteer.status,
       roles: volunteer.roles,
+      publicRelationsVisible: volunteer.publicRelationsVisible === true,
       _updatedAt: volunteer._updatedAt,
       requirementsStatus: calculateRequirementsStatus(volunteer),
       mediaConsentLevel: getVolunteerMediaConsentLevel(volunteer.requirements),

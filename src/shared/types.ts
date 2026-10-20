@@ -8,7 +8,7 @@ export type VolunteerStatus = "active" | "inactive" | "archived";
  * Authorization role assigned to each user in the encrypted data folder.
  * - "primary"      → Full access to all features (volunteers, partners, settings, etc.)
  * - "partner-only" → Restricted view: can see Kooperationspartner, Termine, and volunteer contact details
- * - "public-relations" → Can see volunteer and partner names, contact details, tasks, and image/sound consent status
+ * - "public-relations" → Can see records explicitly shared by primary users, including names, contact details, tasks, and image/sound consent status
  *
  * The initial creator of the folder always receives the "primary" role.
  * Every subsequent user is assigned a role at approval time.
@@ -361,6 +361,7 @@ export interface Volunteer {
   joinedDate?: string; // ISO date
   dinoIconId?: DinoIconId;
   roles: string[]; // e.g. ['Sterbebegleitung', 'Fahrdienst']
+  publicRelationsVisible?: boolean;
   notes: string;
 
   // Reminders attached to this volunteer
@@ -391,6 +392,7 @@ export interface VolunteerIndexEntry {
   dinoIconId?: DinoIconId;
   status: VolunteerStatus;
   roles: string[];
+  publicRelationsVisible?: boolean;
   _updatedAt: string;
   requirementsStatus: RequirementStatusSummary;
   mediaConsentLevel?: MediaConsentLevel | null;

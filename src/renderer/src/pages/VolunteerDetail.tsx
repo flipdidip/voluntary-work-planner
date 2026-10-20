@@ -528,6 +528,19 @@ export default function VolunteerDetail(): JSX.Element {
               suggestions={roleSuggestions}
             />
           </label>
+          <section className="record-permissions">
+            <h3>Freigaben</h3>
+            <label className="public-relations-visibility-toggle">
+              <input
+                type="checkbox"
+                checked={form.publicRelationsVisible === true}
+                onChange={(event) =>
+                  update({ publicRelationsVisible: event.target.checked })
+                }
+              />
+              <strong>Für Öffentlichkeitsarbeit freigeben</strong>
+            </label>
+          </section>
           <label className="mt">
             Notizen
             <textarea

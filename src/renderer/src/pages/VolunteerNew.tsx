@@ -24,6 +24,7 @@ const EMPTY_VOLUNTEER: Omit<
   statusLog: [], // Will be populated by volunteerFileService on save
   joinedDate: new Date().toISOString().split("T")[0],
   roles: [],
+  publicRelationsVisible: false,
   notes: "",
   reminders: [],
   fileRecords: [],
@@ -55,6 +56,7 @@ export default function VolunteerNew(): JSX.Element {
       status: (fd.get("status") as Volunteer["status"]) ?? "active",
       joinedDate: (fd.get("joinedDate") as string) || undefined,
       roles: roles,
+      publicRelationsVisible: fd.get("publicRelationsVisible") === "on",
     };
 
     const result = await window.api.saveVolunteer(volunteer);
@@ -120,6 +122,13 @@ export default function VolunteerNew(): JSX.Element {
           Aufgaben
           <RolesInput value={roles} onChange={setRoles} />
         </label>
+        <section className="record-permissions">
+          <h3>Freigaben</h3>
+          <label className="public-relations-visibility-toggle">
+            <input type="checkbox" name="publicRelationsVisible" />
+            <strong>Für Öffentlichkeitsarbeit freigeben</strong>
+          </label>
+        </section>
         <label>
           Beitritt
           <input
