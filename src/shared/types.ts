@@ -2,7 +2,11 @@
 // Shared types between Electron main and React renderer
 // ─────────────────────────────────────────────────
 
-export type VolunteerStatus = "active" | "inactive" | "archived";
+export type VolunteerStatus =
+  | "requested"
+  | "active"
+  | "inactive"
+  | "archived";
 
 /**
  * Authorization role assigned to each user in the encrypted data folder.
@@ -86,6 +90,7 @@ export interface FileRecord extends RecordAuditMetadata {
 // ─────────────────────────────────────────────────
 
 export type RequirementType =
+  | "erstgespraech" // Initial conversation conducted - one-time, no document
   | "grundkurs" // Basic course - one-time, no document
   | "verhaltenskodex" // Code of conduct - one-time, PDF required
   | "verschwiegenheitsklausel" // Confidentiality agreement - one-time, PDF required
@@ -129,6 +134,12 @@ export const REQUIREMENT_DEFINITIONS: Record<
   RequirementType,
   RequirementMetadata
 > = {
+  erstgespraech: {
+    id: "erstgespraech",
+    label: "Erstgespräch geführt",
+    requiresDocument: false,
+    renewalMonths: null,
+  },
   grundkurs: {
     id: "grundkurs",
     label: "Grundkurs teilgenommen",
@@ -374,6 +385,7 @@ export interface Volunteer {
   // Volunteer metadata
   status: VolunteerStatus;
   joinedDate?: string; // ISO date
+  requestOrigin?: string;
   dinoIconId?: DinoIconId;
   roles: string[]; // e.g. ['Sterbebegleitung', 'Fahrdienst']
   publicRelationsVisible?: boolean;
@@ -405,6 +417,8 @@ export interface VolunteerIndexEntry {
   mobile?: string;
   email?: string;
   joinedDate?: string;
+  requestOrigin?: string;
+  statusReasons?: string[];
   dinoIconId?: DinoIconId;
   status: VolunteerStatus;
   roles: string[];
@@ -957,7 +971,7 @@ export type SaveResult =
   | { success: true; volunteer: Volunteer }
   | {
       success: false;
-      reason: "version-conflict" | "io-error";
+      reason: "version-conflict" | "io-error" | "validation-error";
       message: string;
     };
 

@@ -20,12 +20,14 @@ type FilterMode = "off" | "include" | "exclude";
 type JoinedFilter = "last12m" | "atLeast12m";
 
 const STATUS_LABELS: Record<VolunteerStatus, string> = {
+  requested: "Angefragt",
   active: "Aktiv",
   inactive: "Inaktiv",
   archived: "Archiviert",
 };
 
 const STATUS_BADGE: Record<VolunteerStatus, string> = {
+  requested: "badge-blue",
   active: "badge-green",
   inactive: "badge-yellow",
   archived: "badge-gray",

@@ -185,6 +185,18 @@
   width: 120px;
 }
 
+.status-history-reason {
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .section-header {
   display: flex;
   align-items: center;
@@ -537,4 +549,59 @@ label {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.status-reason-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--color-overlay-bg, rgba(0, 0, 0, 0.45));
+}
+
+.status-reason-dialog {
+  width: 100%;
+  max-width: 440px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+.status-reason-dialog-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.status-reason-dialog-header h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.1rem;
+}
+
+.status-reason-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+}
+
+.status-reason-dialog-body p {
+  margin: 0 0 4px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.status-reason-dialog-body label {
+  color: var(--color-text);
+}
+
+.status-reason-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 20px 16px;
 }

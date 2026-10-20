@@ -93,6 +93,18 @@ export class VolunteerFileService {
           mobile: volunteer.mobile,
           email: volunteer.email,
           joinedDate: volunteer.joinedDate,
+          requestOrigin: volunteer.requestOrigin,
+          statusReasons: Array.from(
+            new Set(
+              (volunteer.statusLog || [])
+                .filter(
+                  (entry) =>
+                    entry.to === "inactive" || entry.to === "archived",
+                )
+                .map((entry) => entry.note?.trim())
+                .filter((reason): reason is string => Boolean(reason)),
+            ),
+          ),
           dinoIconId: volunteer.dinoIconId,
           status: volunteer.status,
           roles: volunteer.roles,
@@ -110,6 +122,9 @@ export class VolunteerFileService {
           entry._updatedAt !== normalizedEntry._updatedAt ||
           entry.organization !== normalizedEntry.organization ||
           entry.contactPerson !== normalizedEntry.contactPerson ||
+          entry.requestOrigin !== normalizedEntry.requestOrigin ||
+          JSON.stringify(entry.statusReasons) !==
+            JSON.stringify(normalizedEntry.statusReasons) ||
           entry.dinoIconId !== normalizedEntry.dinoIconId ||
           entry.publicRelationsVisible !==
             normalizedEntry.publicRelationsVisible ||
@@ -167,6 +182,17 @@ export class VolunteerFileService {
       mobile: volunteer.mobile,
       email: volunteer.email,
       joinedDate: volunteer.joinedDate,
+      requestOrigin: volunteer.requestOrigin,
+      statusReasons: Array.from(
+        new Set(
+          (volunteer.statusLog || [])
+            .filter(
+              (entry) => entry.to === "inactive" || entry.to === "archived",
+            )
+            .map((entry) => entry.note?.trim())
+            .filter((reason): reason is string => Boolean(reason)),
+        ),
+      ),
       dinoIconId: volunteer.dinoIconId,
       status: volunteer.status,
       roles: volunteer.roles,
@@ -213,7 +239,11 @@ export class VolunteerFileService {
     }
   }
 
-  saveVolunteer(incoming: Volunteer): SaveResult {
+  saveVolunteer(
+    incoming: Volunteer,
+    statusChangeReason?: string,
+    requireStatusChangeReason = false,
+  ): SaveResult {
     const filePath = this.volunteerFilePath(incoming.id);
 
     // Optimistic locking — if file exists, check version
@@ -225,6 +255,20 @@ export class VolunteerFileService {
           success: false,
           reason: "version-conflict",
           message: `Version conflict: file has version ${existing._version}, you have ${incoming._version}. Please reload and retry.`,
+        };
+      }
+      if (
+        requireStatusChangeReason &&
+        existing &&
+        existing.status !== incoming.status &&
+        (incoming.status === "inactive" || incoming.status === "archived") &&
+        !statusChangeReason?.trim()
+      ) {
+        return {
+          success: false,
+          reason: "validation-error",
+          message:
+            "Bitte geben Sie einen Grund für den Wechsel zu Inaktiv oder Archiviert an.",
         };
       }
       // Backup before overwrite
@@ -244,6 +288,10 @@ export class VolunteerFileService {
           timestamp: new Date().toISOString(),
           from: existing.status,
           to: toWrite.status,
+          note:
+            toWrite.status === "inactive" || toWrite.status === "archived"
+              ? statusChangeReason?.trim()
+              : undefined,
         });
       } else if (!existing && toWrite.statusLog.length === 0) {
         // Initial status log entry for new volunteers

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Save,
-  Trash2,
   Bell,
   BellRing,
   BellPlus,
@@ -57,6 +56,7 @@ import { v4 as uuidv4 } from "uuid";
 import "./VolunteerDetail.css";
 
 const STATUS_OPTIONS: { value: VolunteerStatus; label: string }[] = [
+  { value: "requested", label: "Angefragt" },
   { value: "active", label: "Aktiv" },
   { value: "inactive", label: "Inaktiv" },
   { value: "archived", label: "Archiviert" },
@@ -69,6 +69,11 @@ export default function VolunteerDetail(): JSX.Element {
   const { index } = useVolunteerIndex();
   const { index: meetingsIndex, loading: meetingsLoading } = useGroupMeetings();
   const [form, setForm] = useState<Volunteer | null>(null);
+  const [savedStatus, setSavedStatus] = useState<VolunteerStatus | null>(null);
+  const [statusChangeReason, setStatusChangeReason] = useState("");
+  const [pendingStatus, setPendingStatus] = useState<VolunteerStatus | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -87,6 +92,7 @@ export default function VolunteerDetail(): JSX.Element {
 
   // Init form from loaded data
   if (initial && !form) {
+    setSavedStatus(initial.status);
     setForm({
       ...initial,
       statusLog: Array.isArray(initial.statusLog) ? initial.statusLog : [],
@@ -121,6 +127,23 @@ export default function VolunteerDetail(): JSX.Element {
 
     return Array.from(roleSet);
   })();
+
+  const requestOrigins = Array.from(
+    new Set(
+      (index?.volunteers ?? [])
+        .map((entry) => entry.requestOrigin?.trim())
+        .filter((origin): origin is string => Boolean(origin)),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "de"));
+  const statusReasonSuggestions = Array.from(
+    new Set(
+      (index?.volunteers ?? []).flatMap((entry) =>
+        (entry.statusReasons ?? [])
+          .map((reason) => reason.trim())
+          .filter((reason) => reason.length > 0),
+      ),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "de"));
 
   const age = form?.dateOfBirth
     ? differenceInYears(new Date(), parseISO(form.dateOfBirth))
@@ -172,14 +195,51 @@ export default function VolunteerDetail(): JSX.Element {
   const update = (partial: Partial<Volunteer>): void =>
     setForm((prev) => (prev ? { ...prev, ...partial } : prev));
 
+  const statusNeedsReason =
+    savedStatus !== null &&
+    form.status !== savedStatus &&
+    (form.status === "inactive" || form.status === "archived");
+
+  const openStatusReasonDialog = (
+    status: VolunteerStatus,
+    existingReason = "",
+  ): void => {
+    setPendingStatus(status);
+    setStatusChangeReason(existingReason);
+    setError(null);
+  };
+
+  const closeStatusReasonDialog = (): void => {
+    setPendingStatus(null);
+    setStatusChangeReason("");
+  };
+
+  const confirmStatusReason = (): void => {
+    if (!pendingStatus || !statusChangeReason.trim()) return;
+    const nextStatus = pendingStatus;
+    const reason = statusChangeReason.trim();
+    setPendingStatus(null);
+    update({ status: nextStatus });
+    setStatusChangeReason(reason);
+  };
+
   const handleSave = async (): Promise<void> => {
     if (!form) return;
+    if (statusNeedsReason && !statusChangeReason.trim()) {
+      setError("Bitte geben Sie einen Grund für den Statuswechsel an.");
+      return;
+    }
     setSaving(true);
     setError(null);
-    const result = await window.api.saveVolunteer(form);
+    const result = await window.api.saveVolunteer(
+      form,
+      statusNeedsReason ? statusChangeReason : undefined,
+    );
     setSaving(false);
     if (result.success) {
       setForm(result.volunteer);
+      setSavedStatus(result.volunteer.status);
+      setStatusChangeReason("");
       await deleteReplacedAkteFiles();
       setSuccessMsg("Gespeichert!");
       setTimeout(() => setSuccessMsg(null), 2500);
@@ -201,29 +261,6 @@ export default function VolunteerDetail(): JSX.Element {
     setPendingAkteFileDeletes(failedPaths);
     if (failedPaths.length > 0) {
       setError("Ein oder mehrere ersetzte Akte-Anhänge konnten nicht gelöscht werden.");
-    }
-  };
-
-  const handleArchive = async (): Promise<void> => {
-    if (form.status === "archived") return;
-    if (!confirm(`${form.firstName} ${form.lastName} wirklich archivieren?`)) {
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-
-    const result = await window.api.saveVolunteer({
-      ...form,
-      status: "archived",
-    });
-
-    setSaving(false);
-    if (result.success) {
-      await deleteReplacedAkteFiles();
-      navigate("/volunteers?status=archived");
-    } else {
-      setError(result.message);
     }
   };
 
@@ -405,9 +442,19 @@ export default function VolunteerDetail(): JSX.Element {
               <select
                 className="select"
                 value={form.status}
-                onChange={(e) =>
-                  update({ status: e.target.value as VolunteerStatus })
-                }
+                onChange={(e) => {
+                  const nextStatus = e.target.value as VolunteerStatus;
+                  if (
+                    nextStatus !== savedStatus &&
+                    (nextStatus === "inactive" || nextStatus === "archived")
+                  ) {
+                    openStatusReasonDialog(nextStatus);
+                    return;
+                  }
+                  update({ status: nextStatus });
+                  setStatusChangeReason("");
+                  setError(null);
+                }}
               >
                 {STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -567,6 +614,25 @@ export default function VolunteerDetail(): JSX.Element {
               suggestions={roleSuggestions}
             />
           </label>
+          <label className="mt">
+            Herkunft der Anfrage
+            <input
+              className="input"
+              value={form.requestOrigin ?? ""}
+              onChange={(event) =>
+                update({
+                  requestOrigin: event.target.value || undefined,
+                })
+              }
+              list="volunteer-request-origins"
+              autoComplete="off"
+            />
+            <datalist id="volunteer-request-origins">
+              {requestOrigins.map((origin) => (
+                <option key={origin} value={origin} />
+              ))}
+            </datalist>
+          </label>
           <section className="record-permissions">
             <h3>Freigaben</h3>
             <label className="public-relations-visibility-toggle">
@@ -601,7 +667,11 @@ export default function VolunteerDetail(): JSX.Element {
 
           {/* Status Change History */}
           {form.statusLog && form.statusLog.length > 0 && (
-            <details className="status-history" style={{ marginTop: "1.5rem" }}>
+            <details
+              className="status-history"
+              style={{ marginTop: "1.5rem" }}
+              open={form.statusLog.some((entry) => entry.note?.trim())}
+            >
               <summary
                 style={{
                   cursor: "pointer",
@@ -649,14 +719,8 @@ export default function VolunteerDetail(): JSX.Element {
                       })}
                     </div>
                     {entry.note && (
-                      <div
-                        style={{
-                          fontSize: "0.85em",
-                          marginTop: "0.25rem",
-                          fontStyle: "italic",
-                        }}
-                      >
-                        {entry.note}
+                      <div className="status-history-reason">
+                        <strong>Grund:</strong> {entry.note}
                       </div>
                     )}
                   </div>
@@ -972,15 +1036,6 @@ export default function VolunteerDetail(): JSX.Element {
         {successMsg && <span className="success-msg">{successMsg}</span>}
         {error && <span className="error-msg">{error}</span>}
         <button
-          className="btn btn-danger"
-          onClick={handleArchive}
-          disabled={saving || form.status === "archived"}
-          title={form.status === "archived" ? "Bereits archiviert" : undefined}
-        >
-          <Trash2 size={15} />
-          {form.status === "archived" ? "Archiviert" : "Archivieren"}
-        </button>
-        <button
           className="btn btn-primary"
           onClick={handleSave}
           disabled={saving}
@@ -988,6 +1043,76 @@ export default function VolunteerDetail(): JSX.Element {
           <Save size={15} /> {saving ? "Speichern..." : "Speichern"}
         </button>
       </div>
+      {pendingStatus && (
+        <div
+          className="status-reason-overlay"
+          role="presentation"
+          onClick={closeStatusReasonDialog}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") closeStatusReasonDialog();
+          }}
+        >
+          <div
+            className="status-reason-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="status-reason-title"
+            aria-describedby="status-reason-description"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <div className="status-reason-dialog-header">
+              <h2 id="status-reason-title">
+                Grund für Statuswechsel
+              </h2>
+            </div>
+            <div className="status-reason-dialog-body">
+              <p id="status-reason-description">
+                Bitte geben Sie an, warum der Status auf{" "}
+                <strong>
+                  {pendingStatus === "archived" ? "Archiviert" : "Inaktiv"}
+                </strong>{" "}
+                geändert wird.
+              </p>
+              <label htmlFor="volunteer-status-reason">
+                Begründung *
+              </label>
+              <input
+                id="volunteer-status-reason"
+                className="input"
+                value={statusChangeReason}
+                onChange={(event) =>
+                  setStatusChangeReason(event.target.value)
+                }
+                list="volunteer-status-reasons"
+                autoComplete="off"
+                autoFocus
+                placeholder="Grund eingeben oder aus Vorschlägen wählen"
+              />
+              <datalist id="volunteer-status-reasons">
+                {statusReasonSuggestions.map((reason) => (
+                  <option key={reason} value={reason} />
+                ))}
+              </datalist>
+            </div>
+            <div className="status-reason-dialog-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={closeStatusReasonDialog}
+              >
+                Abbrechen
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={confirmStatusReason}
+                disabled={!statusChangeReason.trim()}
+              >
+                Übernehmen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

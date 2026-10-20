@@ -38,12 +38,14 @@ type JoinedFilter = "last12m" | "atLeast12m";
 type RequirementStatus = "complete" | "expired" | "missing";
 
 const STATUS_LABELS: Record<VolunteerStatus, string> = {
+  requested: "Angefragt",
   active: "Aktiv",
   inactive: "Inaktiv",
   archived: "Archiviert",
 };
 
 const STATUS_BADGE: Record<VolunteerStatus, string> = {
+  requested: "badge-blue",
   active: "badge-green",
   inactive: "badge-yellow",
   archived: "badge-gray",
@@ -107,6 +109,7 @@ export default function VolunteerList(): JSX.Element {
   useEffect(() => {
     if (
       statusFromQuery === "active" ||
+      statusFromQuery === "requested" ||
       statusFromQuery === "inactive" ||
       statusFromQuery === "archived"
     ) {
@@ -559,7 +562,7 @@ export default function VolunteerList(): JSX.Element {
         <div className="filter-group">
           <span className="filter-group-label">Status:</span>
           <div className="filter-chips">
-            {(["active", "inactive", "archived"] as VolunteerStatus[]).map(
+            {(["requested", "active", "inactive", "archived"] as VolunteerStatus[]).map(
               (status) => (
                 <button
                   key={status}
