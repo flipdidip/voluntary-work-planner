@@ -5,7 +5,6 @@ import {
   Settings,
   Calendar,
   Handshake,
-  Users2,
   MessagesSquare,
   Phone,
   Megaphone,

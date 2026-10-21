@@ -403,7 +403,6 @@ export function getUpcomingReminders(
             );
 
             if (remainingDays >= 0 && remainingDays <= daysAhead) {
-              const anniversaryDate = new Date(today.getTime() + remainingMs);
               results.push({
                 volunteerId: v.id,
                 volunteerName: `${v.firstName} ${v.lastName}`,

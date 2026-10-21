@@ -10,7 +10,6 @@ import {
   X,
   FileText,
   Upload,
-  Download,
   Eye,
   CheckCircle,
   AlertCircle,
@@ -875,7 +874,6 @@ export default function VolunteerDetail(): JSX.Element {
 
           {showReminderForm && (
             <ReminderForm
-              volunteer={form}
               onAdd={addReminder}
               onClose={() => setShowReminderForm(false)}
             />
@@ -1127,17 +1125,15 @@ function getStatusLabel(status: VolunteerStatus): string {
 // ──────────────────────────────────────────────────────────
 
 interface ReminderFormProps {
-  volunteer: Volunteer;
   onAdd: (r: Reminder) => void;
   onClose: () => void;
 }
 
 function ReminderForm({
-  volunteer,
   onAdd,
   onClose,
 }: ReminderFormProps): JSX.Element {
-  const [type, setType] = useState<ReminderType>("custom");
+  const type: ReminderType = "custom";
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [triggerDate, setTriggerDate] = useState("");

@@ -23,14 +23,12 @@ import {
 import {
   differenceInMonths,
   differenceInYears,
-  format,
   parseISO,
   isAfter,
   isWithinInterval,
   addDays,
   subYears,
 } from "date-fns";
-import { de } from "date-fns/locale";
 import "./VolunteerList.css";
 
 type FilterMode = "off" | "include" | "exclude";
@@ -246,7 +244,7 @@ export default function VolunteerList(): JSX.Element {
       const activeRequirementFilters = Object.entries(
         requirementStatusModesToCheck,
       )
-        .filter(([_, mode]) => mode !== "off")
+        .filter(([, mode]) => mode !== "off")
         .map(([status]) => status as RequirementStatus);
 
       if (activeRequirementFilters.length > 0 && v.requirementsStatus) {
@@ -303,7 +301,7 @@ export default function VolunteerList(): JSX.Element {
       };
 
       const activeMediaConsentFilters = Object.entries(mediaConsentModesToCheck)
-        .filter(([_, mode]) => mode !== "off")
+        .filter(([, mode]) => mode !== "off")
         .map(([status]) => status as MediaConsentLevel | "none");
 
       if (activeMediaConsentFilters.length > 0) {
