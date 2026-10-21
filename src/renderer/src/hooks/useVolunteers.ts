@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { VolunteerIndex, VolunteerIndexEntry, Volunteer } from "@shared/types";
+import { VolunteerIndex, Volunteer } from "@shared/types";
 
 export function useVolunteerIndex(): {
   index: VolunteerIndex | null;
