@@ -14,8 +14,8 @@ import {
   Handshake,
   UserPlus,
   BarChart3,
-  Copy,
   Download,
+  MoreVertical,
 } from "lucide-react";
 import { format, isValid, parseISO, subYears } from "date-fns";
 import { de } from "date-fns/locale";
@@ -85,14 +85,30 @@ function wasActiveDuring(
 function StatLine({
   label,
   value,
+  change,
 }: {
   label: string;
   value: number | string;
+  change?: number;
 }): JSX.Element {
   return (
     <div className="dashboard-stat-line">
-      <span>{label}</span>
-      <strong>{value}</strong>
+      <span className="dashboard-statistics-metric-label">{label}</span>
+      <span className="dashboard-statistics-metric-values">
+        <strong className="dashboard-statistics-metric-value">{value}</strong>
+        {change !== undefined && change !== 0 && (
+          <span
+            className={`dashboard-statistics-change dashboard-statistics-change--${
+              change > 0 ? "positive" : "negative"
+            }`}
+            aria-label={`Veränderung im Zeitraum: ${change > 0 ? "+" : ""}${change}`}
+            title={`Veränderung im Zeitraum: ${change > 0 ? "+" : ""}${change}`}
+          >
+            {change > 0 ? "▲" : "▼"}
+            {change > 0 ? `+${change}` : change}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
@@ -107,6 +123,8 @@ const INTAKE_CHART_COLORS = [
   "#38a3a5",
   "#d0a830",
 ];
+
+const ATTENDANCE_CHART_COLORS = ["#39a96b", "#e76f8a", "#8b98a8"];
 
 interface PieChartSegment {
   label: string;
@@ -150,6 +168,27 @@ function escapeCsv(value: string | number): string {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
+function createCardCsv(
+  title: string,
+  from: string,
+  to: string,
+  metrics: Array<[string, string | number]>,
+): string {
+  const rows: Array<[string, string, string | number]> = [
+    ["Zeitraum", "Von", from],
+    ["Zeitraum", "Bis", to],
+    ...metrics.map(([label, value]) => [title, label, value] as [
+      string,
+      string,
+      string | number,
+    ]),
+  ];
+  return [
+    ["Bereich", "Kennzahl", "Wert"].map(escapeCsv).join(";"),
+    ...rows.map((row) => row.map(escapeCsv).join(";")),
+  ].join("\r\n");
+}
+
 function createStatisticsCsv(
   from: string,
   to: string,
@@ -165,6 +204,8 @@ function createStatisticsCsv(
     terminationReasons: PieChartSegment[];
     meetingCount: number;
     invited: number;
+    invitedPartners: number;
+    invitedStaff: number;
     present: number;
     absent: number;
     unknown: number;
@@ -175,8 +216,8 @@ function createStatisticsCsv(
     ["Zeitraum", "Von", from],
     ["Zeitraum", "Bis", to],
     ["Interessenten-Management", "Eingegangene Anfragen", statistics.interestedCount],
-    ["Verlauf des Aufnahmeprozesses", "Geführte Erstgespräche", statistics.firstInterviews],
-    ["Verlauf des Aufnahmeprozesses", "Gesamt inaktiv/archiviert, war Interessent", statistics.exitedInterestedCount],
+    ["Verlauf des Aufnahmeprozesses", "Erstgespräche im Zeitraum", statistics.firstInterviews],
+    ["Verlauf des Aufnahmeprozesses", "Inaktive/archivierte Interessenten", statistics.exitedInterestedCount],
     ...statistics.intakeSegments.map(
       (segment): [string, string, number] => [
         "Aufnahmeprozess",
@@ -187,6 +228,11 @@ function createStatisticsCsv(
     ["Ehrenamt-Übersicht", "Aktive Ehrenamtliche", statistics.activeNow],
     ["Ehrenamt-Übersicht", "Neue Ehrenamtliche", statistics.newVolunteers],
     ["Ehrenamt-Übersicht", "Beendete Ehrenamtliche", statistics.endedVolunteers],
+    [
+      "Ehrenamt-Übersicht",
+      "Nettoveränderung im Zeitraum",
+      statistics.newVolunteers - statistics.endedVolunteers,
+    ],
     ...statistics.terminationReasons.map(
       (segment): [string, string, number] => [
         "Gründe der Beendigung",
@@ -203,6 +249,8 @@ function createStatisticsCsv(
       : []),
     ["Gruppentreffen", "Anzahl Treffen", statistics.meetingCount],
     ["Gruppentreffen", "Eingeladene Ehrenamtliche", statistics.invited],
+    ["Gruppentreffen", "Eingeladene Kooperationspartner", statistics.invitedPartners],
+    ["Gruppentreffen", "Eingeladene Hauptamtliche", statistics.invitedStaff],
     ["Gruppentreffen", "Anwesend", statistics.present],
     ["Gruppentreffen", "Abwesend", statistics.absent],
     ["Gruppentreffen", "Rückmeldung offen", statistics.unknown],
@@ -290,23 +338,87 @@ function PieChart({
   );
 }
 
-function CopyCardButton({
+function StatisticsCardMenu({
   title,
-  onClick,
+  onCopyImage,
+  onCopyCsv,
 }: {
   title: string;
-  onClick: (button: HTMLButtonElement) => void;
+  onCopyImage: (mode: "light" | "dark", button: HTMLButtonElement) => void;
+  onCopyCsv: () => void;
 }): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: MouseEvent): void => {
+      if (
+        event.target instanceof Node &&
+        !buttonRef.current?.parentElement?.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
   return (
-    <button
-      type="button"
-      className="btn btn-ghost dashboard-copy-card-button"
-      onClick={(event) => onClick(event.currentTarget)}
-      data-tooltip={`„${title}“ als Bild kopieren`}
-      aria-label={`„${title}“ als Bild in die Zwischenablage kopieren`}
-    >
-      <Copy size={18} strokeWidth={2.5} />
-    </button>
+    <div className="dashboard-card-menu">
+      <button
+        ref={buttonRef}
+        type="button"
+        className="btn btn-ghost dashboard-copy-card-button"
+        onClick={() => setOpen((value) => !value)}
+        aria-label={`Aktionen für „${title}“`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <MoreVertical size={18} strokeWidth={2.5} />
+      </button>
+      {open && (
+        <div className="dashboard-card-menu-popover" role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              if (buttonRef.current) onCopyImage("light", buttonRef.current);
+            }}
+          >
+            Bild kopieren Light Mode
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              if (buttonRef.current) onCopyImage("dark", buttonRef.current);
+            }}
+          >
+            Bild kopieren Dark Mode
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onCopyCsv();
+            }}
+          >
+            CSV kopieren
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -477,26 +589,12 @@ export default function Dashboard(): JSX.Element {
     );
     const intakeSegments = [
       {
-        label: "Interessenten, jetzt aktiv",
-        value: interested.filter((volunteer) => volunteer.status === "active")
+        label: "Noch Interessenten",
+        value: interested.filter((volunteer) => volunteer.status === "requested")
           .length,
       },
       {
-        label: "Inaktiv/archiviert, Grundkurs absolviert",
-        value: exitedInterested.filter((volunteer) =>
-          hasRequirement(volunteer, "grundkurs"),
-        ).length,
-      },
-      {
-        label: "Inaktiv/archiviert, mit Erstgespräch",
-        value: exitedInterested.filter(
-          (volunteer) =>
-            !hasRequirement(volunteer, "grundkurs") &&
-            hasRequirement(volunteer, "erstgespraech"),
-        ).length,
-      },
-      {
-        label: "Inaktiv/archiviert, ohne Erstgespräch",
+        label: "Inaktiv/archiviert vor Erstgespräch",
         value: exitedInterested.filter(
           (volunteer) =>
             !hasRequirement(volunteer, "grundkurs") &&
@@ -504,8 +602,22 @@ export default function Dashboard(): JSX.Element {
         ).length,
       },
       {
-        label: "Noch im Interessentenstatus",
-        value: interested.filter((volunteer) => volunteer.status === "requested")
+        label: "Inaktiv/archiviert nach Erstgespräch",
+        value: exitedInterested.filter(
+          (volunteer) =>
+            !hasRequirement(volunteer, "grundkurs") &&
+            hasRequirement(volunteer, "erstgespraech"),
+        ).length,
+      },
+      {
+        label: "Inaktiv/archiviert nach Grundkurs",
+        value: exitedInterested.filter((volunteer) =>
+          hasRequirement(volunteer, "grundkurs"),
+        ).length,
+      },
+      {
+        label: "Aktuell aktiv",
+        value: interested.filter((volunteer) => volunteer.status === "active")
           .length,
       },
     ].map((segment, index) => ({
@@ -550,19 +662,35 @@ export default function Dashboard(): JSX.Element {
     const meetings = (meetingsIndex?.meetings ?? []).filter((meeting) =>
       isInDateRange(meeting.date, start, end),
     );
-    const volunteerParticipants = meetings.flatMap((meeting) =>
-      (meeting.participants ?? []).filter(
-        (participant) => participant.type === "volunteer",
-      ),
+    const meetingParticipants = meetings.flatMap(
+      (meeting) => meeting.participants ?? [],
     );
-    const present = volunteerParticipants.filter(
+    const volunteerParticipants = meetingParticipants.filter(
+      (participant) => participant.type === "volunteer",
+    );
+    const partnerParticipants = meetingParticipants.filter(
+      (participant) => participant.type === "partner",
+    );
+    const staffParticipants = meetingParticipants.filter(
+      (participant) => participant.type === "hauptamtliche",
+    );
+    const present = meetingParticipants.filter(
       (participant) =>
         getGroupMeetingAttendanceStatus(participant) === "present",
     ).length;
-    const absent = volunteerParticipants.filter(
+    const absent = meetingParticipants.filter(
       (participant) =>
         getGroupMeetingAttendanceStatus(participant) === "absent",
     ).length;
+    const unknown = meetingParticipants.length - present - absent;
+    const attendanceSegments = [
+      { label: "Anwesend", value: present },
+      { label: "Abwesend", value: absent },
+      { label: "Rückmeldung offen", value: unknown },
+    ].map((segment, index) => ({
+      ...segment,
+      color: ATTENDANCE_CHART_COLORS[index],
+    }));
     const rated = present + absent;
 
     return {
@@ -597,9 +725,12 @@ export default function Dashboard(): JSX.Element {
       ),
       meetingCount: meetings.length,
       invited: volunteerParticipants.length,
+      invitedPartners: partnerParticipants.length,
+      invitedStaff: staffParticipants.length,
       present,
       absent,
-      unknown: volunteerParticipants.length - rated,
+      unknown,
+      attendanceSegments,
       attendanceRate: rated > 0 ? Math.round((present / rated) * 100) : 0,
     };
   }, [dateRange, volunteers, meetingsIndex]);
@@ -629,24 +760,48 @@ export default function Dashboard(): JSX.Element {
     }
   };
 
+  const handleCopyCardCsv = async (
+    title: string,
+    csv: string,
+  ): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(csv);
+      setNotice({
+        type: "success",
+        message: `„${title}“ wurde als CSV in die Zwischenablage kopiert.`,
+      });
+    } catch (error) {
+      setNotice({
+        type: "error",
+        message: `CSV konnte nicht kopiert werden: ${String(error)}`,
+      });
+    }
+  };
+
   const handleCopyCardImage = async (
     title: string,
     cardRef: React.RefObject<HTMLElement | null>,
     button: HTMLButtonElement,
+    mode: "light" | "dark",
   ): Promise<void> => {
     const previousVisibility = button.style.visibility;
+    const root = document.documentElement;
+    const previousTheme = root.getAttribute("data-theme");
     try {
       if (!cardRef.current) {
         throw new Error("Die Statistik-Karte konnte nicht gefunden werden.");
       }
       button.style.visibility = "hidden";
+      root.setAttribute("data-theme", mode);
       await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => resolve()),
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => resolve()),
+        ),
       );
       await copyStatisticsCardImage(cardRef.current);
       setNotice({
         type: "success",
-        message: `„${title}“ wurde vollständig als Bild in die Zwischenablage kopiert.`,
+        message: `„${title}“ wurde im ${mode === "light" ? "Light" : "Dark"} Mode als Bild kopiert.`,
       });
     } catch (error) {
       setNotice({
@@ -655,6 +810,11 @@ export default function Dashboard(): JSX.Element {
       });
     } finally {
       button.style.visibility = previousVisibility;
+      if (previousTheme === null) {
+        root.removeAttribute("data-theme");
+      } else {
+        root.setAttribute("data-theme", previousTheme);
+      }
     }
   };
 
@@ -928,20 +1088,47 @@ export default function Dashboard(): JSX.Element {
                     {format(parseISO(dateTo), "dd.MM.yyyy")}
                   </span>
                 </div>
-                <CopyCardButton
+                <StatisticsCardMenu
                   title="Interessenten-Management"
-                  onClick={(button) =>
+                  onCopyImage={(mode, button) =>
                     void handleCopyCardImage(
                       "Interessenten-Management",
                       interestedCardRef,
                       button,
+                      mode,
+                    )
+                  }
+                  onCopyCsv={() =>
+                    void handleCopyCardCsv(
+                      "Interessenten-Management",
+                      createCardCsv("Interessenten-Management", dateFrom, dateTo, [
+                        ["Eingegangene Anfragen", statistics.interestedCount],
+                        ...(statistics.origins.length > 0
+                          ? statistics.origins.map(
+                              (segment) =>
+                                [segment.label, segment.value] as [
+                                  string,
+                                  number,
+                                ],
+                            )
+                          : [["Keine Anfragen im Zeitraum", 0] as [
+                              string,
+                              number,
+                            ]]),
+                      ]),
                     )
                   }
                 />
               </div>
-              <div className="dashboard-highlight-stat">
-                <strong>{statistics.interestedCount}</strong>
-                <span>Eingegangene Anfragen</span>
+              <div
+                className="dashboard-highlight-stat dashboard-statistics-featured-metric"
+              >
+                <strong className="dashboard-statistics-featured-value">
+                  {statistics.interestedCount}
+                </strong>
+                <span className="dashboard-statistics-metric-label">
+                  Eingegangene Anfragen
+                </span>
               </div>
               <h4>Herkunft der Anfrage</h4>
               <PieChart
@@ -962,32 +1149,71 @@ export default function Dashboard(): JSX.Element {
                     {format(parseISO(dateTo), "dd.MM.yyyy")}
                   </span>
                 </div>
-                <CopyCardButton
+                <StatisticsCardMenu
                   title="Verlauf des Aufnahmeprozesses"
-                  onClick={(button) =>
+                  onCopyImage={(mode, button) =>
                     void handleCopyCardImage(
                       "Verlauf des Aufnahmeprozesses",
                       intakeCardRef,
                       button,
+                      mode,
+                    )
+                  }
+                  onCopyCsv={() =>
+                    void handleCopyCardCsv(
+                      "Verlauf des Aufnahmeprozesses",
+                      createCardCsv(
+                        "Verlauf des Aufnahmeprozesses",
+                        dateFrom,
+                        dateTo,
+                        [
+                          [
+                            "Interessenten im Zeitraum",
+                            statistics.interestedCount,
+                          ],
+                          ...statistics.intakeSegments.map(
+                            (segment) =>
+                              [segment.label, segment.value] as [
+                                string,
+                                number,
+                              ],
+                          ),
+                          [
+                            "Erstgespräche im Zeitraum",
+                            statistics.firstInterviews,
+                          ],
+                          [
+                            "Inaktive/archivierte Interessenten",
+                            statistics.exitedInterestedCount,
+                          ],
+                        ],
+                      ),
                     )
                   }
                 />
               </div>
-              <div className="intake-chart-summary">
-                <strong>{statistics.interestedCount}</strong>
-                <span>Interessenten im Zeitraum</span>
+              <div
+                className="intake-chart-summary dashboard-statistics-featured-metric"
+              >
+                <strong className="dashboard-statistics-featured-value">
+                  {statistics.interestedCount}
+                </strong>
+                <span className="dashboard-statistics-metric-label">
+                  Interessenten im Zeitraum
+                </span>
               </div>
+              <h4>Aktueller Stand der Interessenten</h4>
               <PieChart
                 segments={statistics.intakeSegments}
                 emptyMessage="Keine Interessenten im ausgewählten Zeitraum."
               />
               <div className="dashboard-stat-list">
                 <StatLine
-                  label="Geführte Erstgespräche"
+                  label="Erstgespräche im Zeitraum"
                   value={statistics.firstInterviews}
                 />
                 <StatLine
-                  label="Gesamt inaktiv/archiviert, war Interessent"
+                  label="Inaktive/archivierte Interessenten"
                   value={statistics.exitedInterestedCount}
                 />
               </div>
@@ -1005,13 +1231,40 @@ export default function Dashboard(): JSX.Element {
                     {format(parseISO(dateTo), "dd.MM.yyyy")}
                   </span>
                 </div>
-                <CopyCardButton
+                <StatisticsCardMenu
                   title="Ehrenamt-Übersicht"
-                  onClick={(button) =>
+                  onCopyImage={(mode, button) =>
                     void handleCopyCardImage(
                       "Ehrenamt-Übersicht",
                       volunteerCardRef,
                       button,
+                      mode,
+                    )
+                  }
+                  onCopyCsv={() =>
+                    void handleCopyCardCsv(
+                      "Ehrenamt-Übersicht",
+                      createCardCsv("Ehrenamt-Übersicht", dateFrom, dateTo, [
+                        ["Aktive Ehrenamtliche", statistics.activeNow],
+                        ["Neue Ehrenamtliche", statistics.newVolunteers],
+                        ["Beendete Ehrenamtliche", statistics.endedVolunteers],
+                        [
+                          "Nettoveränderung im Zeitraum",
+                          statistics.newVolunteers - statistics.endedVolunteers,
+                        ],
+                        ...(statistics.terminationReasons.length > 0
+                          ? statistics.terminationReasons.map(
+                              (segment) =>
+                                [segment.label, segment.value] as [
+                                  string,
+                                  number,
+                                ],
+                            )
+                          : [["Keine Beendigungen im Zeitraum", 0] as [
+                              string,
+                              number,
+                            ]]),
+                      ]),
                     )
                   }
                 />
@@ -1020,6 +1273,9 @@ export default function Dashboard(): JSX.Element {
                 <StatLine
                   label="Aktive Ehrenamtliche"
                   value={statistics.activeNow}
+                  change={
+                    statistics.newVolunteers - statistics.endedVolunteers
+                  }
                 />
                 <StatLine
                   label="Neue Ehrenamtliche im Zeitraum"
@@ -1049,13 +1305,46 @@ export default function Dashboard(): JSX.Element {
                     {format(parseISO(dateTo), "dd.MM.yyyy")}
                   </span>
                 </div>
-                <CopyCardButton
+                <StatisticsCardMenu
                   title="Teilnahme an Gruppentreffen"
-                  onClick={(button) =>
+                  onCopyImage={(mode, button) =>
                     void handleCopyCardImage(
                       "Teilnahme an Gruppentreffen",
                       meetingCardRef,
                       button,
+                      mode,
+                    )
+                  }
+                  onCopyCsv={() =>
+                    void handleCopyCardCsv(
+                      "Teilnahme an Gruppentreffen",
+                      createCardCsv(
+                        "Teilnahme an Gruppentreffen",
+                        dateFrom,
+                        dateTo,
+                        [
+                          ["Anzahl Treffen", statistics.meetingCount],
+                          [
+                            "Eingeladene Ehrenamtliche",
+                            statistics.invited,
+                          ],
+                          [
+                            "Eingeladene Kooperationspartner",
+                            statistics.invitedPartners,
+                          ],
+                          [
+                            "Eingeladene Hauptamtliche",
+                            statistics.invitedStaff,
+                          ],
+                          ["Anwesend", statistics.present],
+                          ["Abwesend", statistics.absent],
+                          ["Rückmeldung offen", statistics.unknown],
+                          [
+                            "Teilnahmequote in Prozent",
+                            statistics.attendanceRate,
+                          ],
+                        ],
+                      ),
                     )
                   }
                 />
@@ -1069,9 +1358,21 @@ export default function Dashboard(): JSX.Element {
                   label="Eingeladene Ehrenamtliche"
                   value={statistics.invited}
                 />
-                <StatLine label="Anwesend" value={statistics.present} />
-                <StatLine label="Abwesend" value={statistics.absent} />
-                <StatLine label="Noch offen" value={statistics.unknown} />
+                <StatLine
+                  label="Eingeladene Kooperationspartner"
+                  value={statistics.invitedPartners}
+                />
+                <StatLine
+                  label="Eingeladene Hauptamtliche"
+                  value={statistics.invitedStaff}
+                />
+              </div>
+              <h4>Rückmeldungen zur Teilnahme</h4>
+              <PieChart
+                segments={statistics.attendanceSegments}
+                emptyMessage="Keine Teilnahmen im Zeitraum."
+              />
+              <div className="dashboard-stat-list">
                 <StatLine
                   label="Teilnahmequote (ohne offene Rückmeldungen)"
                   value={`${statistics.attendanceRate} %`}

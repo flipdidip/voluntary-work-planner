@@ -21,7 +21,7 @@ const EMPTY_VOLUNTEER: Omit<
   email: undefined,
   address: undefined,
   emergencyContact: undefined,
-  status: "active",
+  status: "requested",
   statusLog: [], // Will be populated by volunteerFileService on save
   joinedDate: new Date().toISOString().split("T")[0],
   roles: [],
@@ -63,7 +63,7 @@ export default function VolunteerNew(): JSX.Element {
       dateOfBirth: dateOfBirth,
       phone: (fd.get("phone") as string) || undefined,
       email: (fd.get("email") as string) || undefined,
-      status: (fd.get("status") as Volunteer["status"]) ?? "active",
+      status: (fd.get("status") as Volunteer["status"]) ?? "requested",
       joinedDate: (fd.get("joinedDate") as string) || undefined,
       requestOrigin:
         ((fd.get("requestOrigin") as string) || "").trim() || undefined,
@@ -97,7 +97,7 @@ export default function VolunteerNew(): JSX.Element {
           <h3>Basisdaten</h3>
           <label className="status-select-label">
             Status
-            <select className="select" name="status" defaultValue="active">
+            <select className="select" name="status" defaultValue="requested">
               <option value="requested">Angefragt</option>
               <option value="active">Aktiv</option>
               <option value="inactive">Inaktiv</option>
