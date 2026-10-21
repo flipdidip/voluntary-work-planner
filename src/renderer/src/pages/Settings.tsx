@@ -1,17 +1,14 @@
 import { useEffect, useState } from "react";
 import {
-  Copy,
   FileText,
   FolderOpen,
   Info,
   Monitor,
   Moon,
-  Plus,
   Save,
   Shield,
   ShieldAlert,
   Sun,
-  Trash2,
 } from "lucide-react";
 import {
   AuthorizedUserSummary,
@@ -19,10 +16,7 @@ import {
   EncryptionAuditEntry,
   EncryptionStatus,
   EnrollmentRequestSummary,
-  ProcessingActivitiesDocument,
-  ProcessingActivityRecord,
   UserRole,
-  createDefaultProcessingActivitiesDocument,
 } from "@shared/types";
 import PrivacyPolicy from "../components/PrivacyPolicy";
 import { useTheme } from "../hooks/useTheme";
@@ -97,22 +91,12 @@ export default function Settings({
   const [pendingRoleChange, setPendingRoleChange] =
     useState<PendingRoleChange | null>(null);
   const [rotating, setRotating] = useState(false);
-  const [processingDocument, setProcessingDocument] =
-    useState<ProcessingActivitiesDocument | null>(null);
-  const [selectedProcessingActivityId, setSelectedProcessingActivityId] =
-    useState("");
-  const [exportingProcessingActivities, setExportingProcessingActivities] =
-    useState(false);
   const [exportingBusinessAudit, setExportingBusinessAudit] = useState(false);
   const [checkingFolder, setCheckingFolder] = useState(false);
   const [initializingFolder, setInitializingFolder] = useState(false);
   const isLimitedRole = userRole !== "primary";
   const folderNeedsInitialization =
     Boolean(dataPath) && encryptionStatus?.hasManifest === false;
-  const canUseDataFolder =
-    Boolean(dataPath) &&
-    encryptionStatus?.hasManifest === true &&
-    encryptionStatus.authorized;
 
   const refreshEncryptionStatus = async (): Promise<void> => {
     const [
@@ -182,20 +166,6 @@ export default function Settings({
     }
   };
 
-  const loadProcessingActivities = async (): Promise<void> => {
-    try {
-      const document = await window.api.getProcessingActivities();
-      const nextDocument =
-        document || createDefaultProcessingActivitiesDocument();
-      setProcessingDocument(nextDocument);
-      setSelectedProcessingActivityId(nextDocument.activities[0]?.id || "");
-    } catch {
-      const fallback = createDefaultProcessingActivitiesDocument();
-      setProcessingDocument(fallback);
-      setSelectedProcessingActivityId(fallback.activities[0]?.id || "");
-    }
-  };
-
   const formatTimestamp = (timestamp: string): string => {
     return new Date(timestamp).toLocaleString("de-DE");
   };
@@ -217,19 +187,10 @@ export default function Settings({
     }
   };
 
-  const multilineToList = (value: string): string[] =>
-    value
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-  const listToMultiline = (items: string[]): string => items.join("\n");
-
   useEffect(() => {
     window.api.getDataPath().then(setDataPath);
     window.api.getAppVersion().then(setAppVersion);
     refreshEncryptionStatus();
-    loadProcessingActivities();
     window.api.getSettings().then((settings) => {
       setInterval(settings.reminderCheckIntervalMinutes);
       setEnableArchivedRecordDeletion(settings.enableArchivedRecordDeletion);
@@ -249,44 +210,11 @@ export default function Settings({
     });
   }, []);
 
-  useEffect(() => {
-    if (!processingDocument) return;
-    const selectedExists = processingDocument.activities.some(
-      (activity) => activity.id === selectedProcessingActivityId,
-    );
-    if (!selectedExists) {
-      setSelectedProcessingActivityId(
-        processingDocument.activities[0]?.id || "",
-      );
-    }
-  }, [processingDocument, selectedProcessingActivityId]);
-
-  const activeProcessingActivity = processingDocument?.activities.find(
-    (activity) => activity.id === selectedProcessingActivityId,
-  );
-
-  const updateProcessingActivity = (
-    activityId: string,
-    updater: (activity: ProcessingActivityRecord) => ProcessingActivityRecord,
-  ): void => {
-    setProcessingDocument((current) => {
-      if (!current) return current;
-
-      return {
-        ...current,
-        activities: current.activities.map((activity) =>
-          activity.id === activityId ? updater(activity) : activity,
-        ),
-      };
-    });
-  };
-
   const handleSelectFolder = async (): Promise<void> => {
     const path = await window.api.selectDataFolder();
     if (path) {
       setDataPath(path);
       await refreshEncryptionStatus();
-      await loadProcessingActivities();
       window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
     }
   };
@@ -295,7 +223,6 @@ export default function Settings({
     setCheckingFolder(true);
     try {
       await refreshEncryptionStatus();
-      await loadProcessingActivities();
       window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
     } finally {
       setCheckingFolder(false);
@@ -325,7 +252,6 @@ export default function Settings({
       }
 
       await refreshEncryptionStatus();
-      await loadProcessingActivities();
       window.dispatchEvent(new Event(DATA_FOLDER_CHANGED_EVENT));
       alert("Datenordner wurde erfolgreich initialisiert.");
     } finally {
@@ -428,121 +354,6 @@ export default function Settings({
     }
   };
 
-  const handleAddProcessingActivity = (): void => {
-    const newActivity: ProcessingActivityRecord = {
-      id: `activity-${Date.now()}`,
-      name: "Neue Verarbeitungstaetigkeit",
-      controllerName: "",
-      controllerContact: "",
-      dataProtectionContact: "",
-      purposes: "",
-      categoriesOfSubjects: [],
-      categoriesOfData: [],
-      legalBases: [],
-      recipients: [],
-      processors: [],
-      thirdCountryTransfers: "",
-      retentionPolicy: "",
-      technicalMeasures: [],
-      organizationalMeasures: [],
-      systems: [],
-      notes: "",
-      lastReviewedAt: undefined,
-    };
-
-    setProcessingDocument((current) => {
-      const base = current || createDefaultProcessingActivitiesDocument();
-      return {
-        ...base,
-        activities: [...base.activities, newActivity],
-      };
-    });
-    setSelectedProcessingActivityId(newActivity.id);
-  };
-
-  const handleDuplicateProcessingActivity = (): void => {
-    if (!activeProcessingActivity) return;
-
-    const duplicate: ProcessingActivityRecord = {
-      ...activeProcessingActivity,
-      id: `activity-${Date.now()}`,
-      name: `${activeProcessingActivity.name} (Kopie)`,
-    };
-
-    setProcessingDocument((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        activities: [...current.activities, duplicate],
-      };
-    });
-    setSelectedProcessingActivityId(duplicate.id);
-  };
-
-  const handleDeleteProcessingActivity = (): void => {
-    if (!processingDocument || !activeProcessingActivity) return;
-
-    if (processingDocument.activities.length <= 1) {
-      alert(
-        "Mindestens eine Verarbeitungstaetigkeit sollte vorhanden bleiben.",
-      );
-      return;
-    }
-
-    const remaining = processingDocument.activities.filter(
-      (activity) => activity.id !== activeProcessingActivity.id,
-    );
-    setProcessingDocument({
-      ...processingDocument,
-      activities: remaining,
-    });
-    setSelectedProcessingActivityId(remaining[0]?.id || "");
-  };
-
-  const persistProcessingActivities = async (): Promise<boolean> => {
-    if (!dataPath || !processingDocument || !canUseDataFolder) {
-      return true;
-    }
-
-    const result =
-      await window.api.saveProcessingActivities(processingDocument);
-    if (!result.success || !result.document) {
-      alert(
-        result.error ||
-          "Das Verzeichnis von Verarbeitungstaetigkeiten konnte nicht gespeichert werden.",
-      );
-      return false;
-    }
-
-    setProcessingDocument(result.document);
-    return true;
-  };
-
-  const handleExportProcessingActivities = async (): Promise<void> => {
-    if (!dataPath) {
-      alert("Bitte zuerst einen Datenordner auswaehlen.");
-      return;
-    }
-
-    const savedSuccessfully = await persistProcessingActivities();
-    if (!savedSuccessfully) return;
-
-    setExportingProcessingActivities(true);
-    try {
-      const result = await window.api.exportProcessingActivitiesMarkdown();
-      if (!result.success) {
-        alert(result.error || "Export fehlgeschlagen.");
-        return;
-      }
-
-      if (!result.canceled && result.filePath) {
-        alert(`Export gespeichert: ${result.filePath}`);
-      }
-    } finally {
-      setExportingProcessingActivities(false);
-    }
-  };
-
   const handleSave = async (): Promise<void> => {
     if (
       !Number.isInteger(archivedDeletionAfterMonths) ||
@@ -569,9 +380,6 @@ export default function Settings({
       enableActivityTimeAnniversaryReminders: enableActivityTimeAnniversary,
       activityTimeAnniversaryYears: activityTimeAnniversaryYears,
     });
-
-    const savedSuccessfully = await persistProcessingActivities();
-    if (!savedSuccessfully) return;
 
     await refreshEncryptionStatus();
     setSaved(true);
@@ -1365,433 +1173,6 @@ export default function Settings({
         </div>
       </div>
 
-      {!isLimitedRole && (
-        <div className="settings-card card">
-          <div className="processing-header">
-            <div>
-              <h2>
-                <FileText
-                  size={20}
-                  style={{ verticalAlign: "middle", marginRight: "8px" }}
-                />
-                Verzeichnis von Verarbeitungstaetigkeiten
-              </h2>
-              <p className="hint processing-header-hint">
-                Art. 30 DSGVO: Pflegen Sie hier Ihre Verarbeitungstaetigkeiten
-                und exportieren Sie das Verzeichnis als Markdown für interne
-                Dokumentation oder weitere Abstimmung.
-              </p>
-            </div>
-            <button
-              className="btn btn-secondary"
-              type="button"
-              onClick={handleExportProcessingActivities}
-              disabled={!dataPath || exportingProcessingActivities}
-            >
-              <FileText size={16} />
-              {exportingProcessingActivities
-                ? "Export laeuft..."
-                : "Markdown exportieren"}
-            </button>
-          </div>
-
-          {!dataPath ? (
-            <div className="processing-empty-state">
-              Bitte zuerst einen Datenordner auswaehlen. Das Verzeichnis wird
-              verschluesselt im Datenordner gespeichert.
-            </div>
-          ) : (
-            <>
-              <div className="processing-toolbar">
-                <button
-                  className="btn btn-primary"
-                  type="button"
-                  onClick={handleAddProcessingActivity}
-                >
-                  <Plus size={16} /> Neue Taetigkeit
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={handleDuplicateProcessingActivity}
-                  disabled={!activeProcessingActivity}
-                >
-                  <Copy size={16} /> Duplizieren
-                </button>
-                <button
-                  className="btn btn-danger"
-                  type="button"
-                  onClick={handleDeleteProcessingActivity}
-                  disabled={!activeProcessingActivity}
-                >
-                  <Trash2 size={16} /> Loeschen
-                </button>
-              </div>
-
-              <div className="processing-meta-grid">
-                <div>
-                  <span className="hint">Version</span>
-                  <strong>{processingDocument?._version || 1}</strong>
-                </div>
-                <div>
-                  <span className="hint">Letzte Aktualisierung</span>
-                  <strong>
-                    {processingDocument?._updatedAt
-                      ? formatTimestamp(processingDocument._updatedAt)
-                      : "Noch nicht gespeichert"}
-                  </strong>
-                </div>
-              </div>
-
-              <div className="processing-layout">
-                <div className="processing-sidebar">
-                  {(processingDocument?.activities || []).map((activity) => (
-                    <button
-                      key={activity.id}
-                      type="button"
-                      className={`processing-nav-item ${activity.id === selectedProcessingActivityId ? "active" : ""}`}
-                      onClick={() =>
-                        setSelectedProcessingActivityId(activity.id)
-                      }
-                    >
-                      <strong>
-                        {activity.name || "Unbenannte Taetigkeit"}
-                      </strong>
-                      <span className="hint">
-                        {activity.legalBases[0] || "Rechtsgrundlage ergaenzen"}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                {activeProcessingActivity ? (
-                  <div className="processing-editor">
-                    <div className="processing-form-grid">
-                      <label>
-                        Name der Verarbeitungstaetigkeit
-                        <input
-                          className="input"
-                          value={activeProcessingActivity.name}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                name: e.target.value,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Verantwortlicher
-                        <input
-                          className="input"
-                          value={activeProcessingActivity.controllerName}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                controllerName: e.target.value,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Kontakt Verantwortlicher
-                        <textarea
-                          className="textarea"
-                          value={activeProcessingActivity.controllerContact}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                controllerContact: e.target.value,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Datenschutzkontakt
-                        <textarea
-                          className="textarea"
-                          value={activeProcessingActivity.dataProtectionContact}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                dataProtectionContact: e.target.value,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="processing-field-full">
-                        Zwecke der Verarbeitung
-                        <textarea
-                          className="textarea"
-                          value={activeProcessingActivity.purposes}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                purposes: e.target.value,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Kategorien betroffener Personen
-                        <textarea
-                          className="textarea"
-                          value={listToMultiline(
-                            activeProcessingActivity.categoriesOfSubjects,
-                          )}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                categoriesOfSubjects: multilineToList(
-                                  e.target.value,
-                                ),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Kategorien personenbezogener Daten
-                        <textarea
-                          className="textarea"
-                          value={listToMultiline(
-                            activeProcessingActivity.categoriesOfData,
-                          )}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                categoriesOfData: multilineToList(
-                                  e.target.value,
-                                ),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Rechtsgrundlagen
-                        <textarea
-                          className="textarea"
-                          value={listToMultiline(
-                            activeProcessingActivity.legalBases,
-                          )}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                legalBases: multilineToList(e.target.value),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Empfaenger
-                        <textarea
-                          className="textarea"
-                          value={listToMultiline(
-                            activeProcessingActivity.recipients,
-                          )}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                recipients: multilineToList(e.target.value),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Auftragsverarbeiter
-                        <textarea
-                          className="textarea"
-                          value={listToMultiline(
-                            activeProcessingActivity.processors,
-                          )}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                processors: multilineToList(e.target.value),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Systeme und Speicherorte
-                        <textarea
-                          className="textarea"
-                          value={listToMultiline(
-                            activeProcessingActivity.systems,
-                          )}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                systems: multilineToList(e.target.value),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="processing-field-full">
-                        Drittlandtransfer
-                        <textarea
-                          className="textarea"
-                          value={activeProcessingActivity.thirdCountryTransfers}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                thirdCountryTransfers: e.target.value,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="processing-field-full">
-                        Speicherfristen und Loeschkonzept
-                        <textarea
-                          className="textarea"
-                          value={activeProcessingActivity.retentionPolicy}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                retentionPolicy: e.target.value,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Technische Massnahmen
-                        <textarea
-                          className="textarea"
-                          value={listToMultiline(
-                            activeProcessingActivity.technicalMeasures,
-                          )}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                technicalMeasures: multilineToList(
-                                  e.target.value,
-                                ),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Organisatorische Massnahmen
-                        <textarea
-                          className="textarea"
-                          value={listToMultiline(
-                            activeProcessingActivity.organizationalMeasures,
-                          )}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                organizationalMeasures: multilineToList(
-                                  e.target.value,
-                                ),
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Letzte Pruefung
-                        <input
-                          className="input"
-                          type="date"
-                          value={activeProcessingActivity.lastReviewedAt || ""}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                lastReviewedAt: e.target.value || undefined,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="processing-field-full">
-                        Notizen
-                        <textarea
-                          className="textarea"
-                          value={activeProcessingActivity.notes}
-                          onChange={(e) =>
-                            updateProcessingActivity(
-                              activeProcessingActivity.id,
-                              (activity) => ({
-                                ...activity,
-                                notes: e.target.value,
-                              }),
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="processing-empty-state">
-                    Keine Verarbeitungstaetigkeit ausgewaehlt.
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
       <div className="settings-actions">
         {saved && (
           <span className="success-msg">Einstellungen gespeichert!</span>
