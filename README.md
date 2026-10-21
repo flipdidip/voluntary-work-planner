@@ -65,6 +65,7 @@ Entwickelt fuer deutsche gemeinnuetzige Vereine, insbesondere Teams in der Sterb
 - Vollzugriff-Benutzer koennen die Sichtbarkeit von Ehrenamtlichen und Kooperationspartnern fuer interne Mitarbeitende einzeln steuern. Die Freigabe ist standardmaessig deaktiviert und unabhaengig von der Oeffentlichkeitsarbeits-Freigabe.
 - Interne Mitarbeitende koennen zu freigegebenen Datensaetzen neue Akte-Eintraege mit Titel, Beschreibung und optionaler Datei hinzufuegen. Sie koennen weder bestehende Akte-Eintraege sehen noch Akteninhalte oeffnen oder bearbeiten.
 - Kontaktspalten in der Ehrenamtliche-Kontaktuebersicht, der Oeffentlichkeitsarbeit und der internen Uebersicht zeigen Telefon, Mobilnummer und E-Mail als Symbole. Hover zeigt den Kontaktwert; Klick kopiert ihn und zeigt eine Snackbar-Bestaetigung.
+- Die Seitenleiste zeigt den aktuellen Benutzernamen und den Autorisierungsstatus an.
 
 ## DSGVO / GDPR
 
@@ -137,6 +138,31 @@ The installer and portable package are generated in `release/`.
 
 > Windows SmartScreen warnings are expected for unsigned builds.
 > Use `npm run dist:win:signed` when a code-signing cert is available.
+
+### Tests and pull-request checks
+
+Run the unit tests locally:
+
+```bash
+npm test
+```
+
+Generate a coverage report:
+
+```bash
+npm run test -- --coverage
+```
+
+Pull requests run tests with coverage, lint, TypeScript checks, a production
+build, and `npm audit`. Coverage and dependency audit results are included in
+the GitHub Actions run summary. Tests cover shared domain calculations,
+date/time helpers, volunteer sorting, encrypted data serialization, and
+volunteer file operations.
+
+Dependabot is configured to open monthly dependency update pull requests for
+npm packages and GitHub Actions. Enable the dependency graph, Dependabot
+alerts, and Dependabot security updates in the repository settings to receive
+security alerts and automated security-fix pull requests.
 
 ## Data Folder Structure
 
