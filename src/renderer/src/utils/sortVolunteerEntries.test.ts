@@ -46,4 +46,23 @@ describe("sortVolunteerEntries", () => {
       ["1", "2", "3", "4"],
     );
   });
+
+  it("places invalid joined dates with undated entries and sorts those by name", () => {
+    const entriesWithInvalidDate = [
+      entry("1", "Zoe", "Zimmer", "not-a-date"),
+      entry("2", "Ada", "Adler"),
+      entry("3", "Berta", "Adler", "2023-01-01"),
+    ];
+
+    expect(
+      sortVolunteerEntries(entriesWithInvalidDate, "joined-asc").map(
+        ({ id }) => id,
+      ),
+    ).toEqual(["3", "2", "1"]);
+    expect(
+      sortVolunteerEntries(entriesWithInvalidDate, "joined-desc").map(
+        ({ id }) => id,
+      ),
+    ).toEqual(["3", "2", "1"]);
+  });
 });
