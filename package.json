@@ -17,6 +17,7 @@
     "dist:win": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
     "dist:win:signed": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --win",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "vitest run",
     "typecheck": "npm run typecheck:renderer && npm run typecheck:node",
     "typecheck:renderer": "tsc --noEmit -p tsconfig.json",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json"
@@ -46,6 +47,7 @@
     "electron-vite": "^5.0.0",
     "eslint": "^9.14.0",
     "typescript": "^5.6.3",
+    "vitest": "^4.1.12",
     "vite": "^7.3.1"
   },
   "overrides": {
