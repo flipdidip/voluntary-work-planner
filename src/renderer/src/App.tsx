@@ -297,6 +297,8 @@ export default function App(): JSX.Element {
       <Layout
         settingsBadgeCount={encryptionStatus?.pendingRequestCount || 0}
         userRole={userRole}
+        currentUser={encryptionStatus?.currentUser}
+        userAuthorized={encryptionStatus?.authorized}
       >
         <Routes>
           {userRole === "public-relations" ? (

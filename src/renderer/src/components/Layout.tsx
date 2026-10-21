@@ -19,6 +19,8 @@ interface LayoutProps {
   settingsBadgeCount?: number;
   /** Current user’s authorization role. Defaults to "primary" (full access). */
   userRole?: UserRole;
+  currentUser?: string;
+  userAuthorized?: boolean;
 }
 
 const navItems = [
@@ -86,6 +88,8 @@ export default function Layout({
   children,
   settingsBadgeCount = 0,
   userRole = "primary",
+  currentUser,
+  userAuthorized = false,
 }: LayoutProps): JSX.Element {
   const visibleNavItems =
     userRole === "public-relations"
@@ -152,6 +156,18 @@ export default function Layout({
           ))}
         </nav>
         <div className="sidebar-footer">
+          {currentUser && (
+            <div className="sidebar-user">
+              <span className="sidebar-user-name" title={currentUser}>
+                {currentUser}
+              </span>
+              <span className="sidebar-user-role">
+                {userAuthorized
+                  ? getRoleLabel(userRole)
+                  : "Nicht freigegeben"}
+              </span>
+            </div>
+          )}
           <span className="version-label">
             v{typeof APP_VERSION !== "undefined" ? APP_VERSION : "0.1.0"}
           </span>
@@ -160,6 +176,19 @@ export default function Layout({
       <main className="main-content">{children}</main>
     </div>
   );
+}
+
+function getRoleLabel(role: UserRole): string {
+  switch (role) {
+    case "primary":
+      return "Vollzugriff";
+    case "partner-only":
+      return "Nur Kooperationspartner";
+    case "public-relations":
+      return "Öffentlichkeitsarbeit";
+    case "intern-read-only":
+      return "Interne Mitarbeitende (nur Lesezugriff)";
+  }
 }
 
 // Vite injects this at build time via define config
